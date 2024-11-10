@@ -1,5 +1,3 @@
-#include <format>
-
 #include <grpcpp/server.h>
 #include <grpcpp/server_builder.h>
 #include <grpcpp/ext/proto_server_reflection_plugin.h>
@@ -8,7 +6,7 @@
 
 int main(int argc, const char** argv)
 {
-    std::printf("Starting...\n");
+    std::cerr << "Starting...\n";
     const auto port = argc >= 2 ? argv[1] : "50051";
     const auto host = std::format("0.0.0.0:{}", port);
 
@@ -23,7 +21,7 @@ int main(int argc, const char** argv)
     const auto server = builder.BuildAndStart();
     server->Wait();
 
-    std::printf("Exit...\n");
+    std::cerr << "Exit...\n";
     return 0;
 }
 
