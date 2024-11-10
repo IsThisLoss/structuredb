@@ -1,5 +1,6 @@
 clean:
 	rm -rf build CMakeUserPresets.json
+
 install-deps:
 	conan install conanfile.txt --build=missing
 
@@ -10,4 +11,4 @@ build: cmake
 	cmake --build --preset conan-release
 
 run: build
-	./build/Release/structuredb
+	./build/Release/src/server/structuredb-server

@@ -1,5 +1,4 @@
 [requires]
-asio-grpc/2.9.2
 grpc/1.54.3
 boost/1.83.0
 protobuf/3.21.12

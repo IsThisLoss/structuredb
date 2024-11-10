@@ -6,9 +6,9 @@ set(CMAKE_CXX_STANDARD 20)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-find_package(asio-grpc REQUIRED)
+find_package(Boost)
+find_package(Protobuf)
+find_package(gRPC)
 
 add_subdirectory(proto)
-
-add_executable(${PROJECT_NAME} src/main.cpp)
-target_link_libraries(${PROJECT_NAME} PUBLIC structuredb-proto asio-grpc::asio-grpc)
+add_subdirectory(src/server)
