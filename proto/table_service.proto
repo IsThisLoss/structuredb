@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package structuredb.v1;
+
+message UpsertTableRequest {
+  string key = 1;
+  string value = 2;
+}
+
+message UpsertTableResponse {
+}
+
+message LookupTableRequest {
+  string key = 1;
+}
+
+message LookupTableResponse {
+  optional string value = 1;
+}
+
+service Tables {
+  rpc Upsert(UpsertTableRequest) returns (UpsertTableResponse) {}
+  rpc Lookup(LookupTableRequest) returns (LookupTableResponse) {}
+}
