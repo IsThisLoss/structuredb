@@ -2,6 +2,8 @@
 
 #include <utils/find.hpp>
 
+#include "disk/file_builder.hpp"
+
 namespace structuredb::server::lsm {
 
 void MemTable::Put(const std::string& key, const std::string& value) {
@@ -19,6 +21,18 @@ std::optional<std::string> MemTable::Get(const std::string& key) const {
 size_t MemTable::Size() const {
   return impl_.size();
 
+}
+
+SSTable MemTable::Flush(const std::string& file_path) const {
+  constexpr static const int64_t kPageSize = 8;
+
+  disk::FileBuilder file_builder{file_path, kPageSize};
+  for (const auto& [key, value] : impl_) {
+    file_builder.Add(key, value);
+  }
+  std::move(file_builder).Finish();
+
+  return SSTable{file_path};
 }
 
 }
