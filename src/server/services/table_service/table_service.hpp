@@ -8,6 +8,8 @@ namespace structuredb::server::services {
 
 class TableServiceImpl : public ::structuredb::v1::Tables::CallbackService {
 public:
+  explicit TableServiceImpl(boost::asio::io_context& io_context);
+
   grpc::ServerUnaryReactor* Upsert(
       grpc::CallbackServerContext* context,
       const ::structuredb::v1::UpsertTableRequest* request,
@@ -21,10 +23,11 @@ public:
   ) override;
 
 private:
+  boost::asio::io_context& io_context_;
   std::mutex mu_;
   lsm::Lsm lsm_;
 };
 
-std::unique_ptr<grpc::Service> MakeService();
+std::unique_ptr<grpc::Service> MakeService(boost::asio::io_context& io_context);
 
 }

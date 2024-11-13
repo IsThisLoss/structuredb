@@ -14,7 +14,7 @@ public:
 
   size_t Size() const;
 
-  SSTable Flush(const std::string& file_path) const;
+  boost::asio::awaitable<SSTable> Flush(boost::asio::io_context& io_context, const std::string& file_path) const;
 private:
   std::map<std::string, std::string> impl_;
 };

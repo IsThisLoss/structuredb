@@ -12,6 +12,7 @@ FileBuilder::FileBuilder(const std::string& path, const int64_t page_size)
 }
 
 FileBuilder& FileBuilder::Add(const std::string& key, const std::string& value) {
+
   current_page_.Add(key, value);
   if (++added_ > page_size_) {
     current_page_.Serialize(of_);

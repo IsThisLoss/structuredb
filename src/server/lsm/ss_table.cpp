@@ -2,8 +2,8 @@
 
 namespace structuredb::server::lsm {
 
-SSTable::SSTable(const std::string& file_path)
-  : file_{disk::File::Load(file_path)}
+SSTable::SSTable(disk::File file)
+  : file_{std::move(file)}
 {}
 
 std::optional<std::string> SSTable::Get(const std::string& key) const {

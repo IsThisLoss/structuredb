@@ -1,12 +1,12 @@
 #pragma once
 
-#include <istream>
+#include <io/file_reader.hpp>
 
 namespace structuredb::server::lsm::disk {
 
 class Page {
 public:
-  static Page Load(std::istream& is);
+  static boost::asio::awaitable<Page> Load(io::FileReader& file_reader);
 
   std::optional<std::string> Find(const std::string& key) const;
 private:

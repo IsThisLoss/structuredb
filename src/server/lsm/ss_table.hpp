@@ -8,7 +8,7 @@ namespace structuredb::server::lsm {
 
 class SSTable {
 public:
-  explicit SSTable(const std::string& file_path);
+  explicit SSTable(disk::File file);
 
   std::optional<std::string> Get(const std::string& key) const;
 private:

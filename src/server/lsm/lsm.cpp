@@ -11,7 +11,11 @@ const std::string kFilePath = "/tmp/structuredb.sstable";
 
 }
 
-void Lsm::Put(const std::string& key, const std::string& value) {
+Lsm::Lsm(boost::asio::io_context& io_context)
+  : io_context_{io_context}
+{}
+
+boost::asio::awaitable<void> Lsm::Put(const std::string& key, const std::string& value) {
   mem_table_.Put(key, value);
 
   if (mem_table_.Size() > kMaxTableSize) {
@@ -22,11 +26,12 @@ void Lsm::Put(const std::string& key, const std::string& value) {
 
   if (ro_mem_tables_.size() > kMaxRoMemTables) {
     std::cerr << "Ro Mem tables reached max size, flush it\n";
-    ss_tables_.push_back(ro_mem_tables_.front().Flush(kFilePath));
+    ss_tables_.push_back(co_await ro_mem_tables_.front().Flush(io_context_, kFilePath));
     // FIXME use circular buffer
     ro_mem_tables_.erase(ro_mem_tables_.begin());
   }
-
+  
+  std::cerr << "Exit Lsm Put\n";
 }
 
 std::optional<std::string> Lsm::Get(const std::string& key) {

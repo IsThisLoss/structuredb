@@ -1,23 +1,25 @@
 #include "file.hpp"
 
-#include <fstream>
-#include <cassert>
+#include <iostream>
 
 namespace structuredb::server::lsm::disk {
 
-File File::Load(const std::string& path) {
+boost::asio::awaitable<File> File::Load(boost::asio::io_context& io_context, const std::string& path) {
   File result{};
 
-  std::ifstream ifs;
-  ifs.open(path, std::ios::binary);
-  assert(ifs.is_open());
+  io::FileReader file_reader(io_context, path);
 
-  while (!ifs.eof()) {
-    auto page = Page::Load(ifs);
-    result.pages_.push_back(std::move(page));
+  while (true) {
+    try {
+      auto page = co_await Page::Load(file_reader);
+      result.pages_.push_back(std::move(page));
+    } catch (const std::exception& e) {
+      std::cerr << "Exception: " << e.what();
+      break;
+    }
   }
 
-  return result;
+  co_return result;
 }
 
 std::optional<std::string> File::Find(const std::string& key) const {

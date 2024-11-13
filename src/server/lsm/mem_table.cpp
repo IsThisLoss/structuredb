@@ -23,7 +23,7 @@ size_t MemTable::Size() const {
 
 }
 
-SSTable MemTable::Flush(const std::string& file_path) const {
+boost::asio::awaitable<SSTable> MemTable::Flush(boost::asio::io_context& io_context, const std::string& file_path) const {
   constexpr static const int64_t kPageSize = 8;
 
   disk::FileBuilder file_builder{file_path, kPageSize};
@@ -32,7 +32,8 @@ SSTable MemTable::Flush(const std::string& file_path) const {
   }
   std::move(file_builder).Finish();
 
-  return SSTable{file_path};
+  auto file = co_await disk::File::Load(io_context, file_path);
+  co_return SSTable{std::move(file)};
 }
 
 }
