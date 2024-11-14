@@ -32,10 +32,12 @@ Awaitable<size_t> FileReader::Read(char* buffer, size_t size) {
     std::cerr << "Read: " << e.what();
     throw;
   }
+    co_return 0;
 }
 
 Awaitable<void> FileReader::Seek(size_t pos) {
-  ::lseek(stream_.native_handle(), pos, SEEK_SET);
+  auto off = ::lseek(stream_.native_handle(), pos, SEEK_SET);
+  std::cerr << "lseek: " << off << std::endl;
   co_return;
 }
 

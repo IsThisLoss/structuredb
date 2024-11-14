@@ -1,10 +1,13 @@
 #include "page.hpp"
 
+#include <iostream>
+
 namespace structuredb::server::lsm::disk {
 
 Awaitable<int64_t> LoadInt(io::FileReader& is) {
   int64_t size{0};
-  co_await is.Read(reinterpret_cast<char*>(&size), sizeof(size));
+  co_await is.Read(reinterpret_cast<char*>(&size), sizeof(int64_t));
+  std::cerr << "Read int: " << size << std::endl;
   co_return size;
 }
 
@@ -19,6 +22,7 @@ Awaitable<std::string> LoadString(io::FileReader& is) {
 Awaitable<Page> Page::Load(io::FileReader& file_reader) {
   Page page{};
   page.size_ = co_await LoadInt(file_reader);
+  std::cerr << "Load page with size: " << page.size_ << std::endl;
   page.keys_.reserve(page.size_);
   page.values_.reserve(page.size_);
   for (int i = 0; i < page.size_; i++) {

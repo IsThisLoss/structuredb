@@ -1,5 +1,7 @@
 #pragma once
 
+#include <optional>
+
 #include <io/file_reader.hpp>
 
 namespace structuredb::server::lsm::disk {

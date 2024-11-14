@@ -18,7 +18,7 @@ FileWriter::FileWriter(boost::asio::io_context& io_context, const std::string& p
     perror("Failed to open file");
   }
   stream_.assign(fd);
-  std::cerr << "Opened " << path << " for write\n";
+  std::cerr << "Opened " << path << " " << fd << " for write\n";
 }
 
 Awaitable<size_t> FileWriter::Write(char* buffer, size_t size) {

@@ -1,7 +1,5 @@
 #include "lsm.hpp"
 
-#include <format>
-
 #include <iostream>
 
 namespace structuredb::server::lsm {
@@ -28,7 +26,7 @@ Awaitable<void> Lsm::Put(const std::string& key, const std::string& value) {
 
   if (ro_mem_tables_.size() > kMaxRoMemTables) {
     std::cerr << "Ro Mem tables reached max size, flush it\n";
-    const auto file_path = std::format("/tmp/sstable_{}.structuredb", ss_tables_.size());
+    const auto file_path = "/tmp/sstable_" + std::to_string(ss_tables_.size()) + ".structuredb";
     auto ss_table = co_await ro_mem_tables_.front().Flush(io_manager_, file_path);
     ss_tables_.push_back(std::move(ss_table));
     // FIXME use circular buffer
