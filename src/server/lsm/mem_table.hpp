@@ -2,6 +2,8 @@
 
 #include <map>
 
+#include <io/manager.hpp>
+
 #include "ss_table.hpp"
 
 namespace structuredb::server::lsm {
@@ -14,7 +16,7 @@ public:
 
   size_t Size() const;
 
-  boost::asio::awaitable<SSTable> Flush(boost::asio::io_context& io_context, const std::string& file_path) const;
+  Awaitable<SSTable> Flush(io::Manager& io_manager, const std::string& file_path) const;
 private:
   std::map<std::string, std::string> impl_;
 };

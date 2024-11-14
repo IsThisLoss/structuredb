@@ -2,15 +2,13 @@
 
 namespace structuredb::server::lsm::disk {
 
-namespace {
-
-boost::asio::awaitable<int64_t> LoadInt(io::FileReader& is) {
+Awaitable<int64_t> LoadInt(io::FileReader& is) {
   int64_t size{0};
   co_await is.Read(reinterpret_cast<char*>(&size), sizeof(size));
   co_return size;
 }
 
-boost::asio::awaitable<std::string> LoadString(io::FileReader& is) {
+Awaitable<std::string> LoadString(io::FileReader& is) {
   const int64_t size = co_await LoadInt(is);
   std::string result;
   result.resize(size);
@@ -18,26 +16,16 @@ boost::asio::awaitable<std::string> LoadString(io::FileReader& is) {
   co_return result;
 }
 
-}
-
-boost::asio::awaitable<Page> Page::Load(io::FileReader& file_reader) {
-  const int64_t size = co_await LoadInt(file_reader);
-
-  Page result{};
-  result.keys_.reserve(size);
-  result.values_.reserve(size);
-
-  for (int64_t i = 0; i < size; i++) {
-    auto key = co_await LoadString(file_reader);
-    result.keys_.push_back(std::move(key));
+Awaitable<Page> Page::Load(io::FileReader& file_reader) {
+  Page page{};
+  page.size_ = co_await LoadInt(file_reader);
+  page.keys_.reserve(page.size_);
+  page.values_.reserve(page.size_);
+  for (int i = 0; i < page.size_; i++) {
+    page.keys_.push_back(co_await LoadString(file_reader));
+    page.values_.push_back(co_await LoadString(file_reader));
   }
-
-  for (int64_t i = 0; i < size; i++) {
-    auto value = co_await LoadString(file_reader);
-    result.values_.push_back(std::move(value));
-  }
-
-  co_return result;
+  co_return page;
 }
 
 std::optional<std::string> Page::Find(const std::string& key) const {
@@ -48,6 +36,14 @@ std::optional<std::string> Page::Find(const std::string& key) const {
   const auto offset = std::distance(keys_.begin(), it);
   auto result_it = std::next(values_.begin(), offset);
   return std::make_optional(*result_it);
+}
+
+const std::string& Page::MinKey() const {
+  return keys_.front();
+}
+
+const std::string& Page::MaxKey() const {
+  return keys_.back();
 }
 
 }

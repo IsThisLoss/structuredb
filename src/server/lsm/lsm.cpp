@@ -1,5 +1,7 @@
 #include "lsm.hpp"
 
+#include <format>
+
 #include <iostream>
 
 namespace structuredb::server::lsm {
@@ -11,11 +13,11 @@ const std::string kFilePath = "/tmp/structuredb.sstable";
 
 }
 
-Lsm::Lsm(boost::asio::io_context& io_context)
-  : io_context_{io_context}
+Lsm::Lsm(io::Manager& io_manager)
+  : io_manager_{io_manager}
 {}
 
-boost::asio::awaitable<void> Lsm::Put(const std::string& key, const std::string& value) {
+Awaitable<void> Lsm::Put(const std::string& key, const std::string& value) {
   mem_table_.Put(key, value);
 
   if (mem_table_.Size() > kMaxTableSize) {
@@ -26,7 +28,9 @@ boost::asio::awaitable<void> Lsm::Put(const std::string& key, const std::string&
 
   if (ro_mem_tables_.size() > kMaxRoMemTables) {
     std::cerr << "Ro Mem tables reached max size, flush it\n";
-    ss_tables_.push_back(co_await ro_mem_tables_.front().Flush(io_context_, kFilePath));
+    const auto file_path = std::format("/tmp/sstable_{}.structuredb", ss_tables_.size());
+    auto ss_table = co_await ro_mem_tables_.front().Flush(io_manager_, file_path);
+    ss_tables_.push_back(std::move(ss_table));
     // FIXME use circular buffer
     ro_mem_tables_.erase(ro_mem_tables_.begin());
   }
@@ -34,10 +38,10 @@ boost::asio::awaitable<void> Lsm::Put(const std::string& key, const std::string&
   std::cerr << "Exit Lsm Put\n";
 }
 
-std::optional<std::string> Lsm::Get(const std::string& key) {
+Awaitable<std::optional<std::string>> Lsm::Get(const std::string& key) {
   auto value = mem_table_.Get(key);
   if (value.has_value()) {
-    return value;
+    co_return value;
   }
 
   std::cerr << "Did not find key " << key << " in active mem table, will search in frozen mem tables\n";
@@ -46,20 +50,20 @@ std::optional<std::string> Lsm::Get(const std::string& key) {
   for (auto it = ro_mem_tables_.rbegin(); it != ro_mem_tables_.rend(); ++it) {
     value = it->Get(key);
     if (value.has_value()) {
-      return value;
+      co_return value;
     }
   }
 
   std::cerr << "Did not find key " << key << " in ro mem table, will search in ss tables\n";
 
   for (auto it = ss_tables_.rbegin(); it != ss_tables_.rend(); ++it) {
-    value = it->Get(key);
+    value = co_await it->Get(key);
     if (value.has_value()) {
-      return value;
+      co_return value;
     }
   }
 
-  return std::nullopt;
+  co_return std::nullopt;
 }
 
 }

@@ -8,6 +8,8 @@
 
 #include <boost/asio/io_context.hpp>
 
+#include <io/manager.hpp>
+
 int main(int argc, const char** argv)
 {
     std::cerr << "Starting...\n";
@@ -20,8 +22,9 @@ int main(int argc, const char** argv)
     builder.AddListeningPort(host, grpc::InsecureServerCredentials());
 
     boost::asio::io_context io_context{};
+    structuredb::server::io::Manager io_manager{io_context};
 
-    const auto table_service = structuredb::server::services::MakeService(io_context);
+    const auto table_service = structuredb::server::services::MakeService(io_manager);
     builder.RegisterService(table_service.get());
 
     std::thread asio_thread([&io_context]() {

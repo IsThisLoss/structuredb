@@ -1,8 +1,10 @@
 #include "mem_table.hpp"
 
+#include <iostream>
+
 #include <utils/find.hpp>
 
-#include "disk/file_builder.hpp"
+#include "disk/ss_table_builder.hpp"
 
 namespace structuredb::server::lsm {
 
@@ -23,17 +25,32 @@ size_t MemTable::Size() const {
 
 }
 
-boost::asio::awaitable<SSTable> MemTable::Flush(boost::asio::io_context& io_context, const std::string& file_path) const {
+Awaitable<SSTable> MemTable::Flush(io::Manager& io_manager, const std::string& file_path) const {
   constexpr static const int64_t kPageSize = 8;
 
-  disk::FileBuilder file_builder{file_path, kPageSize};
-  for (const auto& [key, value] : impl_) {
-    file_builder.Add(key, value);
-  }
-  std::move(file_builder).Finish();
+  std::cerr << "MemTable flush start\n";
 
-  auto file = co_await disk::File::Load(io_context, file_path);
-  co_return SSTable{std::move(file)};
+  // This bock is important because
+  // file_writer closes file in destructor
+  {
+    auto file_writer = io_manager.CreateFileWriter(file_path);
+    std::cerr << "FileWriter created\n";
+    disk::SSTableBuilder builder{file_writer, kPageSize};
+    std::cerr << "SSTableBuilder created\n";
+    co_await builder.Init();
+    std::cerr << "SSTableBuilder initialized\n";
+
+    for (const auto& [key, value] : impl_) {
+      co_await builder.Add(key, value);
+    }
+    co_await std::move(builder).Finish();
+    std::cerr << "SSTableBuilder finished\n";
+  }
+
+  auto file_reader = io_manager.CreateFileReader(file_path);
+  SSTable ss_table{std::move(file_reader)};
+  co_await ss_table.Init();
+  co_return ss_table;
 }
 
 }
