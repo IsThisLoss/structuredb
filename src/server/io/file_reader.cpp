@@ -26,7 +26,9 @@ FileReader::FileReader(boost::asio::io_context& io_context, const std::string& p
 
 FileReader::FileReader(FileReader&& other)
   : io_context_{other.io_context_}, stream_{std::move(other.stream_)}
-{}
+{
+  other.stream_.release();
+}
 
 Awaitable<size_t> FileReader::Read(char* buffer, size_t size) {
   try {
@@ -36,6 +38,7 @@ Awaitable<size_t> FileReader::Read(char* buffer, size_t size) {
     );
     co_return result;
   } catch (const std::exception& e) {
+    perror("Unable to read");
     std::cerr << "Read: " << e.what();
     throw;
   }
