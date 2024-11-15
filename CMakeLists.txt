@@ -14,3 +14,4 @@ find_package(gRPC)
 
 add_subdirectory(proto)
 add_subdirectory(src/server)
+add_subdirectory(src/cli)

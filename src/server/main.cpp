@@ -10,8 +10,7 @@
 
 #include <io/manager.hpp>
 
-int main(int argc, const char** argv)
-{
+int main(int argc, const char** argv) {
     std::cerr << "Starting...\n";
     const auto port = argc >= 2 ? argv[1] : "50051";
     const auto host = std::string{"0.0.0.0:"} + port;
