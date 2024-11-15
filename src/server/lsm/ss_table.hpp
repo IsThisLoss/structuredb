@@ -30,7 +30,6 @@ private:
    *    keys:   string[]
    *    values: string[]
    */
-  io::FileReader::Ptr file_reader_;
   sdb::Reader sdb_reader_;
   disk::SSTableHeader header_{};
   int64_t header_size_{};

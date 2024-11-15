@@ -16,12 +16,14 @@ public:
 
   FileReader::Ptr CreateFileReader(const std::string& path) const;
 
-  FileWriter CreateFileWriter(const std::string& path) const;
+  FileWriter::Ptr CreateFileWriter(const std::string& path) const;
 
   template <std::invocable<> Coro>
   void CoSpawn(Coro&& coro) const {
-    boost::asio::co_spawn(io_context_, std::forward<Coro>(coro), boost::asio::use_future).get();
+    boost::asio::co_spawn(io_context_, std::forward<Coro>(coro), boost::asio::detached);
   }
+
+  Awaitable<bool> IsFileExists(const std::string& path) const;
 
 private:
   boost::asio::io_context& io_context_;

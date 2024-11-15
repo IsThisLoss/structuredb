@@ -11,8 +11,7 @@ Awaitable<SSTable> SSTable::Create(io::FileReader::Ptr file_reader) {
 }
 
 SSTable::SSTable(io::FileReader::Ptr file_reader)
-  : file_reader_{std::move(file_reader)}
-  , sdb_reader_{*file_reader_}
+  : sdb_reader_{std::move(file_reader)}
 {}
 
 Awaitable<void> SSTable::Init() {
@@ -58,7 +57,7 @@ Awaitable<std::optional<std::string>> SSTable::Get(const std::string& key) {
 }
 
 Awaitable<void> SSTable::SetFilePos(size_t pos) {
-  co_await file_reader_->Seek(header_size_ + pos);
+  co_await sdb_reader_.Seek(header_size_ + pos);
 }
 
 }

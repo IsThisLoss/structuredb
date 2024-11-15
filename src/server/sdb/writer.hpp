@@ -7,7 +7,11 @@ namespace structuredb::server::sdb {
 /// @brief helper class to write into .sdb files
 class Writer {
 public:
-  explicit Writer(io::FileWriter& file_writer);
+  explicit Writer(io::FileWriter::Ptr file_writer);
+
+  Awaitable<void> Rewind();
+
+  Awaitable<void> FSync();
 
   /// @brief reads string from reader provided in constructor
   Awaitable<void> WriteString(const std::string& value);
@@ -21,7 +25,7 @@ public:
   /// @brief returns size of value after serialization
   static size_t EstimateSize(const std::string& value);
 private:
-  io::FileWriter& file_writer_;
+  io::FileWriter::Ptr file_writer_;
 };
 
 }

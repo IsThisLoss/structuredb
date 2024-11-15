@@ -9,9 +9,9 @@ namespace structuredb::server::lsm::disk {
 
 class SSTableBuilder {
 public:
-  static Awaitable<SSTableBuilder> Create(io::FileWriter& file_writer, const int64_t page_size);
+  static Awaitable<SSTableBuilder> Create(io::FileWriter::Ptr file_writer, const int64_t page_size);
 
-  explicit SSTableBuilder(io::FileWriter& file_writer, const int64_t page_size);
+  explicit SSTableBuilder(io::FileWriter::Ptr file_writer, const int64_t page_size);
 
   Awaitable<void> Init();
 
@@ -23,7 +23,6 @@ private:
 
   SSTableHeader header_;
 
-  io::FileWriter& file_writer_;
   sdb::Writer sdb_writer_;
 
   PageBuilder page_builder_;

@@ -40,6 +40,11 @@ Awaitable<void> FileWriter::Rewind() {
   co_return;
 }
 
+Awaitable<void> FileWriter::FSync() {
+  ::fsync(stream_.native_handle());
+  co_return;
+}
+
 FileWriter::~FileWriter() {
   try {
     stream_.close();

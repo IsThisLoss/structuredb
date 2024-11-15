@@ -10,11 +10,15 @@ namespace structuredb::server::io {
 
 class FileWriter {
 public:
+  using Ptr = std::shared_ptr<FileWriter>;
+
   explicit FileWriter(boost::asio::io_context& io_context, const std::string& path);
 
   Awaitable<size_t> Write(const char* buffer, size_t size);
 
   Awaitable<void> Rewind();
+
+  Awaitable<void> FSync();
 
   ~FileWriter();
 private:

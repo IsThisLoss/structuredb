@@ -1,22 +1,19 @@
 #include "ss_table_builder.hpp"
 
-#include <iostream>
-
 namespace structuredb::server::lsm::disk {
 
-Awaitable<SSTableBuilder> SSTableBuilder::Create(io::FileWriter& file_writer, const int64_t page_size) {
-  SSTableBuilder builder{file_writer, page_size};
+Awaitable<SSTableBuilder> SSTableBuilder::Create(io::FileWriter::Ptr file_writer, const int64_t page_size) {
+  SSTableBuilder builder{std::move(file_writer), page_size};
   co_await builder.Init();
   co_return builder;
 }
 
-SSTableBuilder::SSTableBuilder(io::FileWriter& file_writer, const int64_t page_size)
+SSTableBuilder::SSTableBuilder(io::FileWriter::Ptr file_writer, const int64_t page_size)
   : header_{
     .page_size = page_size,
-    .page_count = 1,
+    .page_count = 0,
   }
-  , file_writer_{file_writer}
-  , sdb_writer_{file_writer_}
+  , sdb_writer_{std::move(file_writer)}
   , page_builder_{page_size}
 {
 }
@@ -42,10 +39,8 @@ Awaitable<void> SSTableBuilder::Finish() && {
     co_await FlushPage();
   }
 
-  /*
-  co_await file_writer_.Rewind();
+  co_await sdb_writer_.Rewind();
   co_await SSTableHeader::Flush(sdb_writer_, header_);
-  */
 }
 
 Awaitable<void> SSTableBuilder::FlushPage() {

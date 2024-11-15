@@ -3,6 +3,7 @@
 #include <table_service.grpc.pb.h>
 
 #include <lsm/lsm.hpp>
+#include <wal/writer.hpp>
 
 namespace structuredb::server::services {
 
@@ -24,10 +25,12 @@ public:
 
 private:
   io::Manager& io_manager_;
-  std::mutex mu_;
   lsm::Lsm lsm_;
+  std::unique_ptr<wal::Writer> wal_writer_;
 };
 
-std::unique_ptr<grpc::Service> MakeService(io::Manager& io_manager);
+std::unique_ptr<grpc::Service> MakeService(
+  io::Manager& io_manager
+);
 
 }
