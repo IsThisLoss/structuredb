@@ -16,6 +16,7 @@ Awaitable<std::string> LoadString(io::FileReader& is) {
   std::string result;
   result.resize(size);
   co_await is.Read(result.data(), size);
+  std::cerr << "Loaded string: " << result << std::endl;
   co_return result;
 }
 

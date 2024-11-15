@@ -13,6 +13,7 @@ FileWriter::FileWriter(boost::asio::io_context& io_context, const std::string& p
   io_context_{io_context},
   stream_{io_context_}
 {
+  ::unlink(path.c_str());
   int fd = ::open(path.c_str(), O_WRONLY | O_CREAT, S_IRWXU);
   if (fd < 0) {
     perror("Failed to open file");

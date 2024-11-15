@@ -12,3 +12,6 @@ build: cmake
 
 run: build
 	./build/Release/src/server/structuredb-server
+
+run-cli:
+	./build/Release/src/cli/structuredb-cli

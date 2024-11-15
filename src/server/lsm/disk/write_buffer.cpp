@@ -20,7 +20,7 @@ void WriteBuffer::Rewind() {
 }
 
 void WriteBuffer::WriteInt(const int64_t value) {
-  std::cerr << "Write int: " << value << std::endl;
+  std::cerr << "Write int: " << value << " at pos " << Size() << std::endl;
   Write(reinterpret_cast<const char*>(&value), sizeof(int64_t));
 }
 
@@ -35,6 +35,7 @@ size_t WriteBuffer::Size() const {
 }
 
 Awaitable<void> WriteBuffer::Flush(io::FileWriter& file_writer) {
+  std::cerr << "Buf: " << impl_.data() << std::endl;
   co_await file_writer.Write(impl_.data(), impl_.size());
   ::memset(impl_.data(), 0x0, impl_.size());
   pos_ = impl_.data();
@@ -44,6 +45,7 @@ void WriteBuffer::Write(const char* data, size_t size) {
   std::cerr << "Write raw: " << size << std::endl;
   ::memcpy(pos_, data, size);
   pos_ += size;
+  std::cerr << "Size after write: " << Size() << std::endl;
 }
 
 }

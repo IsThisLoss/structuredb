@@ -17,6 +17,7 @@ SSTableBuilder::SSTableBuilder(io::FileWriter& file_writer, const int64_t page_s
 Awaitable<void> SSTableBuilder::Init() {
   // reserve space for header
   co_await WriteHeader();
+  InitBuffer();
   is_initialized_ = true;
 }
 

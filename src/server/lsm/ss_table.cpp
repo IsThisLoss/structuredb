@@ -20,7 +20,7 @@ Awaitable<std::optional<std::string>> SSTable::Get(const std::string& key) {
   size_t lo = 0;
   size_t hi = header_.page_count;
 
-  // co_await SetFilePos(0);
+  co_await SetFilePos(0);
   for (int i = 0; i < header_.page_count; i++) {
     auto page = co_await disk::Page::Load(file_reader_);
     auto value = page.Find(key);
