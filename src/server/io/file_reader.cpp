@@ -23,13 +23,6 @@ FileReader::FileReader(boost::asio::io_context& io_context, const std::string& p
   std::cerr << "Opened " << path << " for read, size: " << size << "\n";
 }
 
-
-FileReader::FileReader(FileReader&& other)
-  : io_context_{other.io_context_}, stream_{std::move(other.stream_)}
-{
-  other.stream_.release();
-}
-
 Awaitable<size_t> FileReader::Read(char* buffer, size_t size) {
   try {
     const size_t result = co_await stream_.async_read_some(

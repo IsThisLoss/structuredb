@@ -11,9 +11,9 @@ namespace structuredb::server::lsm {
 
 class SSTable {
 public:
-  static Awaitable<SSTable> Create(io::FileReader&& file_reader);
+  static Awaitable<SSTable> Create(io::FileReader::Ptr file_reader);
 
-  explicit SSTable(io::FileReader&& file_reader);
+  explicit SSTable(io::FileReader::Ptr file_reader);
 
   Awaitable<void> Init();
 
@@ -30,7 +30,7 @@ private:
    *    keys:   string[]
    *    values: string[]
    */
-  io::FileReader file_reader_;
+  io::FileReader::Ptr file_reader_;
   sdb::Reader sdb_reader_;
   disk::SSTableHeader header_{};
   int64_t header_size_{};

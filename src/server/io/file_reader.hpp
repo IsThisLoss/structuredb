@@ -10,9 +10,9 @@ namespace structuredb::server::io {
 
 class FileReader {
 public:
-  explicit FileReader(boost::asio::io_context& io_context, const std::string& path);
+  using Ptr = std::shared_ptr<FileReader>;
 
-  FileReader(FileReader&& other);
+  explicit FileReader(boost::asio::io_context& io_context, const std::string& path);
 
   Awaitable<size_t> Read(char* buffer, size_t size);
 

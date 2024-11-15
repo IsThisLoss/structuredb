@@ -14,7 +14,7 @@ class Manager {
 public:
   explicit Manager(boost::asio::io_context& io_context);
 
-  FileReader CreateFileReader(const std::string& path) const;
+  FileReader::Ptr CreateFileReader(const std::string& path) const;
 
   FileWriter CreateFileWriter(const std::string& path) const;
 
