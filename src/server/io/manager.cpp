@@ -1,5 +1,7 @@
 #include "manager.hpp"
 
+#include <iostream>
+
 namespace structuredb::server::io {
 
 Manager::Manager(boost::asio::io_context& io_context)
@@ -15,7 +17,9 @@ FileWriter::Ptr Manager::CreateFileWriter(const std::string& path) const {
 }
 
 Awaitable<bool> Manager::IsFileExists(const std::string& path) const {
-  co_return access(path.c_str(), F_OK) == 0;
+  const bool result = access(path.c_str(), F_OK) == 0;
+  std::cerr << "IsFileExists " << path << ": " << result << std::endl;
+  co_return result;
 }
 
 }

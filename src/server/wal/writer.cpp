@@ -10,7 +10,7 @@ Writer::Writer(sdb::Writer&& wal_writer)
 
 Awaitable<void> Writer::Write(Event::Ptr event) {
   co_await FlushEvent(wal_writer_, event);
-  co_await wal_writer_.FSync();
+  // co_await wal_writer_.FSync();
 }
 
 Awaitable<Writer> Open(io::Manager& io_manager, const std::string& wal_path) {

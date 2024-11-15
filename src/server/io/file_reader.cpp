@@ -6,6 +6,8 @@
 
 #include <sys/file.h>
 
+#include "exceptions.hpp"
+
 namespace structuredb::server::io {
 
 FileReader::FileReader(boost::asio::io_context& io_context, const std::string& path) 
@@ -30,12 +32,17 @@ Awaitable<size_t> FileReader::Read(char* buffer, size_t size) {
         boost::asio::use_awaitable
     );
     co_return result;
+  } catch (const boost::system::system_error& e) {
+    if (e.code() == boost::asio::error::eof) {
+      throw EndOfFile{e.what()};
+    }
+    throw;
   } catch (const std::exception& e) {
     perror("Unable to read");
-    std::cerr << "Read: " << e.what();
+    std::cerr << "Read: " << typeid(e).name() << e.what();
     throw;
   }
-    co_return 0;
+  co_return 0;
 }
 
 Awaitable<void> FileReader::Seek(size_t pos) {
