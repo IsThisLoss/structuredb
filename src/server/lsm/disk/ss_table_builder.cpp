@@ -4,73 +4,54 @@
 
 namespace structuredb::server::lsm::disk {
 
+Awaitable<SSTableBuilder> SSTableBuilder::Create(io::FileWriter& file_writer, const int64_t page_size) {
+  SSTableBuilder builder{file_writer, page_size};
+  co_await builder.Init();
+  co_return builder;
+}
+
 SSTableBuilder::SSTableBuilder(io::FileWriter& file_writer, const int64_t page_size)
-  : file_writer_{file_writer}
-  , header_{
+  : header_{
     .page_size = page_size,
     .page_count = 1,
   }
-  , write_buffer_{static_cast<size_t>(header_.page_size)}
+  , file_writer_{file_writer}
+  , sdb_writer_{file_writer_}
+  , page_builder_{page_size}
 {
 }
 
 Awaitable<void> SSTableBuilder::Init() {
   // reserve space for header
-  co_await WriteHeader();
-  InitBuffer();
+  co_await SSTableHeader::Flush(sdb_writer_, header_);
   is_initialized_ = true;
 }
 
 Awaitable<void> SSTableBuilder::Add(const std::string& key, const std::string& value) {
   assert(is_initialized_);
 
-  int64_t next_record_size = WriteBuffer::CalculateRecordSize(key, value);
-
-  if (write_buffer_.Size() + next_record_size >= header_.page_size) {
-    std::cerr << "HERE\n";
-    co_await FlushBuffer();
+  if (!page_builder_.IsEnoughPlace(key, value)) {
+    co_await FlushPage();
   }
 
-  write_buffer_.WriteString(key);
-  write_buffer_.WriteString(value);
-  current_page_size_++;
+  page_builder_.Add(key, value);
 }
 
 Awaitable<void> SSTableBuilder::Finish() && {
-  co_await FlushBuffer();
-
-  co_await file_writer_.Rewind();
-  co_await WriteHeader();
-}
-
-void SSTableBuilder::InitBuffer() {
-  // reserve for page_size
-  write_buffer_.WriteInt(0);
-}
-
-Awaitable<void> SSTableBuilder::FlushBuffer() {
-  if (write_buffer_.Size() == sizeof(int64_t)) {
-    co_return;
+  if (!page_builder_.IsEmpty()) {
+    co_await FlushPage();
   }
-  // write page header
-  write_buffer_.Rewind();
-  write_buffer_.WriteInt(current_page_size_);
-  std::cerr << "Write buffer size: " << current_page_size_ << std::endl;
-  current_page_size_ = 0;
 
-  // flush
-  co_await write_buffer_.Flush(file_writer_);
-  header_.page_count++;
-
-  // init for next page
-  InitBuffer();
+  /*
+  co_await file_writer_.Rewind();
+  co_await SSTableHeader::Flush(sdb_writer_, header_);
+  */
 }
 
-Awaitable<void> SSTableBuilder::WriteHeader() {
-  std::cerr << "Start write header: " << sizeof(header_) << std::endl;
-  co_await file_writer_.Write(reinterpret_cast<char*>(&header_.page_size), sizeof(int64_t));
-  co_await file_writer_.Write(reinterpret_cast<char*>(&header_.page_count), sizeof(int64_t));
-  std::cerr << "End write header\n";
+Awaitable<void> SSTableBuilder::FlushPage() {
+    co_await page_builder_.Flush(sdb_writer_);
+    page_builder_.Clear();
+    header_.page_count++;
 }
 
 }

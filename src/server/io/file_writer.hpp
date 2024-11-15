@@ -12,7 +12,7 @@ class FileWriter {
 public:
   explicit FileWriter(boost::asio::io_context& io_context, const std::string& path);
 
-  Awaitable<size_t> Write(char* buffer, size_t size);
+  Awaitable<size_t> Write(const char* buffer, size_t size);
 
   Awaitable<void> Rewind();
 

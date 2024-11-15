@@ -32,8 +32,6 @@ Awaitable<void> Lsm::Put(const std::string& key, const std::string& value) {
     // FIXME use circular buffer
     ro_mem_tables_.erase(ro_mem_tables_.begin());
   }
-  
-  std::cerr << "Exit Lsm Put\n";
 }
 
 Awaitable<std::optional<std::string>> Lsm::Get(const std::string& key) {

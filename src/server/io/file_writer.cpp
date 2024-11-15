@@ -22,7 +22,7 @@ FileWriter::FileWriter(boost::asio::io_context& io_context, const std::string& p
   std::cerr << "Opened " << path << " " << fd << " for write\n";
 }
 
-Awaitable<size_t> FileWriter::Write(char* buffer, size_t size) {
+Awaitable<size_t> FileWriter::Write(const char* buffer, size_t size) {
   try {
   const size_t result = co_await stream_.async_write_some(
       boost::asio::buffer(buffer, size),

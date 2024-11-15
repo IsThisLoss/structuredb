@@ -2,13 +2,15 @@
 
 #include <io/file_writer.hpp>
 
-#include "write_buffer.hpp"
 #include "ss_table_header.hpp"
+#include "page_builder.hpp"
 
 namespace structuredb::server::lsm::disk {
 
 class SSTableBuilder {
 public:
+  static Awaitable<SSTableBuilder> Create(io::FileWriter& file_writer, const int64_t page_size);
+
   explicit SSTableBuilder(io::FileWriter& file_writer, const int64_t page_size);
 
   Awaitable<void> Init();
@@ -22,15 +24,11 @@ private:
   SSTableHeader header_;
 
   io::FileWriter& file_writer_;
+  sdb::Writer sdb_writer_;
 
-  int64_t current_page_size_;
-  WriteBuffer write_buffer_;
+  PageBuilder page_builder_;
 
-  void InitBuffer();
-
-  Awaitable<void> FlushBuffer();
-
-  Awaitable<void> WriteHeader();
+  Awaitable<void> FlushPage();
 };
 
 }

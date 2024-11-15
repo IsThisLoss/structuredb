@@ -2,35 +2,22 @@
 
 #include <iostream>
 
+#include "page_header.hpp"
+
 namespace structuredb::server::lsm::disk {
 
-Awaitable<int64_t> LoadInt(io::FileReader& is) {
-  int64_t size{0};
-  co_await is.Read(reinterpret_cast<char*>(&size), sizeof(int64_t));
-  std::cerr << "Read int: " << size << std::endl;
-  co_return size;
-}
-
-Awaitable<std::string> LoadString(io::FileReader& is) {
-  const int64_t size = co_await LoadInt(is);
-  std::string result;
-  result.resize(size);
-  co_await is.Read(result.data(), size);
-  std::cerr << "Loaded string: " << result << std::endl;
-  co_return result;
-}
-
-Awaitable<Page> Page::Load(io::FileReader& file_reader) {
-  Page page{};
-  page.size_ = co_await LoadInt(file_reader);
-  std::cerr << "Load page with size: " << page.size_ << std::endl;
-  page.keys_.reserve(page.size_);
-  page.values_.reserve(page.size_);
-  for (int i = 0; i < page.size_; i++) {
-    page.keys_.push_back(co_await LoadString(file_reader));
-    page.values_.push_back(co_await LoadString(file_reader));
+Awaitable<Page> Page::Load(sdb::Reader& reader) {
+  Page result{};
+  std::cerr << "Start loaging page" << std::endl;
+  const auto header = co_await PageHeader::Load(reader);
+  std::cerr << "Loaging page: " << header.count << std::endl;
+  result.keys_.reserve(header.count);
+  result.values_.reserve(header.count);
+  for (int i = 0; i < header.count; i++) {
+    result.keys_.push_back(co_await reader.ReadString());
+    result.values_.push_back(co_await reader.ReadString());
   }
-  co_return page;
+  co_return result;
 }
 
 std::optional<std::string> Page::Find(const std::string& key) const {

@@ -34,12 +34,7 @@ Awaitable<SSTable> MemTable::Flush(io::Manager& io_manager, const std::string& f
   // file_writer closes file in destructor
   {
     auto file_writer = io_manager.CreateFileWriter(file_path);
-    std::cerr << "FileWriter created\n";
-    disk::SSTableBuilder builder{file_writer, kPageSize};
-    std::cerr << "SSTableBuilder created\n";
-    co_await builder.Init();
-    std::cerr << "SSTableBuilder initialized\n";
-
+    auto builder = co_await disk::SSTableBuilder::Create(file_writer, kPageSize);
     for (const auto& [key, value] : impl_) {
       co_await builder.Add(key, value);
     }
@@ -48,8 +43,7 @@ Awaitable<SSTable> MemTable::Flush(io::Manager& io_manager, const std::string& f
   }
 
   auto file_reader = io_manager.CreateFileReader(file_path);
-  SSTable ss_table{std::move(file_reader)};
-  co_await ss_table.Init();
+  auto ss_table = co_await SSTable::Create(std::move(file_reader));
   co_return ss_table;
 }
 

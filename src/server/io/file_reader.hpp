@@ -12,7 +12,7 @@ class FileReader {
 public:
   explicit FileReader(boost::asio::io_context& io_context, const std::string& path);
 
-  FileReader(FileReader&& other) = default;
+  FileReader(FileReader&& other);
 
   Awaitable<size_t> Read(char* buffer, size_t size);
 

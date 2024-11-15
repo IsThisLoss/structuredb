@@ -18,8 +18,15 @@ FileReader::FileReader(boost::asio::io_context& io_context, const std::string& p
     perror("Failed to open file");
   }
   stream_.assign(fd);
-  std::cerr << "Opened " << path << " for read\n";
+  auto size = ::lseek(fd, 0, SEEK_END);
+  ::lseek(fd, 0, SEEK_SET);
+  std::cerr << "Opened " << path << " for read, size: " << size << "\n";
 }
+
+
+FileReader::FileReader(FileReader&& other)
+  : io_context_{other.io_context_}, stream_{std::move(other.stream_)}
+{}
 
 Awaitable<size_t> FileReader::Read(char* buffer, size_t size) {
   try {
