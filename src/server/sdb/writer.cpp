@@ -22,7 +22,6 @@ Awaitable<void> Writer::WriteString(const std::string& value) {
 }
 
 Awaitable<void> Writer::WriteInt(int64_t value) {
-  std::cerr << "Write int: " << value << std::endl;
   co_await file_writer_->Write(reinterpret_cast<const char*>(&value), sizeof(int64_t));
 }
 

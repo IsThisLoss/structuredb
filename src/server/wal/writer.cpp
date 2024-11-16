@@ -26,10 +26,10 @@ Awaitable<void> Writer::SetPersistedTx(int64_t tx) {
 
 Awaitable<Writer::Ptr> Open(io::Manager& io_manager, const std::string& wal_path, const std::string& control_path) {
   std::cerr << "Opening wal...\n";
-  auto wal_file_writer = io_manager.CreateFileWriter(wal_path, /*append=*/ true);
+  auto wal_file_writer = co_await io_manager.CreateFileWriter(wal_path, /*append=*/ true);
   sdb::Writer wal_writer{std::move(wal_file_writer)};
 
-  auto control_file_writer = io_manager.CreateFileWriter(control_path);
+  auto control_file_writer = co_await io_manager.CreateFileWriter(control_path);
   sdb::Writer control_writer{std::move(control_file_writer)};
 
   std::cerr << "Wal opened\n";

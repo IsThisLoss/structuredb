@@ -38,7 +38,7 @@ Awaitable<SSTable> MemTable::Flush(io::Manager& io_manager, const std::string& f
   // This bock is important because
   // file_writer closes file in destructor
   {
-    auto file_writer = io_manager.CreateFileWriter(file_path);
+    auto file_writer = co_await io_manager.CreateFileWriter(file_path);
     auto builder = co_await disk::SSTableBuilder::Create(file_writer, kPageSize);
     for (const auto& [key, value] : impl_) {
       co_await builder.Add(key, value);
@@ -47,7 +47,7 @@ Awaitable<SSTable> MemTable::Flush(io::Manager& io_manager, const std::string& f
     std::cerr << "SSTableBuilder finished\n";
   }
 
-  auto file_reader = io_manager.CreateFileReader(file_path);
+  auto file_reader = co_await io_manager.CreateFileReader(file_path);
   auto ss_table = co_await SSTable::Create(std::move(file_reader));
   co_return ss_table;
 }

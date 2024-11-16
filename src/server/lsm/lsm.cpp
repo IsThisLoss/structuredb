@@ -11,7 +11,7 @@ Lsm::Lsm(io::Manager& io_manager, const std::string& base_dir)
 {
   io_manager_.CoSpawn([this]() -> Awaitable<void> {
       for (const auto & dir_entry : std::filesystem::directory_iterator{base_dir_}) {
-        auto file_reader = io_manager_.CreateFileReader(dir_entry.path());
+        auto file_reader = co_await io_manager_.CreateFileReader(dir_entry.path());
         auto ss_table = co_await SSTable::Create(std::move(file_reader));
         ss_tables_.push_back(std::move(ss_table));
       }

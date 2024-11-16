@@ -8,33 +8,34 @@
 
 namespace structuredb::server::io {
 
-FileWriter::FileWriter(boost::asio::io_context& io_context, const std::string& path, const bool append) 
-  :
-  io_context_{io_context},
-  stream_{io_context_}
-{
-  int flags = O_WRONLY | O_CREAT;
-  if (append) {
-    flags |= O_APPEND;
-  } else {
-    ::unlink(path.c_str());
-  }
+FileWriter::FileWriter(
+      boost::asio::io_context& io_context,
+      BlockingExecutor& blocking_executor
+) : stream_{io_context}
+  , blocking_executor_{blocking_executor}
+{}
 
-  int fd = ::open(path.c_str(), flags, S_IRWXU);
-  if (fd < 0) {
-    perror("Failed to open file - ");
-  }
+Awaitable<void> FileWriter::Open(std::string path, bool append) {
+  int fd = co_await blocking_executor_.Execute([&] () -> int {
+    int flags = O_WRONLY | O_CREAT;
+    if (append) {
+      flags |= O_APPEND;
+    } else {
+      ::unlink(path.c_str());
+    }
+    return ::open(path.c_str(), flags, S_IRWXU);
+  });
   stream_.assign(fd);
   std::cerr << "Opened " << path << " " << fd << " for write\n";
 }
 
 Awaitable<size_t> FileWriter::Write(const char* buffer, size_t size) {
   try {
-  const size_t result = co_await stream_.async_write_some(
-      boost::asio::buffer(buffer, size),
-      boost::asio::use_awaitable
-  );
-  co_return result;
+    const size_t result = co_await stream_.async_write_some(
+        boost::asio::buffer(buffer, size),
+        boost::asio::use_awaitable
+    );
+    co_return result;
   } catch (const std::exception& e) {
     std::cerr << "Write: " << e.what();
     throw;
@@ -42,8 +43,9 @@ Awaitable<size_t> FileWriter::Write(const char* buffer, size_t size) {
 }
 
 Awaitable<void> FileWriter::Rewind() {
-  ::lseek(stream_.native_handle(), 0, SEEK_SET);
-  co_return;
+  co_await blocking_executor_.Execute([&]() {
+    ::lseek(stream_.native_handle(), 0, SEEK_SET);
+  });
 }
 
 Awaitable<void> FileWriter::FSync() {

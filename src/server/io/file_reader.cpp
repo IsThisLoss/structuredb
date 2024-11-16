@@ -2,27 +2,24 @@
 
 #include <iostream>
 
-#include <boost/asio/use_awaitable.hpp>
-
 #include <sys/file.h>
 
 #include "exceptions.hpp"
 
 namespace structuredb::server::io {
 
-FileReader::FileReader(boost::asio::io_context& io_context, const std::string& path) 
-  :
-  io_context_{io_context},
-  stream_{io_context_}
-{
-  int fd = ::open(path.c_str(), O_RDONLY);
-  if (fd < 0) {
-    perror("Failed to open file");
-  }
+FileReader::FileReader(
+    boost::asio::io_context& io_context,
+    BlockingExecutor& blocking_executor
+)  : stream_{io_context}
+   , blocking_executor_{blocking_executor}
+{}
+
+Awaitable<void> FileReader::Open(std::string path) {
+  int fd = co_await blocking_executor_.Execute([&] () -> int {
+    return ::open(path.c_str(), O_RDONLY);
+  });
   stream_.assign(fd);
-  auto size = ::lseek(fd, 0, SEEK_END);
-  ::lseek(fd, 0, SEEK_SET);
-  std::cerr << "Opened " << path << " for read, size: " << size << "\n";
 }
 
 Awaitable<size_t> FileReader::Read(char* buffer, size_t size) {
@@ -46,8 +43,9 @@ Awaitable<size_t> FileReader::Read(char* buffer, size_t size) {
 }
 
 Awaitable<void> FileReader::Seek(size_t pos) {
-  ::lseek(stream_.native_handle(), pos, SEEK_SET);
-  co_return;
+  co_await blocking_executor_.Execute([&]() {
+    ::lseek(stream_.native_handle(), pos, SEEK_SET);
+  });
 }
 
 FileReader::~FileReader() {

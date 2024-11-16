@@ -4,21 +4,25 @@
 
 namespace structuredb::server::io {
 
+namespace {
+
+constexpr int kThreadNum = 2;
+}
+
 Manager::Manager(boost::asio::io_context& io_context)
   : io_context_{io_context}
+  , blocking_executor_{kThreadNum}
 {}
 
-FileReader::Ptr Manager::CreateFileReader(const std::string& path) const {
-  return std::make_shared<FileReader>(io_context_, path);
+Awaitable<FileReader::Ptr> Manager::CreateFileReader(const std::string& path) {
+  auto result = std::make_shared<FileReader>(io_context_, blocking_executor_);
+  co_await result->Open(path);
+  co_return result;
 }
 
-FileWriter::Ptr Manager::CreateFileWriter(const std::string& path, bool append) const {
-  return std::make_shared<FileWriter>(io_context_, path, append);
-}
-
-Awaitable<bool> Manager::IsFileExists(const std::string& path) const {
-  const bool result = access(path.c_str(), F_OK) == 0;
-  std::cerr << "IsFileExists " << path << ": " << result << std::endl;
+Awaitable<FileWriter::Ptr> Manager::CreateFileWriter(const std::string& path, bool append) {
+  auto result = std::make_shared<FileWriter>(io_context_, blocking_executor_);
+  co_await result->Open(path, append);
   co_return result;
 }
 

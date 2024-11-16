@@ -59,11 +59,13 @@ Awaitable<void> Table::Upsert(const int64_t tx, const std::string& key, const st
     co_return;
   }
 
-  const VersionedValue versioned_value{
+  const auto versioned_value = ToString(VersionedValue{
     .value = value,
     .created_tx = tx,
-  };
-  auto flushed_mem_table = co_await lsm_.Put(key, ToString(versioned_value));
+  });
+
+  auto flushed_mem_table = co_await lsm_.Put(key, versioned_value);
+
   if (wal_writer_) {
     co_await wal_writer_->Write(std::make_unique<wal::InsertEvent>(tx, key, value));
     if (flushed_mem_table.has_value()) {
@@ -86,7 +88,6 @@ Awaitable<std::optional<std::string>> Table::Lookup(const int64_t tx, const std:
   VersionedValue result{};
   co_await lsm_.Get(key, [&tx, &result](const auto& data) {
       const auto value = ParseVersionedValue(data);
-      std::cerr << "CAND: " << value.value << " t " << value.created_tx << std::endl;
       if (value.deleted_tx < tx || tx < value.created_tx) {
         return;
       }
@@ -94,7 +95,6 @@ Awaitable<std::optional<std::string>> Table::Lookup(const int64_t tx, const std:
         result = value;
       }
   });
-  std::cerr << "HERE: " << result.value << std::endl;
   if (result.created_tx == 0) {
     co_return std::nullopt;
   }

@@ -16,14 +16,14 @@ Awaitable<void> Recover(
 ) {
   std::cerr << "Starting recovery...\n";
   try {
-      sdb::Reader control_reader{io_manager.CreateFileReader(control_path)};
+      sdb::Reader control_reader{co_await io_manager.CreateFileReader(control_path)};
       const int64_t max_tx = co_await control_reader.ReadInt();
       db.SetTx(max_tx);
   } catch (const std::exception& e) {
     std::cerr << "Failed to read control file\n";
   }
 
-  sdb::Reader wal_reader{io_manager.CreateFileReader(wal_path)};
+  sdb::Reader wal_reader{co_await io_manager.CreateFileReader(wal_path)};
   while (true) {
     try {
       auto event = co_await ParseEvent(wal_reader);
