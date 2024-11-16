@@ -21,17 +21,19 @@ grpc::ServerUnaryReactor* TableServiceImpl::Upsert(
     ::structuredb::v1::UpsertTableResponse* response) {
   auto* reactor = context->DefaultReactor();
 
-  io_manager_.CoSpawn([this, reactor, request = *request, response]() -> Awaitable<void> {
+  io_manager_.CoSpawn([&]() -> Awaitable<void> {
       // std::unique_lock lock{mu_};
       const auto table = database_.GetTable();
       if (!table) {
         std::cerr << "Null table" << std::endl;
       }
+      int64_t tx = request->has_tx() ? request->tx() : database_.GetNextTx();
       co_await table->Upsert(
-          database_.GetNextTx(),
-          request.key(),
-          request.value()
+          tx,
+          request->key(),
+          request->value()
       );
+      response->set_tx(tx);
       reactor->Finish(grpc::Status::OK);
   });
 
@@ -44,11 +46,12 @@ grpc::ServerUnaryReactor* TableServiceImpl::Lookup(
     ::structuredb::v1::LookupTableResponse* response) {
   auto* reactor = context->DefaultReactor();
 
-  io_manager_.CoSpawn([this, reactor, request = *request, response]() -> Awaitable<void> {
+  io_manager_.CoSpawn([&]() -> Awaitable<void> {
     // std::unique_lock lock{mu_};
+      int64_t tx = request->has_tx() ? request->tx() : database_.GetNextTx();
       const auto value = co_await database_.GetTable()->Lookup(
-          database_.GetNextTx(),
-          request.key()
+          tx,
+          request->key()
       );
     if (value.has_value()) {
       response->set_value(value.value());
