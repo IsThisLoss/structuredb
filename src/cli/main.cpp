@@ -1,8 +1,9 @@
-#include <grpcpp/grpcpp.h>
-
 #include <iostream>
 #include <memory>
 #include <string>
+#include <chrono>
+
+#include <grpcpp/grpcpp.h>
 
 #include <absl/flags/flag.h>
 #include <absl/flags/parse.h>
@@ -73,8 +74,11 @@ int main(int argc, char** argv) {
   }
 
   if (cmd == "LOOKUP" && args.size() == 3) {
+    auto start = std::chrono::steady_clock::now();
     const auto result = client.Lookup(args[2]);
     std::cout << result.value_or("<null>") << std::endl;
+    auto end = std::chrono::steady_clock::now();
+    std::cout << "Elapsed: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << std::endl;
     return 0;
   }
 

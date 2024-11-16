@@ -4,14 +4,6 @@
 
 namespace structuredb::server::database {
 
-/*
-Awaitable<Database> Database::Create(io::Manager& io_manager, const std::string& base_dir) {
-  Database database{io_manager, base_dir};
-  co_await database.Init();
-  co_return database;
-}
-*/
-
 Database::Database(io::Manager& io_manager, const std::string& base_dir)
   : io_manager_{io_manager}
   , base_dir_{base_dir}
@@ -27,15 +19,22 @@ Awaitable<void> Database::Init() {
 
   // recovery
   const auto wal_path = base_dir_ + "/wal.sdb";
-  co_await wal::Recover(io_manager_, wal_path, *this);
+  const auto control_path = base_dir_ + "/control.sdb";
+  co_await wal::Recover(io_manager_, wal_path, control_path, *this);
 
   // start wal
-  wal_writer_ = co_await wal::Open(io_manager_, wal_path);
+  wal_writer_ = co_await wal::Open(io_manager_, wal_path, control_path);
   table_->StartWal(wal_writer_);
 }
 
 table::Table::Ptr Database::GetTable() {
   return table_;
+}
+
+void Database::SetTx(int64_t tx) {
+  // todo transaction manager
+  tx_ = tx;
+  table_->SetMaxTx(tx_);
 }
 
 int64_t Database::GetNextTx() {

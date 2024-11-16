@@ -16,7 +16,7 @@ public:
 
   FileReader::Ptr CreateFileReader(const std::string& path) const;
 
-  FileWriter::Ptr CreateFileWriter(const std::string& path) const;
+  FileWriter::Ptr CreateFileWriter(const std::string& path, bool append = false) const;
 
   template <std::invocable<> Coro>
   void CoSpawn(Coro&& coro) const {

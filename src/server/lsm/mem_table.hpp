@@ -1,6 +1,6 @@
 #pragma once
 
-#include <map>
+#include <set>
 
 #include <io/manager.hpp>
 
@@ -14,11 +14,13 @@ public:
 
   void Get(const std::string& key, const RecordConsumer& consume) const;
 
+  void ScanValues(const RecordConsumer& consume) const;
+
   size_t Size() const;
 
   Awaitable<SSTable> Flush(io::Manager& io_manager, const std::string& file_path) const;
 private:
-  std::map<std::string, std::string> impl_;
+  std::multiset<std::pair<std::string, std::string>> impl_;
 };
 
 }

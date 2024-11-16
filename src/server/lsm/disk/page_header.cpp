@@ -4,20 +4,18 @@
 
 namespace structuredb::server::lsm::disk {
 
-Awaitable<PageHeader> PageHeader::Load(sdb::Reader& reader) {
-  std::cerr << "Start loading page header" << std::endl;
+Awaitable<PageHeader> PageHeader::Load(sdb::BufferReader& reader) {
   PageHeader result{};
   result.count = co_await reader.ReadInt();
-  std::cerr << "Page header count: " << result.count << std::endl;
   co_return result;
 }
 
-Awaitable<void> PageHeader::Flush(sdb::Writer& writer, const PageHeader& header) {
+Awaitable<void> PageHeader::Flush(sdb::BufferWriter& writer, const PageHeader& header) {
   co_await writer.WriteInt(header.count);
 }
 
 size_t PageHeader::EstimateSize(const PageHeader& header) {
-  return sdb::Writer::EstimateSize(header.count);
+  return sdb::BufferWriter::EstimateSize(header.count);
 }
 
 }

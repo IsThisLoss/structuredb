@@ -46,8 +46,7 @@ Awaitable<size_t> FileReader::Read(char* buffer, size_t size) {
 }
 
 Awaitable<void> FileReader::Seek(size_t pos) {
-  auto off = ::lseek(stream_.native_handle(), pos, SEEK_SET);
-  std::cerr << "lseek: " << off << std::endl;
+  ::lseek(stream_.native_handle(), pos, SEEK_SET);
   co_return;
 }
 

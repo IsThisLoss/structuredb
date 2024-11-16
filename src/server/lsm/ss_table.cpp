@@ -2,6 +2,8 @@
 
 #include <iostream>
 
+#include <utils/find.hpp>
+
 namespace structuredb::server::lsm {
 
 Awaitable<SSTable> SSTable::Create(io::FileReader::Ptr file_reader) {
@@ -11,12 +13,17 @@ Awaitable<SSTable> SSTable::Create(io::FileReader::Ptr file_reader) {
 }
 
 SSTable::SSTable(io::FileReader::Ptr file_reader)
-  : sdb_reader_{std::move(file_reader)}
+  : file_reader_{std::move(file_reader)}
 {}
 
 Awaitable<void> SSTable::Init() {
-  header_ = co_await disk::SSTableHeader::Load(sdb_reader_);
   header_size_ = disk::SSTableHeader::EstimateSize(header_);
+
+  std::vector<char> buffer(header_size_);
+  co_await file_reader_->Read(buffer.data(), buffer.size());
+  sdb::BufferReader buffer_reader{std::move(buffer)};
+
+  header_ = co_await disk::SSTableHeader::Load(buffer_reader);
   std::cerr << "Initialize ss table: " << header_.page_count << std::endl;
 }
 
@@ -25,36 +32,42 @@ Awaitable<void> SSTable::Get(const std::string& key, const RecordConsumer& consu
   size_t lo = 0;
   size_t hi = header_.page_count;
 
-  co_await SetFilePos(0);
-  for (int i = 0; i < header_.page_count; i++) {
-    auto page = co_await disk::Page::Load(sdb_reader_);
-    auto value = page.Find(key);
-    if (value.has_value()) {
-      consume(value.value());
-    }
-  }
-
-  /*
   while (lo < hi) {
     size_t mid = lo + (hi - lo) / 2;
-    co_await SetFilePos(header_.page_size * mid);
-    // TODO use lru cache
-    auto page = co_await disk::Page::Load(file_reader_);
-    std::cerr << "Loaded page: " << page.MinKey() << " " << page.MaxKey() << std::endl;
+    std::cerr << "Read page #" << mid << std::endl;
+    auto buffer = co_await GetPage(mid);
+    auto page = co_await disk::Page::Load(buffer);
+
     if (key < page.MinKey()) {
       hi = mid;
     }
     else if (page.MaxKey() < key) {
-      hi = mid + 1;
+      lo = mid + 1;
     } else {
-      co_return page.Find(key);
+      auto value = page.Find(key);
+      if (value.has_value()) {
+        consume(value.value());
+      }
+      break;
     }
   }
-  */
 }
 
-Awaitable<void> SSTable::SetFilePos(size_t pos) {
-  co_await sdb_reader_.Seek(header_size_ + pos);
+Awaitable<sdb::BufferReader> SSTable::GetPage(int64_t page_num) {
+  assert(page_num < header_.page_count);
+  co_await file_reader_->Seek(header_size_ + page_num * header_.page_size);
+
+  const auto* cached_buffer = utils::FindOrNullptr(page_cache_, page_num);
+  if (cached_buffer) {
+    std::cerr << "Cache hit\n";
+    co_return sdb::BufferReader{std::move(*cached_buffer)};
+  }
+
+  std::cerr << "Cache miss\n";
+  std::vector<char> buffer(header_.page_size);
+  co_await file_reader_->Read(buffer.data(), buffer.size());
+  page_cache_[page_num] = buffer;
+  co_return sdb::BufferReader{std::move(buffer)};
 }
 
 }

@@ -12,8 +12,8 @@ FileReader::Ptr Manager::CreateFileReader(const std::string& path) const {
   return std::make_shared<FileReader>(io_context_, path);
 }
 
-FileWriter::Ptr Manager::CreateFileWriter(const std::string& path) const {
-  return std::make_shared<FileWriter>(io_context_, path);
+FileWriter::Ptr Manager::CreateFileWriter(const std::string& path, bool append) const {
+  return std::make_shared<FileWriter>(io_context_, path, append);
 }
 
 Awaitable<bool> Manager::IsFileExists(const std::string& path) const {

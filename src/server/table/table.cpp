@@ -47,24 +47,46 @@ Table::Table(io::Manager& io_manager, const std::string& base_dir)
 
 void Table::StartWal(wal::Writer::Ptr wal_writer) {
   wal_writer_ = std::move(wal_writer);
-  std::cerr << "Wal attahced: " << wal_writer_ << std::endl;
+  std::cerr << "Start wal\n";
+}
+
+void Table::SetMaxTx(int64_t tx) {
+  max_tx_ = tx;
 }
 
 Awaitable<void> Table::Upsert(const int64_t tx, const std::string& key, const std::string& value) {
+  if (tx <= max_tx_) {
+    co_return;
+  }
+
   const VersionedValue versioned_value{
     .value = value,
     .created_tx = tx,
   };
-  co_await lsm_.Put(key, ToString(versioned_value));
+  auto flushed_mem_table = co_await lsm_.Put(key, ToString(versioned_value));
   if (wal_writer_) {
     co_await wal_writer_->Write(std::make_unique<wal::InsertEvent>(tx, key, value));
+    if (flushed_mem_table.has_value()) {
+      flushed_mem_table.value().ScanValues([this](const auto& data) {
+        const auto value = ParseVersionedValue(data);
+        if (value.created_tx > max_tx_) {
+          max_tx_ = value.created_tx;
+        }
+        if (value.deleted_tx > max_tx_) {
+          max_tx_ = value.created_tx;
+        }
+      });
+      co_await wal_writer_->SetPersistedTx(max_tx_);
+    }
   }
 }
 
 Awaitable<std::optional<std::string>> Table::Lookup(const int64_t tx, const std::string& key) {
+  std::cerr << "Lookup with tx: " << tx << std::endl;
   VersionedValue result{};
   co_await lsm_.Get(key, [&tx, &result](const auto& data) {
       const auto value = ParseVersionedValue(data);
+      std::cerr << "CAND: " << value.value << " t " << value.created_tx << std::endl;
       if (value.deleted_tx < tx || tx < value.created_tx) {
         return;
       }
@@ -72,6 +94,7 @@ Awaitable<std::optional<std::string>> Table::Lookup(const int64_t tx, const std:
         result = value;
       }
   });
+  std::cerr << "HERE: " << result.value << std::endl;
   if (result.created_tx == 0) {
     co_return std::nullopt;
   }
@@ -79,4 +102,3 @@ Awaitable<std::optional<std::string>> Table::Lookup(const int64_t tx, const std:
 }
 
 }
-

@@ -16,7 +16,7 @@ public:
 
   bool IsEmpty() const;
 
-  Awaitable<void> Flush(sdb::Writer& writer);
+  Awaitable<void> Flush(io::FileWriter& writer);
 private:
   const int64_t max_bytes_size_;
 

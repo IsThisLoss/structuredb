@@ -31,12 +31,14 @@ private:
    *    keys:   string[]
    *    values: string[]
    */
-  sdb::Reader sdb_reader_;
+  io::FileReader::Ptr file_reader_{};
   disk::SSTableHeader header_{};
   int64_t header_size_{};
   disk::Page page_{};
 
-  Awaitable<void> SetFilePos(size_t pos);
+  std::unordered_map<size_t, std::vector<char>> page_cache_;
+
+  Awaitable<sdb::BufferReader> GetPage(int64_t page_num);
 };
 
 }

@@ -8,15 +8,21 @@
 
 namespace structuredb::server::io {
 
-FileWriter::FileWriter(boost::asio::io_context& io_context, const std::string& path) 
+FileWriter::FileWriter(boost::asio::io_context& io_context, const std::string& path, const bool append) 
   :
   io_context_{io_context},
   stream_{io_context_}
 {
-  ::unlink(path.c_str());
-  int fd = ::open(path.c_str(), O_WRONLY | O_CREAT, S_IRWXU);
+  int flags = O_WRONLY | O_CREAT;
+  if (append) {
+    flags |= O_APPEND;
+  } else {
+    ::unlink(path.c_str());
+  }
+
+  int fd = ::open(path.c_str(), flags, S_IRWXU);
   if (fd < 0) {
-    perror("Failed to open file");
+    perror("Failed to open file - ");
   }
   stream_.assign(fd);
   std::cerr << "Opened " << path << " " << fd << " for write\n";

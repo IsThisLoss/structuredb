@@ -6,11 +6,9 @@
 
 namespace structuredb::server::lsm::disk {
 
-Awaitable<Page> Page::Load(sdb::Reader& reader) {
+Awaitable<Page> Page::Load(sdb::BufferReader& reader) {
   Page result{};
-  std::cerr << "Start loaging page" << std::endl;
   const auto header = co_await PageHeader::Load(reader);
-  std::cerr << "Loaging page: " << header.count << std::endl;
   result.keys_.reserve(header.count);
   result.values_.reserve(header.count);
   for (int i = 0; i < header.count; i++) {

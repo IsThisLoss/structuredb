@@ -14,12 +14,15 @@ public:
 
   void StartWal(wal::Writer::Ptr wal_writer);
 
+  void SetMaxTx(int64_t tx);
+
   Awaitable<void> Upsert(const int64_t tx, const std::string& key, const std::string& value);
 
   Awaitable<std::optional<std::string>> Lookup(const int64_t tx, const std::string& key);
 private:
   lsm::Lsm lsm_;
   wal::Writer::Ptr wal_writer_{nullptr};
+  int64_t max_tx_{};
 };
 
 }

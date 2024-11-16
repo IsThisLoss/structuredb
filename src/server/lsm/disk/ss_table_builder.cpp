@@ -13,14 +13,14 @@ SSTableBuilder::SSTableBuilder(io::FileWriter::Ptr file_writer, const int64_t pa
     .page_size = page_size,
     .page_count = 0,
   }
-  , sdb_writer_{std::move(file_writer)}
+  , file_writer_{std::move(file_writer)}
   , page_builder_{page_size}
 {
 }
 
 Awaitable<void> SSTableBuilder::Init() {
   // reserve space for header
-  co_await SSTableHeader::Flush(sdb_writer_, header_);
+  co_await FlushHeader();
   is_initialized_ = true;
 }
 
@@ -39,12 +39,19 @@ Awaitable<void> SSTableBuilder::Finish() && {
     co_await FlushPage();
   }
 
-  co_await sdb_writer_.Rewind();
-  co_await SSTableHeader::Flush(sdb_writer_, header_);
+  co_await file_writer_->Rewind();
+  co_await FlushHeader();
+}
+
+Awaitable<void> SSTableBuilder::FlushHeader() {
+  sdb::BufferWriter buffer_writer_{SSTableHeader::EstimateSize(header_)};
+  co_await SSTableHeader::Flush(buffer_writer_, header_);
+  const auto raw = std::move(buffer_writer_).Extract();
+  co_await file_writer_->Write(raw.data(), raw.size());
 }
 
 Awaitable<void> SSTableBuilder::FlushPage() {
-    co_await page_builder_.Flush(sdb_writer_);
+    co_await page_builder_.Flush(*file_writer_);
     page_builder_.Clear();
     header_.page_count++;
 }

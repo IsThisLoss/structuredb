@@ -2,13 +2,13 @@
 
 #include <optional>
 
-#include <sdb/reader.hpp>
+#include <sdb/buffer_reader.hpp>
 
 namespace structuredb::server::lsm::disk {
 
 class Page {
 public:
-  static Awaitable<Page> Load(sdb::Reader& reader);
+  static Awaitable<Page> Load(sdb::BufferReader& reader);
 
   /// @brief searches key in the page
   ///

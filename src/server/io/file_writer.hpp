@@ -12,7 +12,7 @@ class FileWriter {
 public:
   using Ptr = std::shared_ptr<FileWriter>;
 
-  explicit FileWriter(boost::asio::io_context& io_context, const std::string& path);
+  explicit FileWriter(boost::asio::io_context& io_context, const std::string& path, const bool append);
 
   Awaitable<size_t> Write(const char* buffer, size_t size);
 

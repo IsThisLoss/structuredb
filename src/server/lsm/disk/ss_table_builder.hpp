@@ -23,9 +23,11 @@ private:
 
   SSTableHeader header_;
 
-  sdb::Writer sdb_writer_;
+  io::FileWriter::Ptr file_writer_;
 
   PageBuilder page_builder_;
+
+  Awaitable<void> FlushHeader();
 
   Awaitable<void> FlushPage();
 };

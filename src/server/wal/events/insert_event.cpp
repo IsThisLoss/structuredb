@@ -31,6 +31,7 @@ Awaitable<void> InsertEvent::Flush(sdb::Writer& writer) {
 }
 
 Awaitable<void> InsertEvent::Apply(database::Database& db) {
+  db.SetTx(tx_);
   auto table = db.GetTable();
   co_await table->Upsert(tx_, key_, value_);
 }

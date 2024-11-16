@@ -9,13 +9,19 @@
 namespace structuredb::server::lsm {
 
 void MemTable::Put(const std::string& key, const std::string& value) {
-  impl_.insert_or_assign(key, value);
+  impl_.emplace(key, value);
 }
 
 void MemTable::Get(const std::string& key, const RecordConsumer& consume) const {
-  const auto* value = utils::FindOrNullptr(impl_, key);
-  if (value) {
-    consume(*value);
+  auto it = impl_.lower_bound(std::make_pair(key, ""));
+  for (; it != impl_.end() && it->first == key; it++) {
+    consume(it->second);
+  }
+}
+
+void MemTable::ScanValues(const RecordConsumer& consume) const {
+  for (const auto& [_, value] : impl_) {
+    consume(value);
   }
 }
 
@@ -25,7 +31,7 @@ size_t MemTable::Size() const {
 }
 
 Awaitable<SSTable> MemTable::Flush(io::Manager& io_manager, const std::string& file_path) const {
-  constexpr static const int64_t kPageSize = 1024;
+  constexpr static const int64_t kPageSize = 64;
 
   std::cerr << "MemTable flush start\n";
 

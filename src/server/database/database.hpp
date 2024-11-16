@@ -15,6 +15,8 @@ public:
 
   table::Table::Ptr GetTable();
 
+  void SetTx(int64_t tx);
+
   int64_t GetNextTx();
 private:
   io::Manager& io_manager_;

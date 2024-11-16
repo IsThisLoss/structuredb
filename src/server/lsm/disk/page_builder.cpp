@@ -35,19 +35,20 @@ bool PageBuilder::IsEmpty() const {
   return keys_.empty();
 }
 
-Awaitable<void> PageBuilder::Flush(sdb::Writer& writer) {
+Awaitable<void> PageBuilder::Flush(io::FileWriter& writer) {
   PageHeader header{
     .count = static_cast<int64_t>(keys_.size()),
   };
   std::cerr << "Flush page builder: " << header.count << std::endl;
-  co_await PageHeader::Flush(writer, header);
+  sdb::BufferWriter buffer_writer{max_bytes_size_};
+  co_await PageHeader::Flush(buffer_writer, header);
   for (size_t i = 0; i < header.count; i++) {
-    std::cerr << "Write key: " << keys_[i] << std::endl;
-    co_await writer.WriteString(keys_[i]);
-    std::cerr << "Write value: " << values_[i] << std::endl;
-    co_await writer.WriteString(values_[i]);
+    co_await buffer_writer.WriteString(keys_[i]);
+    co_await buffer_writer.WriteString(values_[i]);
   }
-  // TODO FILL until end of page
+
+  auto raw = std::move(buffer_writer).Extract();
+  co_await writer.Write(raw.data(), raw.size());
 }
 
 }
