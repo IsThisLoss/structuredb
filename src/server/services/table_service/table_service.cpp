@@ -3,22 +3,16 @@
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/detached.hpp>
 
-#include <wal/events/insert_event.hpp>
 #include <wal/recovery.hpp>
 
 namespace structuredb::server::services {
 
 TableServiceImpl::TableServiceImpl(
-      io::Manager& io_manager
+      io::Manager& io_manager,
+      database::Database& db
 ) : io_manager_{io_manager},
-    lsm_{io_manager_},
-    wal_writer_{nullptr}
+    database_{db}
 {
-  io_manager_.CoSpawn([this]() -> Awaitable<void> {
-      const std::string path = "/tmp/wal.sdb";
-      co_await wal::Recover(io_manager_, path, lsm_);
-      wal_writer_ = std::make_unique<wal::Writer>(co_await wal::Open(io_manager_, path));
-  });
 }
 
 grpc::ServerUnaryReactor* TableServiceImpl::Upsert(
@@ -29,8 +23,15 @@ grpc::ServerUnaryReactor* TableServiceImpl::Upsert(
 
   io_manager_.CoSpawn([this, reactor, request = *request, response]() -> Awaitable<void> {
       // std::unique_lock lock{mu_};
-      co_await lsm_.Put(request.key(), request.value());
-      co_await wal_writer_->Write(std::make_unique<wal::InsertEvent>(request.key(), request.value()));
+      const auto table = database_.GetTable();
+      if (!table) {
+        std::cerr << "Null table" << std::endl;
+      }
+      co_await table->Upsert(
+          database_.GetNextTx(),
+          request.key(),
+          request.value()
+      );
       reactor->Finish(grpc::Status::OK);
   });
 
@@ -45,7 +46,10 @@ grpc::ServerUnaryReactor* TableServiceImpl::Lookup(
 
   io_manager_.CoSpawn([this, reactor, request = *request, response]() -> Awaitable<void> {
     // std::unique_lock lock{mu_};
-    const auto value = co_await lsm_.Get(request.key());
+      const auto value = co_await database_.GetTable()->Lookup(
+          database_.GetNextTx(),
+          request.key()
+      );
     if (value.has_value()) {
       response->set_value(value.value());
     }
@@ -56,9 +60,10 @@ grpc::ServerUnaryReactor* TableServiceImpl::Lookup(
 }
 
 std::unique_ptr<grpc::Service> MakeService(
-  io::Manager& io_manager
+  io::Manager& io_manager,
+  database::Database& db
 ) {
-  return std::make_unique<TableServiceImpl>(io_manager);
+  return std::make_unique<TableServiceImpl>(io_manager, db);
 }
 
 }

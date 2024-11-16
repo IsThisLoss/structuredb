@@ -25,8 +25,10 @@ bool PageBuilder::IsEnoughPlace(const std::string& key, const std::string& value
 }
 
 void PageBuilder::Add(const std::string& key, const std::string& value) {
+  const size_t next_record_size = sdb::Writer::EstimateSize(key) + sdb::Writer::EstimateSize(value);
   keys_.push_back(key);
   values_.push_back(value);
+  current_size_ += next_record_size;
 }
 
 bool PageBuilder::IsEmpty() const {
@@ -45,6 +47,7 @@ Awaitable<void> PageBuilder::Flush(sdb::Writer& writer) {
     std::cerr << "Write value: " << values_[i] << std::endl;
     co_await writer.WriteString(values_[i]);
   }
+  // TODO FILL until end of page
 }
 
 }

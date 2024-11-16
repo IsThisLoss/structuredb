@@ -20,7 +20,7 @@ Awaitable<void> SSTable::Init() {
   std::cerr << "Initialize ss table: " << header_.page_count << std::endl;
 }
 
-Awaitable<std::optional<std::string>> SSTable::Get(const std::string& key) {
+Awaitable<void> SSTable::Get(const std::string& key, const RecordConsumer& consume) {
   // binary search
   size_t lo = 0;
   size_t hi = header_.page_count;
@@ -30,10 +30,9 @@ Awaitable<std::optional<std::string>> SSTable::Get(const std::string& key) {
     auto page = co_await disk::Page::Load(sdb_reader_);
     auto value = page.Find(key);
     if (value.has_value()) {
-      co_return value;
+      consume(value.value());
     }
   }
-  co_return std::nullopt;
 
   /*
   while (lo < hi) {
@@ -52,8 +51,6 @@ Awaitable<std::optional<std::string>> SSTable::Get(const std::string& key) {
     }
   }
   */
-
-  co_return std::nullopt;
 }
 
 Awaitable<void> SSTable::SetFilePos(size_t pos) {

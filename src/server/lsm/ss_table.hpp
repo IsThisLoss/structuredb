@@ -6,6 +6,7 @@
 
 #include "disk/ss_table_header.hpp"
 #include "disk/page.hpp"
+#include "record_consumer.hpp"
 
 namespace structuredb::server::lsm {
 
@@ -13,12 +14,12 @@ class SSTable {
 public:
   static Awaitable<SSTable> Create(io::FileReader::Ptr file_reader);
 
+  Awaitable<void> Get(const std::string& key, const RecordConsumer& consumer);
+private:
   explicit SSTable(io::FileReader::Ptr file_reader);
 
   Awaitable<void> Init();
 
-  Awaitable<std::optional<std::string>> Get(const std::string& key);
-private:
   /***** Structure of file ******/
   /* SSTableHeader:
    *   page_size: int64

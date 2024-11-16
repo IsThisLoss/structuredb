@@ -9,6 +9,7 @@
 #include <boost/asio/io_context.hpp>
 
 #include <io/manager.hpp>
+#include <database/database.hpp>
 
 int main(int argc, const char** argv) {
     std::cerr << "Starting...\n";
@@ -23,7 +24,9 @@ int main(int argc, const char** argv) {
     boost::asio::io_context io_context{};
     structuredb::server::io::Manager io_manager{io_context};
 
-    const auto table_service = structuredb::server::services::MakeService(io_manager);
+    structuredb::server::database::Database database{io_manager, "/tmp/db"};
+
+    const auto table_service = structuredb::server::services::MakeService(io_manager, database);
     builder.RegisterService(table_service.get());
 
     std::thread asio_thread([&io_context]() {

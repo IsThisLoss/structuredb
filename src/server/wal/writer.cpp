@@ -13,10 +13,10 @@ Awaitable<void> Writer::Write(Event::Ptr event) {
   // co_await wal_writer_.FSync();
 }
 
-Awaitable<Writer> Open(io::Manager& io_manager, const std::string& wal_path) {
+Awaitable<Writer::Ptr> Open(io::Manager& io_manager, const std::string& wal_path) {
   auto file_writer = io_manager.CreateFileWriter(wal_path);
   sdb::Writer sdb_writer{std::move(file_writer)};
-  co_return Writer{std::move(sdb_writer)};
+  co_return std::make_shared<Writer>(std::move(sdb_writer));
 }
 
 }
