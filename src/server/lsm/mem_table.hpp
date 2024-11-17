@@ -12,7 +12,7 @@ class MemTable {
 public:
   void Put(const std::string& key, const std::string& value);
 
-  void Get(const std::string& key, const RecordConsumer& consume) const;
+  bool Get(const std::string& key, const RecordConsumer& consume) const;
 
   void ScanValues(const RecordConsumer& consume) const;
 

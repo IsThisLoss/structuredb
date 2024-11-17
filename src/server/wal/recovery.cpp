@@ -18,7 +18,7 @@ Awaitable<void> Recover(
   try {
       sdb::Reader control_reader{co_await io_manager.CreateFileReader(control_path)};
       const int64_t max_tx = co_await control_reader.ReadInt();
-      db.SetTx(max_tx);
+      db.GetTransactionStorage().SetPersistedTx(max_tx);
   } catch (const std::exception& e) {
     std::cerr << "Failed to read control file\n";
   }

@@ -14,7 +14,7 @@ class SSTable {
 public:
   static Awaitable<SSTable> Create(io::FileReader::Ptr file_reader);
 
-  Awaitable<void> Get(const std::string& key, const RecordConsumer& consumer);
+  Awaitable<bool> Get(const std::string& key, const RecordConsumer& consumer);
 private:
   explicit SSTable(io::FileReader::Ptr file_reader);
 

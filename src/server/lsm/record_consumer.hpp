@@ -7,6 +7,6 @@
 
 namespace structuredb::server::lsm {
 
-using RecordConsumer = std::function<void(const std::string)>;
+using RecordConsumer = std::function<bool(const std::string)>;
 
 }

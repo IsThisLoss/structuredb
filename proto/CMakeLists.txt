@@ -1,4 +1,4 @@
-add_library(structuredb-proto table_service.proto)
+add_library(structuredb-proto table_service.proto transaction_service.proto)
 target_include_directories(structuredb-proto PUBLIC ${CMAKE_CURRENT_BINARY_DIR} ${protobuf_INCLUDE_DIR})
 target_link_libraries(structuredb-proto PUBLIC gRPC::grpc++)
 

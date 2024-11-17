@@ -5,6 +5,7 @@
 #include <grpcpp/ext/proto_server_reflection_plugin.h>
 
 #include <services/table_service/table_service.hpp>
+#include <services/transaction_service/transaction_service.hpp>
 
 #include <boost/asio/io_context.hpp>
 
@@ -28,6 +29,9 @@ int main(int argc, const char** argv) {
 
     const auto table_service = structuredb::server::services::MakeService(io_manager, database);
     builder.RegisterService(table_service.get());
+
+    const auto transaction_service = structuredb::server::services::MakeTransactionService(io_manager, database);
+    builder.RegisterService(transaction_service.get());
 
     std::thread asio_thread([&io_context]() {
         std::cerr << "Starting asio thread...\n";

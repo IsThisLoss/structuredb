@@ -15,6 +15,7 @@ Lsm::Lsm(io::Manager& io_manager, const std::string& base_dir)
         auto ss_table = co_await SSTable::Create(std::move(file_reader));
         ss_tables_.push_back(std::move(ss_table));
       }
+      std::cerr << "SSTables ready!\n";
       co_return;
   });
 }
@@ -44,15 +45,21 @@ Awaitable<std::optional<MemTable>> Lsm::Put(const std::string& key, const std::s
 }
 
 Awaitable<void> Lsm::Get(const std::string& key, const RecordConsumer& consume) {
-  mem_table_.Get(key, consume);
+  if (mem_table_.Get(key, consume)) {
+    co_return;
+  }
 
   // TODO use Bloom Filter
   for (auto it = ro_mem_tables_.rbegin(); it != ro_mem_tables_.rend(); ++it) {
-    it->Get(key, consume);
+    if (it->Get(key, consume)) {
+      co_return;
+    }
   }
 
   for (auto it = ss_tables_.rbegin(); it != ss_tables_.rend(); ++it) {
-    co_await it->Get(key, consume);
+    if (co_await it->Get(key, consume)) {
+      co_return;
+    }
   }
 }
 

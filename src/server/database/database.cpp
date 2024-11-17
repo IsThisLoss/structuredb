@@ -15,7 +15,7 @@ Database::Database(io::Manager& io_manager, const std::string& base_dir)
 
 Awaitable<void> Database::Init() {
   // init tables
-  table_ = std::make_shared<table::Table>(io_manager_, base_dir_ + "/table");
+  table_ = std::make_shared<table::Table>(io_manager_, base_dir_ + "/table", *this);
 
   // recovery
   const auto wal_path = base_dir_ + "/wal.sdb";
@@ -27,18 +27,12 @@ Awaitable<void> Database::Init() {
   table_->StartWal(wal_writer_);
 }
 
+transaction::Storage& Database::GetTransactionStorage() {
+  return tx_storage_;
+}
+
 table::Table::Ptr Database::GetTable() {
   return table_;
-}
-
-void Database::SetTx(int64_t tx) {
-  // todo transaction manager
-  tx_ = tx;
-  table_->SetMaxTx(tx_);
-}
-
-int64_t Database::GetNextTx() {
-  return tx_++;
 }
 
 }

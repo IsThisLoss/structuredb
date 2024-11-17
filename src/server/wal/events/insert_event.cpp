@@ -29,11 +29,14 @@ Awaitable<void> InsertEvent::Flush(sdb::Writer& writer) {
 }
 
 Awaitable<void> InsertEvent::Apply(database::Database& db) {
+  if (tx_ < db.GetTransactionStorage().GetPersistedTx()) {
+    // skip events that was persisted
+    co_return;
+  }
   auto table = db.GetTable();
   std::cerr << "Recover: " << key_ << " " << value_ << std::endl;
   co_await table->Upsert(tx_, key_, value_);
-
-  db.SetTx(tx_);
+  db.GetTransactionStorage().SetMinCommitedTx(tx_);
 }
 
 }

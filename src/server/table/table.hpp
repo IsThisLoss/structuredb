@@ -10,16 +10,15 @@ class Table {
 public:
   using Ptr = std::shared_ptr<Table>;
 
-  explicit Table(io::Manager& io_manager, const std::string& base_dir);
+  explicit Table(io::Manager& io_manager, const std::string& base_dir, database::Database& db);
 
   void StartWal(wal::Writer::Ptr wal_writer);
-
-  void SetMaxTx(int64_t tx);
 
   Awaitable<void> Upsert(const int64_t tx, const std::string& key, const std::string& value);
 
   Awaitable<std::optional<std::string>> Lookup(const int64_t tx, const std::string& key);
 private:
+  database::Database& db_;
   lsm::Lsm lsm_;
   wal::Writer::Ptr wal_writer_{nullptr};
   int64_t max_tx_{};

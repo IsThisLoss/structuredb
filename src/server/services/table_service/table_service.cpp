@@ -27,13 +27,16 @@ grpc::ServerUnaryReactor* TableServiceImpl::Upsert(
       if (!table) {
         std::cerr << "Null table" << std::endl;
       }
-      int64_t tx = request->has_tx() ? request->tx() : database_.GetNextTx();
+      int64_t tx = request->has_tx() ? request->tx() : database_.GetTransactionStorage().Begin();
       co_await table->Upsert(
           tx,
           request->key(),
           request->value()
       );
       response->set_tx(tx);
+      if (!request->has_tx()) {
+        database_.GetTransactionStorage().Commit(tx);
+      }
       reactor->Finish(grpc::Status::OK);
   });
 
@@ -48,14 +51,17 @@ grpc::ServerUnaryReactor* TableServiceImpl::Lookup(
 
   io_manager_.CoSpawn([&]() -> Awaitable<void> {
     // std::unique_lock lock{mu_};
-      int64_t tx = request->has_tx() ? request->tx() : database_.GetNextTx();
+      int64_t tx = request->has_tx() ? request->tx() : database_.GetTransactionStorage().Begin();
       const auto value = co_await database_.GetTable()->Lookup(
           tx,
           request->key()
       );
-    if (value.has_value()) {
-      response->set_value(value.value());
-    }
+      if (value.has_value()) {
+        response->set_value(value.value());
+      }
+      if (!request->has_tx()) {
+        database_.GetTransactionStorage().Commit(tx);
+      }
     reactor->Finish(grpc::Status::OK);
   });
 

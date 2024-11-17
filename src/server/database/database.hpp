@@ -4,6 +4,7 @@
 #include <lsm/lsm.hpp>
 #include <wal/writer.hpp>
 #include <table/table.hpp>
+#include <transaction/storage.hpp>
 
 namespace structuredb::server::database {
 
@@ -15,9 +16,7 @@ public:
 
   table::Table::Ptr GetTable();
 
-  void SetTx(int64_t tx);
-
-  int64_t GetNextTx();
+  transaction::Storage& GetTransactionStorage();
 private:
   io::Manager& io_manager_;
   const std::string base_dir_;
@@ -26,7 +25,7 @@ private:
 
   table::Table::Ptr table_;
 
-  int64_t tx_{1};
+  transaction::Storage tx_storage_;
 };
 
 }

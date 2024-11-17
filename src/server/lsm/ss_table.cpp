@@ -27,7 +27,7 @@ Awaitable<void> SSTable::Init() {
   std::cerr << "Initialize ss table: " << header_.page_count << std::endl;
 }
 
-Awaitable<void> SSTable::Get(const std::string& key, const RecordConsumer& consume) {
+Awaitable<bool> SSTable::Get(const std::string& key, const RecordConsumer& consume) {
   // binary search
   size_t lo = 0;
   size_t hi = header_.page_count;
@@ -46,11 +46,14 @@ Awaitable<void> SSTable::Get(const std::string& key, const RecordConsumer& consu
     } else {
       auto value = page.Find(key);
       if (value.has_value()) {
-        consume(value.value());
+        if (consume(value.value())) {
+          co_return true;
+        }
+        break;
       }
-      break;
     }
   }
+  co_return false;
 }
 
 Awaitable<sdb::BufferReader> SSTable::GetPage(int64_t page_num) {
@@ -59,7 +62,6 @@ Awaitable<sdb::BufferReader> SSTable::GetPage(int64_t page_num) {
 
   const auto* cached_buffer = utils::FindOrNullptr(page_cache_, page_num);
   if (cached_buffer) {
-    std::cerr << "Cache hit\n";
     co_return sdb::BufferReader{std::move(*cached_buffer)};
   }
 

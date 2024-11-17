@@ -12,11 +12,14 @@ void MemTable::Put(const std::string& key, const std::string& value) {
   impl_.emplace(key, value);
 }
 
-void MemTable::Get(const std::string& key, const RecordConsumer& consume) const {
+bool MemTable::Get(const std::string& key, const RecordConsumer& consume) const {
   auto it = impl_.lower_bound(std::make_pair(key, ""));
   for (; it != impl_.end() && it->first == key; it++) {
-    consume(it->second);
+    if (consume(it->second)) {
+      return true;
+    }
   }
+  return false;
 }
 
 void MemTable::ScanValues(const RecordConsumer& consume) const {

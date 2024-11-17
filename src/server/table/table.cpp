@@ -4,6 +4,8 @@
 
 #include <wal/events/insert_event.hpp>
 
+#include <database/database.hpp>
+
 namespace structuredb::server::table {
 
 namespace {
@@ -41,8 +43,8 @@ VersionedValue ParseVersionedValue(const std::string& data) {
 
 }
 
-Table::Table(io::Manager& io_manager, const std::string& base_dir)
-  : lsm_{io_manager, base_dir}
+Table::Table(io::Manager& io_manager, const std::string& base_dir, database::Database& db)
+  : lsm_{io_manager, base_dir}, db_{db}
 {}
 
 void Table::StartWal(wal::Writer::Ptr wal_writer) {
@@ -50,15 +52,7 @@ void Table::StartWal(wal::Writer::Ptr wal_writer) {
   std::cerr << "Start wal\n";
 }
 
-void Table::SetMaxTx(int64_t tx) {
-  max_tx_ = tx;
-}
-
 Awaitable<void> Table::Upsert(const int64_t tx, const std::string& key, const std::string& value) {
-  if (tx <= max_tx_) {
-    co_return;
-  }
-
   const auto versioned_value = ToString(VersionedValue{
     .value = value,
     .created_tx = tx,
@@ -77,6 +71,7 @@ Awaitable<void> Table::Upsert(const int64_t tx, const std::string& key, const st
         if (value.deleted_tx > max_tx_) {
           max_tx_ = value.created_tx;
         }
+        return false;
       });
       co_await wal_writer_->SetPersistedTx(max_tx_);
     }
@@ -86,14 +81,20 @@ Awaitable<void> Table::Upsert(const int64_t tx, const std::string& key, const st
 Awaitable<std::optional<std::string>> Table::Lookup(const int64_t tx, const std::string& key) {
   std::cerr << "Lookup with tx: " << tx << std::endl;
   VersionedValue result{};
-  co_await lsm_.Get(key, [&tx, &result](const auto& data) {
+  co_await lsm_.Get(key, [this, &tx, &result](const auto& data) {
       const auto value = ParseVersionedValue(data);
-      if (value.deleted_tx < tx || tx < value.created_tx) {
-        return;
+      auto& tx_storage = db_.GetTransactionStorage();
+      if (tx_storage.IsCommited(value.deleted_tx) || value.deleted_tx == tx) {
+        return false;
       }
-      if (value.created_tx > result.created_tx) {
-        result = value;
+      if (!tx_storage.IsCommited(value.created_tx) && value.created_tx != tx) {
+        return false;
       }
+      if (value.created_tx < result.created_tx) {
+        return true;
+      }
+      result = value;
+      return false;
   });
   if (result.created_tx == 0) {
     co_return std::nullopt;
