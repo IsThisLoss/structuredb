@@ -4,8 +4,8 @@
 
 #include <io/file_reader.hpp>
 
-#include "disk/ss_table_header.hpp"
 #include "disk/page.hpp"
+#include "disk/ss_table_header.hpp"
 #include "record_consumer.hpp"
 
 namespace structuredb::server::lsm {
@@ -15,6 +15,8 @@ public:
   static Awaitable<SSTable> Create(io::FileReader::Ptr file_reader);
 
   Awaitable<bool> Get(const std::string& key, const RecordConsumer& consumer);
+
+  Sequence GetMaxSeqNo() const;
 private:
   explicit SSTable(io::FileReader::Ptr file_reader);
 

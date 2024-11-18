@@ -16,14 +16,6 @@ Awaitable<void> Writer::Write(Event::Ptr event) {
   co_await wal_writer_.FSync();
 }
 
-Awaitable<void> Writer::SetPersistedTx(int64_t tx) {
-  std::cerr << "Trying to set pers tx: " << tx << std::endl;
-  co_await control_writer_.WriteInt(tx);
-  co_await control_writer_.Rewind();
-  std::cerr << "Here: " << tx << std::endl;
-  co_await control_writer_.FSync();
-}
-
 Awaitable<Writer::Ptr> Open(io::Manager& io_manager, const std::string& wal_path, const std::string& control_path) {
   std::cerr << "Opening wal...\n";
   auto wal_file_writer = co_await io_manager.CreateFileWriter(wal_path, /*append=*/ true);

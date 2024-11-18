@@ -4,6 +4,8 @@
 
 #include <sdb/buffer_reader.hpp>
 
+#include <lsm/types.hpp>
+
 namespace structuredb::server::lsm::disk {
 
 class Page {
@@ -23,6 +25,8 @@ public:
 private:
   /// @property keys places inside the page
   std::vector<std::string> keys_;
+
+  std::vector<Sequence> seq_nos_;
 
   /// @property values places inside the page
   std::vector<std::string> values_;

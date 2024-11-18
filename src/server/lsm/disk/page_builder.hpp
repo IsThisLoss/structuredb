@@ -1,5 +1,6 @@
 #pragma once
 
+#include <lsm/types.hpp>
 #include <sdb/writer.hpp>
 
 namespace structuredb::server::lsm::disk {
@@ -10,9 +11,9 @@ public:
 
   void Clear();
 
-  bool IsEnoughPlace(const std::string& key, const std::string& value) const;
+  bool IsEnoughPlace(const Record& record) const;
 
-  void Add(const std::string& key, const std::string& value);
+  void Add(const Record& record);
 
   bool IsEmpty() const;
 
@@ -24,6 +25,8 @@ private:
 
   /// @property keys places inside the page
   std::vector<std::string> keys_;
+
+  std::vector<Sequence> seq_nos_;
 
   /// @property values places inside the page
   std::vector<std::string> values_;

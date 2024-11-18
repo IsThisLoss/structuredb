@@ -19,15 +19,16 @@ void PageBuilder::Clear() {
   current_size_ = 0;
 }
 
-bool PageBuilder::IsEnoughPlace(const std::string& key, const std::string& value) const {
-  const size_t next_record_size = sdb::Writer::EstimateSize(key) + sdb::Writer::EstimateSize(value);
+bool PageBuilder::IsEnoughPlace(const Record& record) const {
+  const size_t next_record_size = sdb::Writer::EstimateSize(record.key) + sdb::Writer::EstimateSize(record.seq_no) + sdb::Writer::EstimateSize(record.value);
   return current_size_ + next_record_size < max_bytes_size_;
 }
 
-void PageBuilder::Add(const std::string& key, const std::string& value) {
-  const size_t next_record_size = sdb::Writer::EstimateSize(key) + sdb::Writer::EstimateSize(value);
-  keys_.push_back(key);
-  values_.push_back(value);
+void PageBuilder::Add(const Record& record) {
+  const size_t next_record_size = sdb::Writer::EstimateSize(record.key) + sdb::Writer::EstimateSize(record.seq_no) + sdb::Writer::EstimateSize(record.value);
+  keys_.push_back(record.key);
+  seq_nos_.push_back(record.seq_no);
+  values_.push_back(record.value);
   current_size_ += next_record_size;
 }
 
@@ -44,6 +45,7 @@ Awaitable<void> PageBuilder::Flush(io::FileWriter& writer) {
   co_await PageHeader::Flush(buffer_writer, header);
   for (size_t i = 0; i < header.count; i++) {
     co_await buffer_writer.WriteString(keys_[i]);
+    co_await buffer_writer.WriteInt(seq_nos_[i]);
     co_await buffer_writer.WriteString(values_[i]);
   }
 

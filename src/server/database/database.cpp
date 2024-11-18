@@ -24,7 +24,7 @@ Awaitable<void> Database::Init() {
 
   // start wal
   wal_writer_ = co_await wal::Open(io_manager_, wal_path, control_path);
-  table_->StartWal(wal_writer_);
+  table_->StartLogInto(wal_writer_);
 }
 
 transaction::Storage& Database::GetTransactionStorage() {

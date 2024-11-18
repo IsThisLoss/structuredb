@@ -14,10 +14,12 @@ class Lsm {
 public:
   explicit Lsm(io::Manager& io_manager, const std::string& base_dir);
 
+  Sequence GetMaxPersistentSeqNo() const;
+
   /// @brief add or update data
   ///
   /// returns mem table if flush on disk was performed
-  Awaitable<std::optional<MemTable>> Put(const std::string& key, const std::string& value);
+  Awaitable<std::optional<MemTable>> Put(const std::string& key, const Sequence seq_no, const std::string& value);
 
   /// @brief retrives value by key
   ///
@@ -29,11 +31,13 @@ private:
   constexpr static const size_t kMaxRoMemTables{1};
 
   io::Manager& io_manager_;
-  const std::string base_dir_;
+  const std::string base_dir_{};
 
   MemTable mem_table_;
-  std::list<MemTable> ro_mem_tables_;
-  std::vector<SSTable> ss_tables_;
+  std::list<MemTable> ro_mem_tables_{};
+  std::vector<SSTable> ss_tables_{};
+
+  Sequence max_persistent_seq_no_{0};
 };
 
 }

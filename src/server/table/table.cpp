@@ -44,44 +44,38 @@ VersionedValue ParseVersionedValue(const std::string& data) {
 }
 
 Table::Table(io::Manager& io_manager, const std::string& base_dir, database::Database& db)
-  : lsm_{io_manager, base_dir}, db_{db}
+  : logged_table_{io_manager, base_dir}, db_{db}
 {}
 
-void Table::StartWal(wal::Writer::Ptr wal_writer) {
-  wal_writer_ = std::move(wal_writer);
+void Table::StartLogInto(wal::Writer::Ptr wal_writer) {
+  logged_table_.StartLogInto(std::move(wal_writer));
   std::cerr << "Start wal\n";
 }
 
-Awaitable<void> Table::Upsert(const int64_t tx, const std::string& key, const std::string& value) {
+Awaitable<void> Table::RecoverRecord(
+      const std::string& key,
+      const lsm::Sequence seq_no,
+      const std::string& value
+) {
+  co_await logged_table_.Upsert(key, value, seq_no);
+}
+
+Awaitable<void> Table::Upsert(
+      const int64_t tx,
+      const std::string& key,
+      const std::string& value
+) {
   const auto versioned_value = ToString(VersionedValue{
     .value = value,
     .created_tx = tx,
   });
-
-  auto flushed_mem_table = co_await lsm_.Put(key, versioned_value);
-
-  if (wal_writer_) {
-    co_await wal_writer_->Write(std::make_unique<wal::InsertEvent>(tx, key, value));
-    if (flushed_mem_table.has_value()) {
-      flushed_mem_table.value().ScanValues([this](const auto& data) {
-        const auto value = ParseVersionedValue(data);
-        if (value.created_tx > max_tx_) {
-          max_tx_ = value.created_tx;
-        }
-        if (value.deleted_tx > max_tx_) {
-          max_tx_ = value.created_tx;
-        }
-        return false;
-      });
-      co_await wal_writer_->SetPersistedTx(max_tx_);
-    }
-  }
+  co_await logged_table_.Upsert(key, value);
 }
 
 Awaitable<std::optional<std::string>> Table::Lookup(const int64_t tx, const std::string& key) {
   std::cerr << "Lookup with tx: " << tx << std::endl;
   VersionedValue result{};
-  co_await lsm_.Get(key, [this, &tx, &result](const auto& data) {
+  co_await logged_table_.Lookup(key, [this, &tx, &result](const auto& data) {
       const auto value = ParseVersionedValue(data);
       auto& tx_storage = db_.GetTransactionStorage();
       if (tx_storage.IsCommited(value.deleted_tx) || value.deleted_tx == tx) {

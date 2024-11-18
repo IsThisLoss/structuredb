@@ -27,10 +27,6 @@ void Storage::SetMinCommitedTx(TransactionId tx) {
   sequence_ = min_commited_tx_;
 }
 
-void Storage::SetPersistedTx(TransactionId tx) {
-  persisted_tx_ = tx;
-}
-
 TransactionId Storage::GetPersistedTx() const {
   return persisted_tx_;
 }

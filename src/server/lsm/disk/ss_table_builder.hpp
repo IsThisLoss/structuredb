@@ -15,7 +15,7 @@ public:
 
   Awaitable<void> Init();
 
-  Awaitable<void> Add(const std::string& key, const std::string& value);
+  Awaitable<void> Add(const Record& record);
 
   Awaitable<void> Finish() &&;
 private:

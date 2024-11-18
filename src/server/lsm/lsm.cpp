@@ -13,6 +13,7 @@ Lsm::Lsm(io::Manager& io_manager, const std::string& base_dir)
       for (const auto & dir_entry : std::filesystem::directory_iterator{base_dir_}) {
         auto file_reader = co_await io_manager_.CreateFileReader(dir_entry.path());
         auto ss_table = co_await SSTable::Create(std::move(file_reader));
+        max_persistent_seq_no_ = std::max(max_persistent_seq_no_, ss_table.GetMaxSeqNo());
         ss_tables_.push_back(std::move(ss_table));
       }
       std::cerr << "SSTables ready!\n";
@@ -20,10 +21,14 @@ Lsm::Lsm(io::Manager& io_manager, const std::string& base_dir)
   });
 }
 
-Awaitable<std::optional<MemTable>> Lsm::Put(const std::string& key, const std::string& value) {
+Sequence Lsm::GetMaxPersistentSeqNo() const {
+  return max_persistent_seq_no_;
+}
+
+Awaitable<std::optional<MemTable>> Lsm::Put(const std::string& key, const Sequence seq_no, const std::string& value) {
   std::optional<MemTable> result;
 
-  mem_table_.Put(key, value);
+  mem_table_.Put(Record{key, seq_no, value});
 
   if (mem_table_.Size() > kMaxTableSize) {
     std::cerr << "Mem table reached max size, freeze it\n";

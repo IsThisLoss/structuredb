@@ -56,6 +56,11 @@ Awaitable<bool> SSTable::Get(const std::string& key, const RecordConsumer& consu
   co_return false;
 }
 
+
+Sequence SSTable::GetMaxSeqNo() const {
+  return header_.max_seq_no;
+}
+
 Awaitable<sdb::BufferReader> SSTable::GetPage(int64_t page_num) {
   assert(page_num < header_.page_count);
   co_await file_reader_->Seek(header_size_ + page_num * header_.page_size);

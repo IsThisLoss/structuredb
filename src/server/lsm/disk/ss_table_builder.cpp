@@ -12,6 +12,7 @@ SSTableBuilder::SSTableBuilder(io::FileWriter::Ptr file_writer, const int64_t pa
   : header_{
     .page_size = page_size,
     .page_count = 0,
+    .max_seq_no = 0,
   }
   , file_writer_{std::move(file_writer)}
   , page_builder_{page_size}
@@ -24,14 +25,15 @@ Awaitable<void> SSTableBuilder::Init() {
   is_initialized_ = true;
 }
 
-Awaitable<void> SSTableBuilder::Add(const std::string& key, const std::string& value) {
+Awaitable<void> SSTableBuilder::Add(const Record& record) {
   assert(is_initialized_);
 
-  if (!page_builder_.IsEnoughPlace(key, value)) {
+  if (!page_builder_.IsEnoughPlace(record)) {
     co_await FlushPage();
   }
 
-  page_builder_.Add(key, value);
+  page_builder_.Add(record);
+  header_.max_seq_no = std::max(header_.max_seq_no, record.seq_no);
 }
 
 Awaitable<void> SSTableBuilder::Finish() && {

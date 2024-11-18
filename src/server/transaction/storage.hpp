@@ -22,8 +22,6 @@ public:
 
   void SetMinCommitedTx(TransactionId tx);
 
-  void SetPersistedTx(TransactionId tx);
-
   TransactionId GetPersistedTx() const;
 private:
   TransactionId sequence_{1};

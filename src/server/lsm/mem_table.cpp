@@ -8,14 +8,14 @@
 
 namespace structuredb::server::lsm {
 
-void MemTable::Put(const std::string& key, const std::string& value) {
-  impl_.emplace(key, value);
+void MemTable::Put(Record&& record) {
+  impl_.insert(std::move(record));
 }
 
 bool MemTable::Get(const std::string& key, const RecordConsumer& consume) const {
-  auto it = impl_.lower_bound(std::make_pair(key, ""));
-  for (; it != impl_.end() && it->first == key; it++) {
-    if (consume(it->second)) {
+  auto it = impl_.lower_bound(Record{key, 0, ""});
+  for (; it != impl_.end() && it->key == key; it++) {
+    if (consume(it->value)) {
       return true;
     }
   }
@@ -23,7 +23,7 @@ bool MemTable::Get(const std::string& key, const RecordConsumer& consume) const 
 }
 
 void MemTable::ScanValues(const RecordConsumer& consume) const {
-  for (const auto& [_, value] : impl_) {
+  for (const auto& [key, seq_no, value] : impl_) {
     consume(value);
   }
 }
@@ -43,8 +43,8 @@ Awaitable<SSTable> MemTable::Flush(io::Manager& io_manager, const std::string& f
   {
     auto file_writer = co_await io_manager.CreateFileWriter(file_path);
     auto builder = co_await disk::SSTableBuilder::Create(file_writer, kPageSize);
-    for (const auto& [key, value] : impl_) {
-      co_await builder.Add(key, value);
+    for (const auto& record : impl_) {
+      co_await builder.Add(record);
     }
     co_await std::move(builder).Finish();
     std::cerr << "SSTableBuilder finished\n";

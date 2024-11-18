@@ -10,7 +10,7 @@ class Database;
 namespace structuredb::server::wal {
 
 enum class EventType : int64_t {
-  kInvalid = 1,
+  kInvalid = 0,
   kInsert = 1,
 };
 

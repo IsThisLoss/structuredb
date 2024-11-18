@@ -16,7 +16,6 @@ public:
 
   Awaitable<void> Write(Event::Ptr event);
 
-  Awaitable<void> SetPersistedTx(int64_t tx);
 private:
   sdb::Writer wal_writer_;
   sdb::Writer control_writer_;

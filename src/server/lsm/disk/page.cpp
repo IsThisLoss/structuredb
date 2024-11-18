@@ -10,9 +10,11 @@ Awaitable<Page> Page::Load(sdb::BufferReader& reader) {
   Page result{};
   const auto header = co_await PageHeader::Load(reader);
   result.keys_.reserve(header.count);
+  result.seq_nos_.reserve(header.count);
   result.values_.reserve(header.count);
   for (int i = 0; i < header.count; i++) {
     result.keys_.push_back(co_await reader.ReadString());
+    result.seq_nos_.push_back(co_await reader.ReadInt());
     result.values_.push_back(co_await reader.ReadString());
   }
   co_return result;

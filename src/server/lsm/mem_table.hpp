@@ -10,7 +10,7 @@ namespace structuredb::server::lsm {
 
 class MemTable {
 public:
-  void Put(const std::string& key, const std::string& value);
+  void Put(Record&& record);
 
   bool Get(const std::string& key, const RecordConsumer& consume) const;
 
@@ -20,7 +20,7 @@ public:
 
   Awaitable<SSTable> Flush(io::Manager& io_manager, const std::string& file_path) const;
 private:
-  std::multiset<std::pair<std::string, std::string>> impl_;
+  std::multiset<Record> impl_;
 };
 
 }

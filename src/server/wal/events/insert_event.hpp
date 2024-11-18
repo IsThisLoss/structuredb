@@ -2,11 +2,13 @@
 
 #include "event.hpp"
 
+#include <lsm/types.hpp>
+
 namespace structuredb::server::wal {
 
 class InsertEvent : public Event {
 public:
-  explicit InsertEvent(int64_t tx, const std::string& key, const std::string& value);
+  explicit InsertEvent(const std::string& key, const lsm::Sequence seq_no, const std::string& value);
 
   static Awaitable<Event::Ptr> Parse(sdb::Reader& reader);
 
@@ -16,8 +18,8 @@ public:
 
   Awaitable<void> Apply(database::Database&) override;
 private:
-  const int64_t tx_;
   const std::string key_;
+  const lsm::Sequence seq_no_;
   const std::string value_;
 };
 
