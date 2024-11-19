@@ -22,7 +22,7 @@ grpc::ServerUnaryReactor* TableServiceImpl::Upsert(
   auto* reactor = context->DefaultReactor();
 
   io_manager_.CoSpawn([&]() -> Awaitable<void> {
-      // std::unique_lock lock{mu_};
+      std::unique_lock lock{mu_};
       const auto table = database_.GetTable("table");
       if (!table) {
         std::cerr << "Null table" << std::endl;
@@ -60,7 +60,7 @@ grpc::ServerUnaryReactor* TableServiceImpl::Lookup(
   auto* reactor = context->DefaultReactor();
 
   io_manager_.CoSpawn([&]() -> Awaitable<void> {
-    // std::unique_lock lock{mu_};
+      std::unique_lock lock{mu_};
       auto tx_storage = database_.GetTransactionStorage();
 
       if (request->has_tx()) {

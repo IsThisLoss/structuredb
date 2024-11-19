@@ -57,8 +57,7 @@ Awaitable<void> Lsm::DoPut(const Sequence seq_no, const std::string& key, const 
 
 Awaitable<std::optional<std::string>> Lsm::Get(const std::string& key) {
   std::optional<std::string> result;
-  co_await Scan(key, [&result](const auto& value) {
-      std::cerr << "S " << value << std::endl;
+  co_await Scan(key, [&](const auto& value) {
       result = value;
       return true;
   });

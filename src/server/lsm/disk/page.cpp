@@ -20,14 +20,16 @@ Awaitable<Page> Page::Load(sdb::BufferReader& reader) {
   co_return result;
 }
 
-std::optional<std::string> Page::Find(const std::string& key) const {
+std::vector<std::string> Page::Find(const std::string& key) const {
+  std::vector<std::string> result;
   auto it = std::lower_bound(keys_.begin(), keys_.end(), key);
-  if (it == keys_.end() || *it != key) {
-    return std::nullopt;
-  }
   const auto offset = std::distance(keys_.begin(), it);
   auto result_it = std::next(values_.begin(), offset);
-  return std::make_optional(*result_it);
+  for (; it != keys_.end() && *it == key; ++it) {
+    result.push_back(*result_it);
+    result_it = std::next(result_it);
+  }
+  return result;
 }
 
 const std::string& Page::MinKey() const {

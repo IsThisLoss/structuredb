@@ -34,12 +34,10 @@ Awaitable<void> Storage::Rollback(const TransactionId tx) {
 
 Awaitable<void> Storage::Commit(const TransactionId tx) {
   const auto tx_key = std::to_string(tx);
-  std::cerr << "COMMIT " << tx_key << std::endl;
   co_await logged_table_->Upsert(tx_key, kCommited);
 }
 
 Awaitable<bool> Storage::IsCommited(TransactionId tx) {
-  std::cerr << "IsCommited\n";
   const auto tx_key = std::to_string(tx);
   const auto tx_value = co_await logged_table_->Get(tx_key);
   co_return tx_value.has_value() && tx_value.value() == kCommited;

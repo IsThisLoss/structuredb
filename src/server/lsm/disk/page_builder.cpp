@@ -16,7 +16,6 @@ void PageBuilder::Clear() {
   current_size_ = PageHeader::EstimateSize(PageHeader{});
   keys_.clear();
   values_.clear();
-  current_size_ = 0;
 }
 
 bool PageBuilder::IsEnoughPlace(const Record& record) const {
@@ -40,7 +39,7 @@ Awaitable<void> PageBuilder::Flush(io::FileWriter& writer) {
   PageHeader header{
     .count = static_cast<int64_t>(keys_.size()),
   };
-  std::cerr << "Flush page builder: " << header.count << std::endl;
+  std::cerr << "Flush page builder: " << header.count << " " << current_size_ << "/" << max_bytes_size_ << std::endl;
   sdb::BufferWriter buffer_writer{max_bytes_size_};
   co_await PageHeader::Flush(buffer_writer, header);
   for (size_t i = 0; i < header.count; i++) {

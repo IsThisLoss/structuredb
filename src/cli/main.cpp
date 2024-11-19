@@ -143,7 +143,6 @@ int main(int argc, char** argv) {
 
   if (cmd == "COMMIT" && args.size() == 3) {
     tx_client.Commit(std::stoll(args[2]));
-    std::cout << "Commited" << std::endl;
     return 0;
   }
 

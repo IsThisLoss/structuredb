@@ -32,24 +32,33 @@ Awaitable<bool> SSTable::Scan(const std::string& key, const RecordConsumer& cons
   size_t lo = 0;
   size_t hi = header_.page_count;
 
+  std::cerr << key << std::endl;
   while (lo < hi) {
     size_t mid = lo + (hi - lo) / 2;
     // std::cerr << "Read page #" << mid << std::endl;
-    auto buffer = co_await GetPage(mid);
-    auto page = co_await disk::Page::Load(buffer);
+    auto page = co_await GetPage(mid);
 
-    if (key < page.MinKey()) {
+    if (key <= page.MaxKey()) {
       hi = mid;
-    }
-    else if (page.MaxKey() < key) {
-      lo = mid + 1;
     } else {
-      auto value = page.Find(key);
-      if (value.has_value()) {
-        if (consume(value.value())) {
-          co_return true;
-        }
-        break;
+      lo = mid + 1;
+    }
+  }
+
+  if (lo >= header_.page_count) {
+    co_return false;
+  }
+
+  for (size_t i = lo; i < header_.page_count; i++) {
+    auto page = co_await GetPage(i);
+    if (key > page.MaxKey()) {
+      break;
+    }
+
+    auto values = page.Find(key);
+    for (const auto& value : values) {
+      if (consume(value)) {
+        co_return true;
       }
     }
   }
@@ -61,19 +70,19 @@ Sequence SSTable::GetMaxSeqNo() const {
   return header_.max_seq_no;
 }
 
-Awaitable<sdb::BufferReader> SSTable::GetPage(int64_t page_num) {
+Awaitable<disk::Page> SSTable::GetPage(int64_t page_num) {
   assert(page_num < header_.page_count);
   co_await file_reader_->Seek(header_size_ + page_num * header_.page_size);
 
-  const auto* cached_buffer = utils::FindOrNullptr(page_cache_, page_num);
-  if (cached_buffer) {
-    co_return sdb::BufferReader{std::move(*cached_buffer)};
+  const auto* cached = utils::FindOrNullptr(page_cache_, page_num);
+  if (cached) {
+    co_return *cached;
   }
 
   std::vector<char> buffer(header_.page_size);
   co_await file_reader_->Read(buffer.data(), buffer.size());
-  page_cache_[page_num] = buffer;
-  co_return sdb::BufferReader{std::move(buffer)};
+  sdb::BufferReader buffer_reader{std::move(buffer)};
+  co_return page_cache_[page_num] = co_await disk::Page::Load(buffer_reader);
 }
 
 }

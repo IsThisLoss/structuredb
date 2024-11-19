@@ -34,7 +34,7 @@ size_t MemTable::Size() const {
 }
 
 Awaitable<SSTable> MemTable::Flush(io::Manager& io_manager, const std::string& file_path) const {
-  constexpr static const int64_t kPageSize = 64;
+  constexpr static const int64_t kPageSize = 512;
 
   std::cerr << "MemTable flush start\n";
 

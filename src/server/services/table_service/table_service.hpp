@@ -26,6 +26,7 @@ public:
 private:
   io::Manager& io_manager_;
   database::Database& database_;
+  std::mutex mu_;
 
 };
 

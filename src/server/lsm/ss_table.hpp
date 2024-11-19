@@ -38,9 +38,9 @@ private:
   int64_t header_size_{};
   disk::Page page_{};
 
-  std::unordered_map<size_t, std::vector<char>> page_cache_;
+  std::unordered_map<size_t, disk::Page> page_cache_;
 
-  Awaitable<sdb::BufferReader> GetPage(int64_t page_num);
+  Awaitable<disk::Page> GetPage(int64_t page_num);
 };
 
 }
