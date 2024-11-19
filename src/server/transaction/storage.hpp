@@ -1,38 +1,33 @@
 #pragma once
 
-#include <set>
-
 #include "types.hpp"
+#include <table/logged_table.hpp>
 
 namespace structuredb::server::transaction {
 
 /// @brief stores and provides transaction ids 
 class Storage {
 public:
+  using Ptr = std::shared_ptr<Storage>;
+
+  explicit Storage(table::LoggedTable::Ptr logged_table);
+
   /// @brief starts transaction
-  TransactionId Begin();
+  Awaitable<TransactionId> Begin();
 
   /// @brief rollback transaction
-  void Rollback(TransactionId tx);
+  Awaitable<void> Rollback(const TransactionId tx);
  
   /// @brief commits transaction
-  void Commit(TransactionId tx);
+  Awaitable<void> Commit(const TransactionId tx);
 
-  bool IsCommited(TransactionId tx);
+  /// @brief returns true if tx commited
+  Awaitable<bool> IsCommited(const TransactionId tx);
 
-  void SetMinCommitedTx(TransactionId tx);
-
-  TransactionId GetPersistedTx() const;
+  /// @brief returns true if tx started
+  Awaitable<bool> IsStarted(const TransactionId tx);
 private:
-  TransactionId sequence_{1};
-
-  TransactionId persisted_tx_{};
-
-  TransactionId min_commited_tx_{};
-
-  std::set<TransactionId> commited_{};
-
-  void Compact();
+  table::LoggedTable::Ptr logged_table_;
 };
 
 }

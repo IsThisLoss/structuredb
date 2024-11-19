@@ -14,18 +14,22 @@ public:
 
   Awaitable<void> Init();
 
-  table::Table::Ptr GetTable();
+  table::Table::Ptr GetTable(const std::string& table_name);
 
-  transaction::Storage& GetTransactionStorage();
+  table::LoggedTable::Ptr GetTxTable(const std::string& table_name);
+
+  transaction::Storage::Ptr GetTransactionStorage();
 private:
   io::Manager& io_manager_;
   const std::string base_dir_;
 
   wal::Writer::Ptr wal_writer_;
 
+  table::LoggedTable::Ptr tx_table_;
+
   table::Table::Ptr table_;
 
-  transaction::Storage tx_storage_;
+  transaction::Storage::Ptr tx_storage_;
 };
 
 }

@@ -15,7 +15,7 @@ grpc::ServerUnaryReactor* TransactionServiceImpl::Begin(
   auto* reactor = context->DefaultReactor();
 
   io_manager_.CoSpawn([&]() -> Awaitable<void> {
-      const auto tx = database_.GetTransactionStorage().Begin();
+      const auto tx = co_await database_.GetTransactionStorage()->Begin();
       response->set_tx(tx);
       reactor->Finish(grpc::Status::OK);
       co_return;
@@ -33,7 +33,7 @@ grpc::ServerUnaryReactor* TransactionServiceImpl::Commit(
 
   io_manager_.CoSpawn([&]() -> Awaitable<void> {
       const auto tx = request->tx();
-      database_.GetTransactionStorage().Commit(tx);
+      co_await database_.GetTransactionStorage()->Commit(tx);
       reactor->Finish(grpc::Status::OK);
       co_return;
   });

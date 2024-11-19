@@ -11,7 +11,7 @@ namespace structuredb::server::wal {
 
 enum class EventType : int64_t {
   kInvalid = 0,
-  kInsert = 1,
+  kLoggedTableUpsert = 1,
 };
 
 class Event {

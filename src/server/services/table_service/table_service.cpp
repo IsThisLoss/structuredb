@@ -23,11 +23,21 @@ grpc::ServerUnaryReactor* TableServiceImpl::Upsert(
 
   io_manager_.CoSpawn([&]() -> Awaitable<void> {
       // std::unique_lock lock{mu_};
-      const auto table = database_.GetTable();
+      const auto table = database_.GetTable("table");
       if (!table) {
         std::cerr << "Null table" << std::endl;
       }
-      int64_t tx = request->has_tx() ? request->tx() : database_.GetTransactionStorage().Begin();
+
+      auto tx_storage = database_.GetTransactionStorage();
+
+      if (request->has_tx()) {
+        if (!co_await tx_storage->IsStarted(request->tx())) {
+          reactor->Finish(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "Invalid transaction id"));
+          co_return;
+        }
+      }
+
+      int64_t tx = request->has_tx() ? request->tx() : co_await tx_storage->Begin();
       co_await table->Upsert(
           tx,
           request->key(),
@@ -35,7 +45,7 @@ grpc::ServerUnaryReactor* TableServiceImpl::Upsert(
       );
       response->set_tx(tx);
       if (!request->has_tx()) {
-        database_.GetTransactionStorage().Commit(tx);
+        co_await tx_storage->Commit(tx);
       }
       reactor->Finish(grpc::Status::OK);
   });
@@ -51,8 +61,16 @@ grpc::ServerUnaryReactor* TableServiceImpl::Lookup(
 
   io_manager_.CoSpawn([&]() -> Awaitable<void> {
     // std::unique_lock lock{mu_};
-      int64_t tx = request->has_tx() ? request->tx() : database_.GetTransactionStorage().Begin();
-      const auto value = co_await database_.GetTable()->Lookup(
+      auto tx_storage = database_.GetTransactionStorage();
+
+      if (request->has_tx()) {
+        if (!co_await tx_storage->IsStarted(request->tx())) {
+          reactor->Finish(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "Invalid transaction id"));
+          co_return;
+        }
+      }
+      int64_t tx = request->has_tx() ? request->tx() : co_await tx_storage->Begin();
+      const auto value = co_await database_.GetTable("table")->Lookup(
           tx,
           request->key()
       );
@@ -60,7 +78,7 @@ grpc::ServerUnaryReactor* TableServiceImpl::Lookup(
         response->set_value(value.value());
       }
       if (!request->has_tx()) {
-        database_.GetTransactionStorage().Commit(tx);
+        co_await tx_storage->Commit(tx);
       }
     reactor->Finish(grpc::Status::OK);
   });

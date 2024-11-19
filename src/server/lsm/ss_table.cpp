@@ -27,7 +27,7 @@ Awaitable<void> SSTable::Init() {
   std::cerr << "Initialize ss table: " << header_.page_count << std::endl;
 }
 
-Awaitable<bool> SSTable::Get(const std::string& key, const RecordConsumer& consume) {
+Awaitable<bool> SSTable::Scan(const std::string& key, const RecordConsumer& consume) {
   // binary search
   size_t lo = 0;
   size_t hi = header_.page_count;

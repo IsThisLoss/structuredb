@@ -14,7 +14,7 @@ class SSTable {
 public:
   static Awaitable<SSTable> Create(io::FileReader::Ptr file_reader);
 
-  Awaitable<bool> Get(const std::string& key, const RecordConsumer& consumer);
+  Awaitable<bool> Scan(const std::string& key, const RecordConsumer& consumer);
 
   Sequence GetMaxSeqNo() const;
 private:

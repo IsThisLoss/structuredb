@@ -1,5 +1,7 @@
 #include "database.hpp"
 
+#include <iostream>
+
 #include <wal/recovery.hpp>
 
 namespace structuredb::server::database {
@@ -10,12 +12,17 @@ Database::Database(io::Manager& io_manager, const std::string& base_dir)
 {
   io_manager_.CoSpawn([this]() -> Awaitable<void> {
       co_await Init();
+      std::cerr << "DB initialized!\n";
   });
 }
 
 Awaitable<void> Database::Init() {
+  // init sys tables
+  tx_table_ = std::make_shared<table::LoggedTable>(io_manager_, base_dir_ + "/sys_transactions", "sys_transactions");
+  tx_storage_ = std::make_shared<transaction::Storage>(tx_table_);
+
   // init tables
-  table_ = std::make_shared<table::Table>(io_manager_, base_dir_ + "/table", *this);
+  table_ = std::make_shared<table::Table>(std::make_shared<table::LoggedTable>(io_manager_, base_dir_ + "/table", "table"), tx_storage_);
 
   // recovery
   const auto wal_path = base_dir_ + "/wal.sdb";
@@ -24,15 +31,20 @@ Awaitable<void> Database::Init() {
 
   // start wal
   wal_writer_ = co_await wal::Open(io_manager_, wal_path, control_path);
+  tx_table_->StartLogInto(wal_writer_);
   table_->StartLogInto(wal_writer_);
 }
 
-transaction::Storage& Database::GetTransactionStorage() {
+transaction::Storage::Ptr Database::GetTransactionStorage() {
   return tx_storage_;
 }
 
-table::Table::Ptr Database::GetTable() {
+table::Table::Ptr Database::GetTable(const std::string& table_name) {
   return table_;
+}
+
+table::LoggedTable::Ptr Database::GetTxTable(const std::string& table_name) {
+  return tx_table_;
 }
 
 }

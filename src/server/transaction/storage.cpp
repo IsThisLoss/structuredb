@@ -3,42 +3,51 @@
 #include <iostream>
 
 namespace structuredb::server::transaction {
- 
-TransactionId Storage::Begin() {
-  return ++sequence_;
+
+namespace {
+
+std::string kFirstTx = "1";
+std::string kTxCounterKey = "counter";
+std::string kStarted = "started";
+std::string kCommited = "commited";
+std::string kRollbacked = "rollbacked";
+
 }
 
-void Storage::Rollback(TransactionId) {
-  // does nothing for now
+Storage::Storage(table::LoggedTable::Ptr logged_table)
+  : logged_table_{std::move(logged_table)}
+{}
+
+Awaitable<TransactionId> Storage::Begin() {
+  auto counter_value = co_await logged_table_->Get(kTxCounterKey);
+  const auto tx_key = counter_value.value_or(kFirstTx);
+  co_await logged_table_->Upsert(tx_key, kStarted);
+  auto result = std::stoll(tx_key);
+  co_await logged_table_->Upsert(kTxCounterKey, std::to_string(result+1));
+  co_return result;
 }
 
-void Storage::Commit(TransactionId tx) {
-  commited_.insert(tx);
-  Compact();
+Awaitable<void> Storage::Rollback(const TransactionId tx) {
+  const auto tx_key = std::to_string(tx);
+  co_await logged_table_->Upsert(tx_key, kRollbacked);
 }
 
-bool Storage::IsCommited(TransactionId tx) {
-  std::cerr << "IsCommited: " << tx << " " << min_commited_tx_ << std::endl;
-  return tx <= min_commited_tx_ || commited_.contains(tx);
+Awaitable<void> Storage::Commit(const TransactionId tx) {
+  const auto tx_key = std::to_string(tx);
+  co_await logged_table_->Upsert(tx_key, kCommited);
 }
 
-void Storage::SetMinCommitedTx(TransactionId tx) {
-  min_commited_tx_ = tx;
-  sequence_ = min_commited_tx_;
+Awaitable<bool> Storage::IsCommited(TransactionId tx) {
+  std::cerr << "IsCommited\n";
+  const auto tx_key = std::to_string(tx);
+  const auto tx_value = co_await logged_table_->Get(tx_key);
+  co_return tx_value.has_value() && tx_value.value() == kCommited;
 }
 
-TransactionId Storage::GetPersistedTx() const {
-  return persisted_tx_;
-}
-
-void Storage::Compact() {
-  for (auto it = commited_.begin(); it != commited_.end();) {
-    if (*it != min_commited_tx_ + 1) {
-      break;
-    }
-    min_commited_tx_ = *it;
-    it = commited_.erase(it);
-  }
+Awaitable<bool> Storage::IsStarted(const TransactionId tx) {
+  const auto tx_key = std::to_string(tx);
+  const auto tx_value = co_await logged_table_->Get(tx_key);
+  co_return tx_value.has_value() && tx_value.value() == kStarted;
 }
 
 }

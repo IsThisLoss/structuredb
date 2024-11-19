@@ -2,19 +2,23 @@
 
 #include "logged_table.hpp"
 
+#include <transaction/storage.hpp>
+
 namespace structuredb::server::table {
 
 class Table {
 public:
   using Ptr = std::shared_ptr<Table>;
 
-  explicit Table(io::Manager& io_manager, const std::string& base_dir, database::Database& db);
+  explicit Table(LoggedTable::Ptr logged_table, transaction::Storage::Ptr tx_storage);
+
+  Awaitable<void> Init();
 
   void StartLogInto(wal::Writer::Ptr wal_writer);
 
-  Awaitable<void> RecoverRecord(
-      const std::string& key,
+  Awaitable<void> RecoverFromLog(
       const lsm::Sequence seq_no,
+      const std::string& key,
       const std::string& value
   );
 
@@ -26,8 +30,8 @@ public:
 
   Awaitable<std::optional<std::string>> Lookup(const int64_t tx, const std::string& key);
 private:
-  database::Database& db_;
-  LoggedTable logged_table_;
+  LoggedTable::Ptr logged_table_;
+  transaction::Storage::Ptr tx_storage_;
 };
 
 }

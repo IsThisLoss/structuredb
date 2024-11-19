@@ -4,6 +4,8 @@
 
 #include <io/manager.hpp>
 
+#include <wal/writer.hpp>
+
 #include "mem_table.hpp"
 #include "ss_table.hpp"
 
@@ -14,19 +16,28 @@ class Lsm {
 public:
   explicit Lsm(io::Manager& io_manager, const std::string& base_dir);
 
-  Sequence GetMaxPersistentSeqNo() const;
+  Awaitable<void> Init();
 
-  /// @brief add or update data
+  /// @brief adds key value to LSM
   ///
-  /// returns mem table if flush on disk was performed
-  Awaitable<std::optional<MemTable>> Put(const std::string& key, const Sequence seq_no, const std::string& value);
+  /// returns sequence number of inserted record
+  Awaitable<Sequence> Put(const std::string& key, const std::string& value);
 
-  /// @brief retrives value by key
+  /// @brief inserts with provided sequence
   ///
-  /// @p consume will be called for each value assossiated with @p key
-  Awaitable<void> Get(const std::string& key, const RecordConsumer& consume);
+  /// if sequence is valid next sequence for lsm, inserts record and returns true
+  /// otherwise returns false
+  Awaitable<bool> Put(const Sequence seq_no, const std::string& key, const std::string& value);
+
+  /// @brief retrives lates value by key
+  Awaitable<std::optional<std::string>> Get(const std::string& key);
+
+  /// @brief retrives all value's versions by key
+  ///
+  /// @p consume will be called for each value version assossiated with @p key
+  Awaitable<void> Scan(const std::string& key, const RecordConsumer& consume);
 private:
-  constexpr static const size_t kMaxTableSize{50};
+  constexpr static const size_t kMaxRecordsInMemTable{50};
 
   constexpr static const size_t kMaxRoMemTables{1};
 
@@ -37,7 +48,9 @@ private:
   std::list<MemTable> ro_mem_tables_{};
   std::vector<SSTable> ss_tables_{};
 
-  Sequence max_persistent_seq_no_{0};
+  Sequence next_seq_no_{0};
+
+  Awaitable<void> DoPut(const Sequence seq_no, const std::string& key, const std::string& value);
 };
 
 }
