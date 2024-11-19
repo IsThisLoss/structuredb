@@ -13,18 +13,12 @@ void MemTable::Put(Record&& record) {
 }
 
 bool MemTable::Scan(const std::string& key, const RecordConsumer& consume) const {
-  std::cerr << "start lower_bound\n";
   auto it = impl_.lower_bound(Record{key});
-  std::cerr << "end lower_bound\n";
   for (; it != impl_.end() && it->key == key; it++) {
-    std::cerr << "Value: " << it->seq_no << ' ' << it->value << std::endl;
     if (consume(it->value)) {
-      std::cerr << "consume return\n";
       return true;
     }
-    std::cerr << "consume continue\n";
   }
-  std::cerr << "exit scan\n";
   return false;
 }
 

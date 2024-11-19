@@ -19,10 +19,12 @@ Database::Database(io::Manager& io_manager, const std::string& base_dir)
 Awaitable<void> Database::Init() {
   // init sys tables
   tx_table_ = std::make_shared<table::LoggedTable>(io_manager_, base_dir_ + "/sys_transactions", "sys_transactions");
+  co_await tx_table_->Init();
   tx_storage_ = std::make_shared<transaction::Storage>(tx_table_);
 
   // init tables
   table_ = std::make_shared<table::Table>(std::make_shared<table::LoggedTable>(io_manager_, base_dir_ + "/table", "table"), tx_storage_);
+  co_await table_->Init();
 
   // recovery
   const auto wal_path = base_dir_ + "/wal.sdb";

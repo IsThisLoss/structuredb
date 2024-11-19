@@ -34,7 +34,7 @@ Awaitable<bool> SSTable::Scan(const std::string& key, const RecordConsumer& cons
 
   while (lo < hi) {
     size_t mid = lo + (hi - lo) / 2;
-    std::cerr << "Read page #" << mid << std::endl;
+    // std::cerr << "Read page #" << mid << std::endl;
     auto buffer = co_await GetPage(mid);
     auto page = co_await disk::Page::Load(buffer);
 
@@ -70,7 +70,6 @@ Awaitable<sdb::BufferReader> SSTable::GetPage(int64_t page_num) {
     co_return sdb::BufferReader{std::move(*cached_buffer)};
   }
 
-  std::cerr << "Cache miss\n";
   std::vector<char> buffer(header_.page_size);
   co_await file_reader_->Read(buffer.data(), buffer.size());
   page_cache_[page_num] = buffer;
