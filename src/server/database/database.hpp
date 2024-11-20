@@ -6,6 +6,8 @@
 #include <table/table.hpp>
 #include <transaction/storage.hpp>
 
+#include "tables.hpp"
+
 namespace structuredb::server::database {
 
 class Database {

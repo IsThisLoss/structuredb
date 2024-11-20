@@ -18,6 +18,12 @@ public:
 
   Awaitable<FileWriter::Ptr> CreateFileWriter(const std::string& path, bool append = false);
 
+  Awaitable<void> CreateDirectory(const std::string& path);
+
+  Awaitable<std::vector<std::string>> ListDirectory(const std::string& path);
+
+  Awaitable<void> Remove(const std::string& path);
+
   template <std::invocable<> Coro>
   void CoSpawn(Coro&& coro) const {
     boost::asio::co_spawn(io_context_, std::forward<Coro>(coro), boost::asio::detached);

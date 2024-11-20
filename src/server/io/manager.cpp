@@ -1,6 +1,7 @@
 #include "manager.hpp"
 
 #include <iostream>
+#include <filesystem>
 
 namespace structuredb::server::io {
 
@@ -24,6 +25,29 @@ Awaitable<FileWriter::Ptr> Manager::CreateFileWriter(const std::string& path, bo
   auto result = std::make_shared<FileWriter>(io_context_, blocking_executor_);
   co_await result->Open(path, append);
   co_return result;
+}
+
+Awaitable<void> Manager::CreateDirectory(const std::string& path) {
+  co_await blocking_executor_.Execute([&]() {
+    std::filesystem::create_directory(path);
+  });
+}
+
+Awaitable<std::vector<std::string>> Manager::ListDirectory(const std::string& path) {
+  const auto result = co_await blocking_executor_.Execute([&]() {
+      std::vector<std::string> result;
+      for (const auto& item : std::filesystem::directory_iterator(path)) {
+        result.push_back(item.path());
+      }
+      return result;
+  });
+  co_return result;
+}
+
+Awaitable<void> Manager::Remove(const std::string& path) {
+  co_await blocking_executor_.Execute([&]() {
+      std::filesystem::remove(path);
+  });
 }
 
 }

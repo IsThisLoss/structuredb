@@ -19,8 +19,9 @@ public:
     auto original_executor = co_await boost::asio::this_coro::executor;
     auto to_thread_pool = boost::asio::bind_executor(thread_pool_, boost::asio::use_awaitable);
     co_await boost::asio::post(to_thread_pool);
-    co_return func();
+    auto result = func();
     co_await boost::asio::post(original_executor, boost::asio::use_awaitable);
+    co_return result;
   }
 
 private:
