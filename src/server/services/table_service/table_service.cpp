@@ -29,21 +29,24 @@ grpc::ServerUnaryReactor* TableServiceImpl::Upsert(
       }
 
       auto tx_storage = database_.GetTransactionStorage();
-
+      transaction::TransactionId tx{};
       if (request->has_tx()) {
-        if (!co_await tx_storage->IsStarted(request->tx())) {
+        tx = transaction::FromString(request->tx());
+        if (!co_await tx_storage->IsStarted(tx)) {
           reactor->Finish(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "Invalid transaction id"));
           co_return;
         }
+      } else {
+        tx = co_await tx_storage->Begin();
       }
 
-      int64_t tx = request->has_tx() ? request->tx() : co_await tx_storage->Begin();
       co_await table->Upsert(
           tx,
           request->key(),
           request->value()
       );
-      response->set_tx(tx);
+
+      response->set_tx(transaction::ToString(tx));
       if (!request->has_tx()) {
         co_await tx_storage->Commit(tx);
       }
@@ -61,15 +64,19 @@ grpc::ServerUnaryReactor* TableServiceImpl::Lookup(
 
   io_manager_.CoSpawn([&]() -> Awaitable<void> {
       std::unique_lock lock{mu_};
-      auto tx_storage = database_.GetTransactionStorage();
 
+      auto tx_storage = database_.GetTransactionStorage();
+      transaction::TransactionId tx{};
       if (request->has_tx()) {
-        if (!co_await tx_storage->IsStarted(request->tx())) {
+        tx = transaction::FromString(request->tx());
+        if (!co_await tx_storage->IsStarted(tx)) {
           reactor->Finish(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "Invalid transaction id"));
           co_return;
         }
+      } else {
+        tx = co_await tx_storage->Begin();
       }
-      int64_t tx = request->has_tx() ? request->tx() : co_await tx_storage->Begin();
+
       const auto value = co_await database_.GetTable("table")->Lookup(
           tx,
           request->key()

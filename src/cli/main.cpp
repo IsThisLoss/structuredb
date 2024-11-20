@@ -15,7 +15,7 @@
 
 
 ABSL_FLAG(std::string, target, "localhost:50051", "Server address");
-ABSL_FLAG(std::optional<int64_t>, tx, std::nullopt, "Transaction number");
+ABSL_FLAG(std::optional<std::string>, tx, std::nullopt, "Transaction number");
 
 
 class TableServiceClient {
@@ -23,7 +23,7 @@ class TableServiceClient {
   explicit TableServiceClient(std::shared_ptr<grpc::Channel> channel)
       : stub_(structuredb::v1::Tables::NewStub(channel)) {}
 
-  int64_t Upsert(const std::optional<int64_t>& tx, const std::string& key, const std::string& value) {
+  std::string Upsert(const std::optional<std::string>& tx, const std::string& key, const std::string& value) {
     structuredb::v1::UpsertTableRequest request;
     if (tx.has_value()) {
       request.set_tx(tx.value());
@@ -44,7 +44,7 @@ class TableServiceClient {
     return response.tx();
   }
 
-  std::optional<std::string> Lookup(const std::optional<int64_t>& tx, const std::string& key) {
+  std::optional<std::string> Lookup(const std::optional<std::string>& tx, const std::string& key) {
     structuredb::v1::LookupTableRequest request;
     if (tx.has_value()) {
       request.set_tx(tx.value());
@@ -73,7 +73,7 @@ class TransactionServiceClient {
   explicit TransactionServiceClient(std::shared_ptr<grpc::Channel> channel)
       : stub_(structuredb::v1::Transactions::NewStub(channel)) {}
 
-  int64_t Begin() {
+  std::string Begin() {
     structuredb::v1::BeginRequest request;
 
     structuredb::v1::BeginResponse response;
@@ -89,7 +89,7 @@ class TransactionServiceClient {
     return response.tx();
   }
 
-  void Commit(const int64_t& tx) {
+  void Commit(const std::string& tx) {
     structuredb::v1::CommitRequest request;
     request.set_tx(tx);
 
@@ -142,7 +142,7 @@ int main(int argc, char** argv) {
   }
 
   if (cmd == "COMMIT" && args.size() == 3) {
-    tx_client.Commit(std::stoll(args[2]));
+    tx_client.Commit(args[2]);
     return 0;
   }
 

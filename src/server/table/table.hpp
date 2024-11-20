@@ -23,12 +23,12 @@ public:
   );
 
   Awaitable<void> Upsert(
-      const int64_t tx,
+      const transaction::TransactionId& tx,
       const std::string& key,
       const std::string& value
   );
 
-  Awaitable<std::optional<std::string>> Lookup(const int64_t tx, const std::string& key);
+  Awaitable<std::optional<std::string>> Lookup(const transaction::TransactionId& tx, const std::string& key);
 private:
   LoggedTable::Ptr logged_table_;
   transaction::Storage::Ptr tx_storage_;

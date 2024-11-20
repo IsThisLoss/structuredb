@@ -6,11 +6,11 @@ message BeginRequest {
 }
 
 message BeginResponse {
-  int64 tx = 1;
+  string tx = 1;
 }
 
 message CommitRequest {
-  int64 tx = 1;
+  string tx = 1;
 }
 
 message CommitResponse {

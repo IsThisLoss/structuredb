@@ -16,16 +16,16 @@ public:
   Awaitable<TransactionId> Begin();
 
   /// @brief rollback transaction
-  Awaitable<void> Rollback(const TransactionId tx);
+  Awaitable<void> Rollback(const TransactionId& tx);
  
   /// @brief commits transaction
-  Awaitable<void> Commit(const TransactionId tx);
+  Awaitable<void> Commit(const TransactionId& tx);
 
   /// @brief returns true if tx commited
-  Awaitable<bool> IsCommited(const TransactionId tx);
+  Awaitable<bool> IsCommited(const TransactionId& tx);
 
   /// @brief returns true if tx started
-  Awaitable<bool> IsStarted(const TransactionId tx);
+  Awaitable<bool> IsStarted(const TransactionId& tx);
 private:
   table::LoggedTable::Ptr logged_table_;
 };

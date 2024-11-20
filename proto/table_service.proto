@@ -3,17 +3,17 @@ syntax = "proto3";
 package structuredb.v1;
 
 message UpsertTableRequest {
-  optional int64 tx = 1;
+  optional string tx = 1;
   string key = 2;
   string value = 3;
 }
 
 message UpsertTableResponse {
-  int64 tx = 1;
+  string tx = 1;
 }
 
 message LookupTableRequest {
-  optional int64 tx = 1;
+  optional string tx = 1;
   string key = 2;
 }
 

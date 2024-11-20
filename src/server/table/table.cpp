@@ -9,14 +9,14 @@ namespace structuredb::server::table {
 namespace {
 
 struct TransactionalValue {
-  transaction::TransactionId tx{0};
+  transaction::TransactionId tx{};
 
   std::string value{};
 };
 
 std::string ToString(const TransactionalValue& value) {
   std::string result;
-  result.append(reinterpret_cast<const char*>(&value.tx), sizeof(int64_t));
+  result.append(reinterpret_cast<const char*>(&value.tx.data), value.tx.size());
   result.append(value.value);
   return result;
 }
@@ -24,9 +24,9 @@ std::string ToString(const TransactionalValue& value) {
 TransactionalValue ParseTransactionalValue(const std::string& data) {
   TransactionalValue result{};
   const char* ptr = data.data();
-  result.tx = *reinterpret_cast<const int64_t*>(ptr);
-  ptr += sizeof(int64_t);
-  result.value.assign(ptr, data.size() - sizeof(int64_t));
+  ::memcpy(result.tx.data, ptr, result.tx.size());
+  ptr += result.tx.size();
+  result.value.assign(ptr, data.size() - result.tx.size());
   return result;
 }
 
@@ -53,7 +53,7 @@ Awaitable<void> Table::RecoverFromLog(
 }
 
 Awaitable<void> Table::Upsert(
-      const int64_t tx,
+      const transaction::TransactionId& tx,
       const std::string& key,
       const std::string& value
 ) {
@@ -64,8 +64,8 @@ Awaitable<void> Table::Upsert(
   co_await logged_table_->Upsert(key, transactional_value);
 }
 
-Awaitable<std::optional<std::string>> Table::Lookup(const int64_t tx, const std::string& key) {
-  std::cerr << "Lookup with tx: " << tx << std::endl;
+Awaitable<std::optional<std::string>> Table::Lookup(const transaction::TransactionId& tx, const std::string& key) {
+  std::cerr << "Lookup with tx: " << transaction::ToString(tx) << std::endl;
   std::vector<TransactionalValue> candidates{};
   co_await logged_table_->Scan(key, [&](const auto& data) {
       candidates.push_back(ParseTransactionalValue(data));
