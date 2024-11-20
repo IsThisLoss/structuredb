@@ -39,11 +39,15 @@ Awaitable<void> LoggedTableUpsertEvent::Flush(sdb::Writer& writer) {
 Awaitable<void> LoggedTableUpsertEvent::Apply(database::Database& db) {
   std::cerr << "Recover: " << table_name_ << " " << key_ << " " << value_ << std::endl;
   if (table_name_ == "sys_transactions") {
-    auto table = db.GetTxTable(table_name_);
+    auto table = db.GetTxTable();
     co_await table->RecoverFromLog(seq_no_, key_, value_);
     co_return;
   }
-  auto table = db.GetTable(table_name_);
+  auto table = db.GetTableForRecover(table_name_);
+  if (!table) {
+    std::cerr << "Got nullptr after GetTable\n";
+    co_return;
+  }
   std::cerr << "Recover: " << key_ << " " << value_ << std::endl;
   co_await table->RecoverFromLog(seq_no_, key_, value_);
 }

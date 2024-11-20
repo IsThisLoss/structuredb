@@ -6,8 +6,6 @@
 #include <table/table.hpp>
 #include <transaction/storage.hpp>
 
-#include "tables.hpp"
-
 namespace structuredb::server::database {
 
 class Database {
@@ -16,9 +14,15 @@ public:
 
   Awaitable<void> Init();
 
-  table::Table::Ptr GetTable(const std::string& table_name);
+  Awaitable<void> CreateTable(const transaction::TransactionId& tx, const std::string& name);
 
-  table::LoggedTable::Ptr GetTxTable(const std::string& table_name);
+  Awaitable<void> DropTable(const transaction::TransactionId& tx, const std::string& name);
+
+  table::Table::Ptr GetTableForRecover(const std::string& table_name);
+
+  Awaitable<table::Table::Ptr> GetTable(const transaction::TransactionId& tx, const std::string& table_name);
+
+  table::LoggedTable::Ptr GetTxTable();
 
   transaction::Storage::Ptr GetTransactionStorage();
 private:
@@ -28,8 +32,9 @@ private:
   wal::Writer::Ptr wal_writer_;
 
   table::LoggedTable::Ptr tx_table_;
+  table::Table::Ptr sys_tables_;
 
-  table::Table::Ptr table_;
+  std::unordered_map<std::string, table::Table::Ptr> tables_;
 
   transaction::Storage::Ptr tx_storage_;
 };

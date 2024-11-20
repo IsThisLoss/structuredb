@@ -11,9 +11,9 @@ Lsm::Lsm(io::Manager& io_manager, const std::string& base_dir)
 
 Awaitable<void> Lsm::Init() {
   Sequence max_persistent_seq_no{};
-  const auto file_paths = co_await io_manager_.ListDirectory(base_dir_);
-  for (const auto& path : file_paths) {
-    auto file_reader = co_await io_manager_.CreateFileReader(path);
+  const auto names = co_await io_manager_.ListDirectory(base_dir_);
+  for (const auto& name : names) {
+    auto file_reader = co_await io_manager_.CreateFileReader(base_dir_ + "/" + name);
     auto ss_table = co_await SSTable::Create(std::move(file_reader));
     max_persistent_seq_no = std::max(max_persistent_seq_no, ss_table.GetMaxSeqNo());
     ss_tables_.push_back(std::move(ss_table));

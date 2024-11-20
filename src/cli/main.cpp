@@ -23,11 +23,12 @@ class TableServiceClient {
   explicit TableServiceClient(std::shared_ptr<grpc::Channel> channel)
       : stub_(structuredb::v1::Tables::NewStub(channel)) {}
 
-  std::string Upsert(const std::optional<std::string>& tx, const std::string& key, const std::string& value) {
+  std::string Upsert(const std::optional<std::string>& tx, const std::string& table, const std::string& key, const std::string& value) {
     structuredb::v1::UpsertTableRequest request;
     if (tx.has_value()) {
       request.set_tx(tx.value());
     }
+    request.set_table(table);
     request.set_key(key);
     request.set_value(value);
 
@@ -44,11 +45,12 @@ class TableServiceClient {
     return response.tx();
   }
 
-  std::optional<std::string> Lookup(const std::optional<std::string>& tx, const std::string& key) {
+  std::optional<std::string> Lookup(const std::optional<std::string>& tx, const std::string& table, const std::string& key) {
     structuredb::v1::LookupTableRequest request;
     if (tx.has_value()) {
       request.set_tx(tx.value());
     }
+    request.set_table(table);
     request.set_key(key);
 
     structuredb::v1::LookupTableResponse response;
@@ -62,6 +64,46 @@ class TableServiceClient {
       return std::nullopt;
     }
     return response.value();
+  }
+
+  std::string CreateTable(const std::optional<std::string>& tx, const std::string& name) {
+    structuredb::v1::CreateTableRequest request;
+    if (tx.has_value()) {
+      request.set_tx(tx.value());
+    }
+    request.set_name(name);
+
+    structuredb::v1::CreateTableResponse response;
+    grpc::ClientContext context;
+
+    const auto status = stub_->CreateTable(&context, request, &response);
+
+    // Act upon its status.
+    if (!status.ok()) {
+      std::cerr << status.error_code() << ": " << status.error_message() << std::endl;
+    }
+
+    return response.tx();
+  }
+
+  std::string DropTable(const std::optional<std::string>& tx, const std::string& name) {
+    structuredb::v1::DropTableRequest request;
+    if (tx.has_value()) {
+      request.set_tx(tx.value());
+    }
+    request.set_name(name);
+
+    structuredb::v1::DropTableResponse response;
+    grpc::ClientContext context;
+
+    const auto status = stub_->DropTable(&context, request, &response);
+
+    // Act upon its status.
+    if (!status.ok()) {
+      std::cerr << status.error_code() << ": " << status.error_message() << std::endl;
+    }
+
+    return response.tx();
   }
 
  private:
@@ -121,14 +163,14 @@ int main(int argc, char** argv) {
   TransactionServiceClient tx_client(grpc::CreateChannel(target_str, grpc::InsecureChannelCredentials()));
 
   const auto cmd = std::string(args[1]);
-  if (cmd == "UPSERT" && args.size() == 4) {
-    std::cout << "Tx: " << client.Upsert(tx, args[2], args[3]) << std::endl;
+  if (cmd == "UPSERT" && args.size() == 5) {
+    std::cout << "Tx: " << client.Upsert(tx, args[2], args[3], args[4]) << std::endl;
     return 0;
   }
 
-  if (cmd == "LOOKUP" && args.size() == 3) {
+  if (cmd == "LOOKUP" && args.size() == 4) {
     auto start = std::chrono::steady_clock::now();
-    const auto result = client.Lookup(tx, args[2]);
+    const auto result = client.Lookup(tx, args[2], args[3]);
     std::cout << result.value_or("<null>") << std::endl;
     auto end = std::chrono::steady_clock::now();
     std::cout << "Elapsed: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << std::endl;
@@ -143,6 +185,17 @@ int main(int argc, char** argv) {
 
   if (cmd == "COMMIT" && args.size() == 3) {
     tx_client.Commit(args[2]);
+    std::cout << "Commited" << std::endl;
+    return 0;
+  }
+
+  if (cmd == "CREATE" && args.size() == 3) {
+    std::cout << "Tx: " << client.CreateTable(tx, args[2]) << std::endl;
+    return 0;
+  }
+
+  if (cmd == "DROP" && args.size() == 3) {
+    std::cout << "Tx: " << client.DropTable(tx, args[2]) << std::endl;
     return 0;
   }
 

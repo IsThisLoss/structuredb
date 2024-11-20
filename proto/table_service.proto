@@ -4,8 +4,9 @@ package structuredb.v1;
 
 message UpsertTableRequest {
   optional string tx = 1;
-  string key = 2;
-  string value = 3;
+  string table = 2;
+  string key = 3;
+  string value = 4;
 }
 
 message UpsertTableResponse {
@@ -14,14 +15,35 @@ message UpsertTableResponse {
 
 message LookupTableRequest {
   optional string tx = 1;
-  string key = 2;
+  string table = 2;
+  string key = 3;
 }
 
 message LookupTableResponse {
   optional string value = 1;
 }
 
+message CreateTableRequest {
+  optional string tx = 1;
+  string name = 2;
+}
+
+message CreateTableResponse {
+  string tx = 1;
+}
+
+message DropTableRequest {
+  optional string tx = 1;
+  string name = 2;
+}
+
+message DropTableResponse {
+  string tx = 1;
+}
+
 service Tables {
   rpc Upsert(UpsertTableRequest) returns (UpsertTableResponse) {}
   rpc Lookup(LookupTableRequest) returns (LookupTableResponse) {}
+  rpc CreateTable(CreateTableRequest) returns (CreateTableResponse) {}
+  rpc DropTable(DropTableRequest) returns (DropTableResponse) {}
 }

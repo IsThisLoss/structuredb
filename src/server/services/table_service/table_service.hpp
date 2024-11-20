@@ -23,6 +23,18 @@ public:
       ::structuredb::v1::LookupTableResponse* response
   ) override;
 
+  grpc::ServerUnaryReactor* CreateTable(
+      grpc::CallbackServerContext* context,
+      const ::structuredb::v1::CreateTableRequest* request,
+      ::structuredb::v1::CreateTableResponse* response
+  ) override;
+
+  grpc::ServerUnaryReactor* DropTable(
+      grpc::CallbackServerContext* context,
+      const ::structuredb::v1::DropTableRequest* request,
+      ::structuredb::v1::DropTableResponse* response
+  ) override;
+
 private:
   io::Manager& io_manager_;
   database::Database& database_;
