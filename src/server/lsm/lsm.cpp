@@ -1,7 +1,6 @@
 #include "lsm.hpp"
 
 #include <iostream>
-#include <filesystem>
 
 namespace structuredb::server::lsm {
 
@@ -12,8 +11,9 @@ Lsm::Lsm(io::Manager& io_manager, const std::string& base_dir)
 
 Awaitable<void> Lsm::Init() {
   Sequence max_persistent_seq_no{};
-  for (const auto & dir_entry : std::filesystem::directory_iterator{base_dir_}) {
-    auto file_reader = co_await io_manager_.CreateFileReader(dir_entry.path());
+  const auto names = co_await io_manager_.ListDirectory(base_dir_);
+  for (const auto& name : names) {
+    auto file_reader = co_await io_manager_.CreateFileReader(base_dir_ + "/" + name);
     auto ss_table = co_await SSTable::Create(std::move(file_reader));
     max_persistent_seq_no = std::max(max_persistent_seq_no, ss_table.GetMaxSeqNo());
     ss_tables_.push_back(std::move(ss_table));

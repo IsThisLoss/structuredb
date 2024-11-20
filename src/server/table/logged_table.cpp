@@ -38,8 +38,8 @@ Awaitable<std::optional<std::string>> LoggedTable::Get(const std::string& key) {
 }
 
 Awaitable<void> LoggedTable::Scan(const std::string& key, const lsm::RecordConsumer& consume) {
+  std::cerr << "Scan table: " << table_name_ << " with key: " << key << std::endl;
   co_await lsm_.Scan(key, consume);
 }
 
 }
-
