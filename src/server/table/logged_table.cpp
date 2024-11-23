@@ -16,7 +16,7 @@ Awaitable<void> LoggedTable::Init() {
 
 void LoggedTable::StartLogInto(wal::Writer::Ptr wal_writer) {
   wal_writer_ = std::move(wal_writer);
-  spdlog::info("Start wal for table {}", table_name_);
+  SPDLOG_INFO("Start wal for table {}", table_name_);
 }
 
 Awaitable<void> LoggedTable::RecoverFromLog(const lsm::Sequence seq_no, const std::string& key, const std::string& value) {

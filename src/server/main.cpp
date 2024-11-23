@@ -14,9 +14,10 @@
 #include <database/database.hpp>
 
 int main(int argc, const char** argv) {
-    spdlog::set_pattern("[%c] %l %v");
+    spdlog::set_pattern("[%x %H:%M:%S.%e] %l %v %@");
+    spdlog::set_level(spdlog::level::debug);
 
-    spdlog::info("Starting..");
+    SPDLOG_INFO("Starting...");
     const auto port = argc >= 2 ? argv[1] : "50051";
     const auto host = std::string{"0.0.0.0:"} + port;
 
@@ -37,23 +38,23 @@ int main(int argc, const char** argv) {
     builder.RegisterService(transaction_service.get());
 
     std::thread asio_thread([&io_context]() {
-        spdlog::info("Starting asio thread...");
+        SPDLOG_INFO("Starting asio thread...");
         const auto guard = boost::asio::make_work_guard(io_context);
         try {
           io_context.run();
         } catch (...) {
           spdlog::error("Exception in asio thread");
         }
-        spdlog::info("Starting asio thread");
+        SPDLOG_INFO("Starting asio thread");
     });
 
     const auto server = builder.BuildAndStart();
 
-    spdlog::info("Launch grpc server");
+    SPDLOG_INFO("Launch grpc server");
     server->Wait();
 
     asio_thread.join();
 
-    spdlog::info("Exit");
+    SPDLOG_INFO("Exit");
     return 0;
 }

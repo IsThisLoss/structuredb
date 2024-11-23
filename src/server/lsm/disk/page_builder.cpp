@@ -39,7 +39,7 @@ Awaitable<void> PageBuilder::Flush(io::FileWriter& writer) {
   PageHeader header{
     .count = static_cast<int64_t>(keys_.size()),
   };
-  spdlog::info("Flush page builder: count = {}, size = {}/{}", header.count, current_size_, max_bytes_size_);
+  SPDLOG_INFO("Flush page builder: count = {}, size = {}/{}", header.count, current_size_, max_bytes_size_);
   sdb::BufferWriter buffer_writer{max_bytes_size_};
   co_await PageHeader::Flush(buffer_writer, header);
   for (size_t i = 0; i < header.count; i++) {

@@ -24,7 +24,7 @@ Awaitable<void> SSTable::Init() {
   sdb::BufferReader buffer_reader{std::move(buffer)};
 
   header_ = co_await disk::SSTableHeader::Load(buffer_reader);
-  spdlog::info("Initialize ss table, pages = {}, page_size = {}", header_.page_count, header_.page_size);
+  SPDLOG_INFO("Initialize ss table, pages = {}, page_size = {}", header_.page_count, header_.page_size);
 }
 
 Awaitable<bool> SSTable::Scan(const std::string& key, const RecordConsumer& consume) {

@@ -26,7 +26,7 @@ Awaitable<void> FileWriter::Open(std::string path, bool append) {
     return ::open(path.c_str(), flags, S_IRWXU);
   });
   stream_.assign(fd);
-  spdlog::info("Open file {} for write, fd = {}", path, fd);
+  SPDLOG_INFO("Open file {} for write, fd = {}", path, fd);
 }
 
 Awaitable<size_t> FileWriter::Write(const char* buffer, size_t size) {

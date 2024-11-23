@@ -20,7 +20,7 @@ Awaitable<void> FileReader::Open(std::string path) {
     return ::open(path.c_str(), O_RDONLY);
   });
   stream_.assign(fd);
-  spdlog::info("Open file {} for read, fd = {}", path, fd);
+  SPDLOG_INFO("Open file {} for read, fd = {}", path, fd);
 }
 
 Awaitable<size_t> FileReader::Read(char* buffer, size_t size) {

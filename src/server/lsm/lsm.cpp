@@ -19,7 +19,7 @@ Awaitable<void> Lsm::Init() {
     ss_tables_.push_back(std::move(ss_table));
   }
   next_seq_no_ = max_persistent_seq_no + 1;
-  spdlog::info("LSM ready, ss tables = {}, next_seq_no = {}", ss_tables_.size(), next_seq_no_);
+  SPDLOG_INFO("LSM ready, ss tables = {}, next_seq_no = {}", ss_tables_.size(), next_seq_no_);
 }
 
 Awaitable<Sequence> Lsm::Put(const std::string& key, const std::string& value) {
@@ -41,13 +41,13 @@ Awaitable<void> Lsm::DoPut(const Sequence seq_no, const std::string& key, const 
   mem_table_.Put(Record{key, seq_no, value});
 
   if (mem_table_.Size() > kMaxRecordsInMemTable) {
-    spdlog::info("Mem table reached max size, freeze it");
+    SPDLOG_INFO("Mem table reached max size, freeze it");
     ro_mem_tables_.push_back(std::move(mem_table_));
     mem_table_ = MemTable{};
   }
 
   if (ro_mem_tables_.size() > kMaxRoMemTables) {
-    spdlog::info("Ro Mem tables reached max size, flush it");
+    SPDLOG_INFO("Ro Mem tables reached max size, flush it");
     const auto file_path = base_dir_ + "/" + std::to_string(ss_tables_.size()) + ".sst.sdb";
     auto ss_table = co_await ro_mem_tables_.front().Flush(io_manager_, file_path);
     ss_tables_.push_back(std::move(ss_table));

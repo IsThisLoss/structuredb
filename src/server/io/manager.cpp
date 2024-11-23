@@ -31,7 +31,7 @@ Awaitable<FileWriter::Ptr> Manager::CreateFileWriter(const std::string& path, bo
 Awaitable<void> Manager::CreateDirectory(const std::string& path) {
   co_await blocking_executor_.Execute([&]() {
     const bool created = std::filesystem::create_directory(path);
-    spdlog::info("CreateDirectory: path = {}, created = {}", path, created);
+    SPDLOG_INFO("CreateDirectory: path = {}, created = {}", path, created);
   });
 }
 
