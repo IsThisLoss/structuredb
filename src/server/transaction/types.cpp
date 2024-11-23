@@ -1,7 +1,5 @@
 #include "types.hpp"
 
-#include <iostream>
-
 #include <boost/uuid/random_generator.hpp>
 #include <boost/uuid/string_generator.hpp>
 #include <boost/uuid/uuid_io.hpp>
@@ -28,7 +26,6 @@ std::string ToBinary(const TransactionId& uuid) {
 
 std::string ToString(const TransactionId& uuid) {
   const auto result = boost::uuids::to_string(uuid);
-  std::cerr << result << std::endl;
   return result;
 }
 

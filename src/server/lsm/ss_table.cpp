@@ -1,6 +1,6 @@
 #include "ss_table.hpp"
 
-#include <iostream>
+#include <spdlog/spdlog.h>
 
 #include <utils/find.hpp>
 
@@ -24,7 +24,7 @@ Awaitable<void> SSTable::Init() {
   sdb::BufferReader buffer_reader{std::move(buffer)};
 
   header_ = co_await disk::SSTableHeader::Load(buffer_reader);
-  std::cerr << "Initialize ss table: " << header_.page_count << std::endl;
+  spdlog::info("Initialize ss table, pages = {}, page_size = {}", header_.page_count, header_.page_size);
 }
 
 Awaitable<bool> SSTable::Scan(const std::string& key, const RecordConsumer& consume) {
@@ -32,10 +32,8 @@ Awaitable<bool> SSTable::Scan(const std::string& key, const RecordConsumer& cons
   size_t lo = 0;
   size_t hi = header_.page_count;
 
-  std::cerr << key << std::endl;
   while (lo < hi) {
     size_t mid = lo + (hi - lo) / 2;
-    // std::cerr << "Read page #" << mid << std::endl;
     auto page = co_await GetPage(mid);
 
     if (key <= page.MaxKey()) {

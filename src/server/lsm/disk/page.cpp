@@ -1,7 +1,5 @@
 #include "page.hpp"
 
-#include <iostream>
-
 #include "page_header.hpp"
 
 namespace structuredb::server::lsm::disk {

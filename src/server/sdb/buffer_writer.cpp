@@ -1,7 +1,5 @@
 #include "buffer_writer.hpp"
 
-#include <iostream>
-
 namespace structuredb::server::sdb {
 
 BufferWriter::BufferWriter(int64_t size)
