@@ -21,7 +21,7 @@ void LoggedTable::StartLogInto(wal::Writer::Ptr wal_writer) {
 
 Awaitable<void> LoggedTable::RecoverFromLog(const lsm::Sequence seq_no, const std::string& key, const std::string& value) {
   const bool is_restored = co_await lsm_.Put(seq_no, key, value);
-  spdlog::debug("Recover record: seq_no = {}, key = {}, value = {}, status", seq_no, key, value, is_restored ? "APPLIED" : "SKIPPED");
+  SPDLOG_DEBUG("Recover record: seq_no = {}, key = {}, value = {}, status", seq_no, key, value, is_restored ? "APPLIED" : "SKIPPED");
 }
 
 Awaitable<void> LoggedTable::Upsert(const std::string& key, const std::string& value) {
@@ -38,7 +38,7 @@ Awaitable<std::optional<std::string>> LoggedTable::Get(const std::string& key) {
 }
 
 Awaitable<void> LoggedTable::Scan(const std::string& key, const lsm::RecordConsumer& consume) {
-  spdlog::debug("Scan table {} for key {}", table_name_, key);
+  SPDLOG_DEBUG("Scan table {} for key {}", table_name_, key);
   co_await lsm_.Scan(key, consume);
 }
 

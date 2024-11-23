@@ -34,7 +34,7 @@ Database::Database(io::Manager& io_manager, const std::string& base_dir)
       try {
         co_await Init();
       } catch (const std::exception& e) {
-        spdlog::error("Failed to initialize database: {}", e.what());
+        SPDLOG_ERROR("Failed to initialize database: {}", e.what());
         exit(1);
       }
       SPDLOG_INFO("Database is initialized");

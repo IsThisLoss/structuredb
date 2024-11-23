@@ -65,12 +65,12 @@ Awaitable<std::optional<std::string>> Lsm::Get(const std::string& key) {
 }
 
 Awaitable<void> Lsm::Scan(const std::string& key, const RecordConsumer& consume) {
-  spdlog::debug("LSM scan key = {}", key);
+  SPDLOG_DEBUG("LSM scan key = {}", key);
   if (mem_table_.Scan(key, consume)) {
     co_return;
   }
 
-  spdlog::debug("Did not find in active mem table, will scan ro, key = {}", key);
+  SPDLOG_DEBUG("Did not find in active mem table, will scan ro, key = {}", key);
 
   // TODO use Bloom Filter
   for (auto it = ro_mem_tables_.rbegin(); it != ro_mem_tables_.rend(); ++it) {
@@ -79,7 +79,7 @@ Awaitable<void> Lsm::Scan(const std::string& key, const RecordConsumer& consume)
     }
   }
 
-  spdlog::debug("Did not find in ro mem tables, will scan ss tables, key = {}", key);
+  SPDLOG_DEBUG("Did not find in ro mem tables, will scan ss tables, key = {}", key);
 
   for (auto it = ss_tables_.rbegin(); it != ss_tables_.rend(); ++it) {
     if (co_await it->Scan(key, consume)) {
@@ -87,7 +87,7 @@ Awaitable<void> Lsm::Scan(const std::string& key, const RecordConsumer& consume)
     }
   }
 
-  spdlog::debug("Key {} was not found", key);
+  SPDLOG_DEBUG("Key {} was not found", key);
 }
 
 }

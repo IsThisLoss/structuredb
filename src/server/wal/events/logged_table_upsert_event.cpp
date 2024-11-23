@@ -37,7 +37,7 @@ Awaitable<void> LoggedTableUpsertEvent::Flush(sdb::Writer& writer) {
 }
 
 Awaitable<void> LoggedTableUpsertEvent::Apply(database::Database& db) {
-  spdlog::debug("Got upsert event for table = {}, key = {}, value = {}", table_name_, key_, value_);
+  SPDLOG_DEBUG("Got upsert event for table = {}, key = {}, value = {}", table_name_, key_, value_);
   if (table_name_ == "sys_transactions") {
     auto table = db.GetTxTable();
     co_await table->RecoverFromLog(seq_no_, key_, value_);
@@ -45,7 +45,7 @@ Awaitable<void> LoggedTableUpsertEvent::Apply(database::Database& db) {
   }
   auto table = db.GetTableForRecover(table_name_);
   if (!table) {
-    spdlog::error("Got nullptr after GetTable during recovery");
+    SPDLOG_ERROR("Got nullptr after GetTable during recovery");
     co_return;
   }
   co_await table->RecoverFromLog(seq_no_, key_, value_);

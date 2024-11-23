@@ -37,7 +37,7 @@ Awaitable<size_t> FileWriter::Write(const char* buffer, size_t size) {
     );
     co_return result;
   } catch (const std::exception& e) {
-    spdlog::error("Unable to write: {}", strerror(errno));
+    SPDLOG_ERROR("Unable to write: {}", strerror(errno));
     throw;
   }
 }
@@ -57,7 +57,7 @@ FileWriter::~FileWriter() {
   try {
     stream_.close();
   } catch (const std::exception& e) {
-    spdlog::error("Failed to close file: {}, {}", e.what(), strerror(errno));
+    SPDLOG_ERROR("Failed to close file: {}, {}", e.what(), strerror(errno));
   }
 }
 

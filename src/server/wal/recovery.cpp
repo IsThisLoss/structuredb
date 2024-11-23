@@ -25,7 +25,7 @@ Awaitable<void> Recover(
       SPDLOG_INFO("Reached end of wal file: {}", e.what());
       break;
     } catch (const std::exception& e) {
-      spdlog::error("Exception while recover from wal file: {}", e.what());
+      SPDLOG_ERROR("Exception while recover from wal file: {}", e.what());
       break;
     }
   }

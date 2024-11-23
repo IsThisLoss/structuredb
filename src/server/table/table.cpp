@@ -65,7 +65,7 @@ Awaitable<void> Table::Upsert(
 }
 
 Awaitable<std::optional<std::string>> Table::Lookup(const transaction::TransactionId& tx, const std::string& key) {
-  spdlog::debug("Lookup: tx = {}, key = {}", transaction::ToString(tx), key);
+  SPDLOG_DEBUG("Lookup: tx = {}, key = {}", transaction::ToString(tx), key);
   std::vector<TransactionalValue> candidates{};
   co_await logged_table_->Scan(key, [&](const auto& data) {
       candidates.push_back(ParseTransactionalValue(data));
@@ -73,7 +73,7 @@ Awaitable<std::optional<std::string>> Table::Lookup(const transaction::Transacti
   });
 
   for (auto& candidate : candidates) {
-    spdlog::debug("Lookup candidate: tx = {}, value = {}", transaction::ToString(candidate.tx), candidate.value);
+    SPDLOG_DEBUG("Lookup candidate: tx = {}, value = {}", transaction::ToString(candidate.tx), candidate.value);
     if (candidate.tx == tx || co_await tx_storage_->IsCommited(candidate.tx)) {
       co_return std::make_optional(std::move(candidate.value));
     }

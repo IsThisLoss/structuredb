@@ -36,7 +36,7 @@ Awaitable<size_t> FileReader::Read(char* buffer, size_t size) {
     }
     throw;
   } catch (const std::exception& e) {
-    spdlog::error("Unable to read: {}", strerror(errno));
+    SPDLOG_ERROR("Unable to read: {}", strerror(errno));
     throw;
   }
   co_return 0;
@@ -52,7 +52,7 @@ FileReader::~FileReader() {
   try {
     stream_.close();
   } catch (const std::exception& e) {
-    spdlog::error("Unable to read: {}, {}", e.what(), strerror(errno));
+    SPDLOG_ERROR("Unable to read: {}, {}", e.what(), strerror(errno));
   }
 }
 

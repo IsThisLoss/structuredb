@@ -43,7 +43,7 @@ int main(int argc, const char** argv) {
         try {
           io_context.run();
         } catch (...) {
-          spdlog::error("Exception in asio thread");
+          SPDLOG_ERROR("Exception in asio thread");
         }
         SPDLOG_INFO("Starting asio thread");
     });
