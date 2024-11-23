@@ -1,6 +1,6 @@
 #include "writer.hpp"
 
-#include <iostream>
+#include <spdlog/spdlog.h>
 
 #include "events/io.hpp"
 
@@ -17,14 +17,14 @@ Awaitable<void> Writer::Write(Event::Ptr event) {
 }
 
 Awaitable<Writer::Ptr> Open(io::Manager& io_manager, const std::string& wal_path, const std::string& control_path) {
-  std::cerr << "Opening wal...\n";
+  spdlog::info("Opening wal...");
   auto wal_file_writer = co_await io_manager.CreateFileWriter(wal_path, /*append=*/ true);
   sdb::Writer wal_writer{std::move(wal_file_writer)};
 
   auto control_file_writer = co_await io_manager.CreateFileWriter(control_path);
   sdb::Writer control_writer{std::move(control_file_writer)};
 
-  std::cerr << "Wal opened\n";
+  spdlog::info("Wal opened");
   co_return std::make_shared<Writer>(std::move(wal_writer), std::move(control_writer));
 }
 

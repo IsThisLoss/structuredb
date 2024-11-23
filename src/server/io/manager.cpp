@@ -1,7 +1,8 @@
 #include "manager.hpp"
 
-#include <iostream>
 #include <filesystem>
+
+#include <spdlog/spdlog.h>
 
 namespace structuredb::server::io {
 
@@ -30,7 +31,7 @@ Awaitable<FileWriter::Ptr> Manager::CreateFileWriter(const std::string& path, bo
 Awaitable<void> Manager::CreateDirectory(const std::string& path) {
   co_await blocking_executor_.Execute([&]() {
     const bool created = std::filesystem::create_directory(path);
-    std::cout << "CreateDirectory: " << path << created << std::endl;
+    spdlog::info("CreateDirectory: path = {}, created = {}", path, created);
   });
 }
 

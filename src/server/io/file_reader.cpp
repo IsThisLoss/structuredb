@@ -1,6 +1,6 @@
 #include "file_reader.hpp"
 
-#include <iostream>
+#include <spdlog/spdlog.h>
 
 #include <sys/file.h>
 
@@ -20,6 +20,7 @@ Awaitable<void> FileReader::Open(std::string path) {
     return ::open(path.c_str(), O_RDONLY);
   });
   stream_.assign(fd);
+  spdlog::info("Open file {} for read, fd = {}", path, fd);
 }
 
 Awaitable<size_t> FileReader::Read(char* buffer, size_t size) {
@@ -35,8 +36,7 @@ Awaitable<size_t> FileReader::Read(char* buffer, size_t size) {
     }
     throw;
   } catch (const std::exception& e) {
-    perror("Unable to read");
-    std::cerr << "Read: " << typeid(e).name() << e.what();
+    spdlog::error("Unable to read: {}", strerror(errno));
     throw;
   }
   co_return 0;
@@ -52,7 +52,7 @@ FileReader::~FileReader() {
   try {
     stream_.close();
   } catch (const std::exception& e) {
-    // TODO
+    spdlog::error("Unable to read: {}, {}", e.what(), strerror(errno));
   }
 }
 

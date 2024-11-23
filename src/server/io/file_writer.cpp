@@ -1,6 +1,6 @@
 #include "file_writer.hpp"
 
-#include <iostream>
+#include <spdlog/spdlog.h>
 
 #include <boost/asio/use_awaitable.hpp>
 
@@ -26,7 +26,7 @@ Awaitable<void> FileWriter::Open(std::string path, bool append) {
     return ::open(path.c_str(), flags, S_IRWXU);
   });
   stream_.assign(fd);
-  std::cerr << "Opened " << path << " " << fd << " for write\n";
+  spdlog::info("Open file {} for write, fd = {}", path, fd);
 }
 
 Awaitable<size_t> FileWriter::Write(const char* buffer, size_t size) {
@@ -37,7 +37,7 @@ Awaitable<size_t> FileWriter::Write(const char* buffer, size_t size) {
     );
     co_return result;
   } catch (const std::exception& e) {
-    std::cerr << "Write: " << e.what();
+    spdlog::error("Unable to write: {}", strerror(errno));
     throw;
   }
 }
@@ -56,9 +56,8 @@ Awaitable<void> FileWriter::FSync() {
 FileWriter::~FileWriter() {
   try {
     stream_.close();
-    std::cerr << "FileWriter closed\n";
   } catch (const std::exception& e) {
-    // TODO
+    spdlog::error("Failed to close file: {}, {}", e.what(), strerror(errno));
   }
 }
 

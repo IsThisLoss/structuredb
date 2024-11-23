@@ -14,7 +14,7 @@
 #include <database/database.hpp>
 
 int main(int argc, const char** argv) {
-    spdlog::set_pattern("%c %t %l %v");
+    spdlog::set_pattern("[%c] %l %v");
 
     spdlog::info("Starting..");
     const auto port = argc >= 2 ? argv[1] : "50051";
@@ -49,7 +49,7 @@ int main(int argc, const char** argv) {
 
     const auto server = builder.BuildAndStart();
 
-    std::cerr << "Ready!\n";
+    spdlog::info("Launch grpc server");
     server->Wait();
 
     asio_thread.join();

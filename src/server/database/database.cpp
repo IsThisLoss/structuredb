@@ -1,7 +1,8 @@
 #include "database.hpp"
 
-#include <iostream>
 #include <unordered_set>
+
+#include <spdlog/spdlog.h>
 
 #include <wal/recovery.hpp>
 
@@ -33,10 +34,10 @@ Database::Database(io::Manager& io_manager, const std::string& base_dir)
       try {
         co_await Init();
       } catch (const std::exception& e) {
-        std::cerr << "Failed to initialize database: " << e.what() << std::endl;
+        spdlog::error("Failed to initialize database: {}", e.what());
         exit(1);
       }
-      std::cerr << "DB initialized!\n";
+      spdlog::info("Database is initialized");
   });
 }
 
@@ -65,7 +66,7 @@ Awaitable<void> Database::Init() {
 
   // 4. init user tables
   for (const auto& name : dir_content) {
-    std::cerr << "Found table: " << name << std::endl;
+    spdlog::info("Going to init table {}", name);
     auto table = std::make_shared<table::Table>(std::make_shared<table::LoggedTable>(io_manager_, base_dir_ + "/" + name, name), tx_storage_);
     co_await table->Init();
     tables_.try_emplace(name, std::move(table));
@@ -82,7 +83,7 @@ Awaitable<void> Database::Init() {
   sys_tables_->StartLogInto(wal_writer_);
   for (const auto& [name, table] : tables_) {
     table->StartLogInto(wal_writer_);
-    std::cerr << "Table " << name << " ready\n";
+    spdlog::info("Table {} is ready", name);
   }
 }
 
@@ -94,13 +95,13 @@ Awaitable<void> Database::CreateTable(const transaction::TransactionId& tx, cons
   if (kInternalTables.contains(name) || tables_.contains(name)) {
     throw DatabaseException{"Table already exists"};
   }
-  std::cerr << "Going to create table: " << name << std::endl;
+  spdlog::info("Going to create table: {}", name);
   const auto path = base_dir_ + "/" + name;
   auto table = std::make_shared<table::Table>(std::make_shared<table::LoggedTable>(io_manager_, path, name), tx_storage_);
   co_await table->Init();
   tables_.try_emplace(name, std::move(table));
   co_await sys_tables_->Upsert(tx, name, kCreated);
-  std::cerr << "Table " << name << " created" << std::endl;
+  spdlog::info("Table {} is created", name);
 }
 
 Awaitable<void> Database::DropTable(const transaction::TransactionId& tx, const std::string& name) {
