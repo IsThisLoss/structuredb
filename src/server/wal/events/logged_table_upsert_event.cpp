@@ -1,6 +1,6 @@
 #include "logged_table_upsert_event.hpp"
 
-#include <iostream>
+#include <spdlog/spdlog.h>
 
 #include <database/database.hpp>
 
@@ -37,7 +37,7 @@ Awaitable<void> LoggedTableUpsertEvent::Flush(sdb::Writer& writer) {
 }
 
 Awaitable<void> LoggedTableUpsertEvent::Apply(database::Database& db) {
-  std::cerr << "Recover: " << table_name_ << " " << key_ << " " << value_ << std::endl;
+  spdlog::debug("Got upsert event for table = {}, key = {}, value = {}", table_name_, key_, value_);
   if (table_name_ == "sys_transactions") {
     auto table = db.GetTxTable();
     co_await table->RecoverFromLog(seq_no_, key_, value_);
@@ -45,10 +45,9 @@ Awaitable<void> LoggedTableUpsertEvent::Apply(database::Database& db) {
   }
   auto table = db.GetTableForRecover(table_name_);
   if (!table) {
-    std::cerr << "Got nullptr after GetTable\n";
+    spdlog::error("Got nullptr after GetTable during recovery");
     co_return;
   }
-  std::cerr << "Recover: " << key_ << " " << value_ << std::endl;
   co_await table->RecoverFromLog(seq_no_, key_, value_);
 }
 

@@ -1,6 +1,6 @@
 #include "logged_table.hpp"
 
-#include <iostream>
+#include <spdlog/spdlog.h>
 
 #include <wal/events/logged_table_upsert_event.hpp>
 
@@ -16,12 +16,12 @@ Awaitable<void> LoggedTable::Init() {
 
 void LoggedTable::StartLogInto(wal::Writer::Ptr wal_writer) {
   wal_writer_ = std::move(wal_writer);
-  std::cerr << "Start wal\n";
+  SPDLOG_INFO("Start wal for table {}", table_name_);
 }
 
 Awaitable<void> LoggedTable::RecoverFromLog(const lsm::Sequence seq_no, const std::string& key, const std::string& value) {
   const bool is_restored = co_await lsm_.Put(seq_no, key, value);
-  std::cerr << "Restored: " << seq_no << " " << (is_restored ? "APPLIED" : "SKIPPED") << std::endl;
+  spdlog::debug("Recover record: seq_no = {}, key = {}, value = {}, status", seq_no, key, value, is_restored ? "APPLIED" : "SKIPPED");
 }
 
 Awaitable<void> LoggedTable::Upsert(const std::string& key, const std::string& value) {
@@ -38,7 +38,7 @@ Awaitable<std::optional<std::string>> LoggedTable::Get(const std::string& key) {
 }
 
 Awaitable<void> LoggedTable::Scan(const std::string& key, const lsm::RecordConsumer& consume) {
-  std::cerr << "Scan table: " << table_name_ << " with key: " << key << std::endl;
+  spdlog::debug("Scan table {} for key {}", table_name_, key);
   co_await lsm_.Scan(key, consume);
 }
 

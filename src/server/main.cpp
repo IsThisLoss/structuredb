@@ -3,6 +3,7 @@
 #include <grpcpp/server.h>
 #include <grpcpp/server_builder.h>
 #include <grpcpp/ext/proto_server_reflection_plugin.h>
+#include <spdlog/spdlog.h>
 
 #include <services/table_service/table_service.hpp>
 #include <services/transaction_service/transaction_service.hpp>
@@ -13,7 +14,10 @@
 #include <database/database.hpp>
 
 int main(int argc, const char** argv) {
-    std::cerr << "Starting...\n";
+    spdlog::set_pattern("[%x %H:%M:%S.%e] %l %v %@");
+    spdlog::set_level(spdlog::level::debug);
+
+    SPDLOG_INFO("Starting...");
     const auto port = argc >= 2 ? argv[1] : "50051";
     const auto host = std::string{"0.0.0.0:"} + port;
 
@@ -34,23 +38,23 @@ int main(int argc, const char** argv) {
     builder.RegisterService(transaction_service.get());
 
     std::thread asio_thread([&io_context]() {
-        std::cerr << "Starting asio thread...\n";
+        SPDLOG_INFO("Starting asio thread...");
         const auto guard = boost::asio::make_work_guard(io_context);
         try {
           io_context.run();
         } catch (...) {
-          std::cerr << "Exception in asio thread: "<< std::endl;
+          spdlog::error("Exception in asio thread");
         }
-        std::cerr << "Exit asio thread...\n";
+        SPDLOG_INFO("Starting asio thread");
     });
 
     const auto server = builder.BuildAndStart();
 
-    std::cerr << "Ready!\n";
+    SPDLOG_INFO("Launch grpc server");
     server->Wait();
 
     asio_thread.join();
 
-    std::cerr << "Exit...\n";
+    SPDLOG_INFO("Exit");
     return 0;
 }

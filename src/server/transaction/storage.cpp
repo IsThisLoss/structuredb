@@ -1,6 +1,6 @@
 #include "storage.hpp"
 
-#include <iostream>
+#include <spdlog/spdlog.h>
 
 namespace structuredb::server::transaction {
 
@@ -19,14 +19,17 @@ Storage::Storage(table::LoggedTable::Ptr logged_table)
 Awaitable<TransactionId> Storage::Begin() {
   auto tx = transaction::GenerateTransactionId();
   co_await logged_table_->Upsert(ToBinary(tx), kStarted);
+  spdlog::debug("Begin transaction {}", ToString(tx));
   co_return tx;
 }
 
 Awaitable<void> Storage::Rollback(const TransactionId& tx) {
+  spdlog::debug("Rollback transaction {}", ToString(tx));
   co_await logged_table_->Upsert(ToBinary(tx), kRollbacked);
 }
 
 Awaitable<void> Storage::Commit(const TransactionId& tx) {
+  spdlog::debug("Commit transaction {}", ToString(tx));
   co_await logged_table_->Upsert(ToBinary(tx), kCommited);
 }
 

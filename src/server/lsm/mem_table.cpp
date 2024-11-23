@@ -1,6 +1,6 @@
 #include "mem_table.hpp"
 
-#include <iostream>
+#include <spdlog/spdlog.h>
 
 #include <utils/find.hpp>
 
@@ -36,7 +36,7 @@ size_t MemTable::Size() const {
 Awaitable<SSTable> MemTable::Flush(io::Manager& io_manager, const std::string& file_path) const {
   constexpr static const int64_t kPageSize = 512;
 
-  std::cerr << "MemTable flush start\n";
+  SPDLOG_INFO("MemTable flush started");
 
   // This bock is important because
   // file_writer closes file in destructor
@@ -47,7 +47,7 @@ Awaitable<SSTable> MemTable::Flush(io::Manager& io_manager, const std::string& f
       co_await builder.Add(record);
     }
     co_await std::move(builder).Finish();
-    std::cerr << "SSTableBuilder finished\n";
+    SPDLOG_INFO("SSTableBuilder finished");
   }
 
   auto file_reader = co_await io_manager.CreateFileReader(file_path);

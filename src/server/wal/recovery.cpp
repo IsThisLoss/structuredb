@@ -1,6 +1,6 @@
 #include "recovery.hpp"
 
-#include <iostream>
+#include <spdlog/spdlog.h>
 
 #include <io/exceptions.hpp>
 
@@ -14,7 +14,7 @@ Awaitable<void> Recover(
     const std::string& control_path,
     database::Database& db
 ) {
-  std::cerr << "Starting recovery...\n";
+  SPDLOG_INFO("Starting recovery...");
 
   sdb::Reader wal_reader{co_await io_manager.CreateFileReader(wal_path)};
   while (true) {
@@ -22,14 +22,15 @@ Awaitable<void> Recover(
       auto event = co_await ParseEvent(wal_reader);
       co_await event->Apply(db);
     } catch (const io::EndOfFile& e) {
-      std::cerr << "End of file reached: " << e.what() << "\n";
+      SPDLOG_INFO("Reached end of wal file: {}", e.what());
       break;
     } catch (const std::exception& e) {
-      std::cerr << "Error while reading wal: " << e.what() << "\n";
+      spdlog::error("Exception while recover from wal file: {}", e.what());
       break;
     }
   }
-  std::cerr << "Recovery done\n";
+
+  SPDLOG_INFO("Recovery done");
 }
 
 }

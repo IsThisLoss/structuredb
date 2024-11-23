@@ -1,7 +1,5 @@
 #include "page_header.hpp"
 
-#include <iostream>
-
 namespace structuredb::server::lsm::disk {
 
 Awaitable<PageHeader> PageHeader::Load(sdb::BufferReader& reader) {

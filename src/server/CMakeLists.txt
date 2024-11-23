@@ -8,20 +8,18 @@ file(
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
+find_package(spdlog REQUIRED)
+
 add_executable(structuredb-server ${SERVER_SRCS})
 
 target_link_libraries(
   structuredb-server
   PUBLIC
   structuredb-proto
-  Boost::headers
   Boost::boost
-  Boost::filesystem
   Boost::coroutine
+  Boost::headers
   Boost::system
-  Boost::thread
-  Boost::system
-  Boost::boost
+  spdlog::spdlog
   grpc++_reflection
-  pthread
 )

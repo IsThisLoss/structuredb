@@ -1,7 +1,5 @@
 #include "writer.hpp"
 
-#include <iostream>
-
 namespace structuredb::server::sdb {
 
 Writer::Writer(io::FileWriter::Ptr file_writer)
