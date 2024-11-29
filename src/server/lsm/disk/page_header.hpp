@@ -12,6 +12,9 @@ struct PageHeader {
   /// @property count of elements
   int64_t count;
 
+  /// @property checksum of page content
+  int64_t checksum;
+
   static Awaitable<PageHeader> Load(sdb::BufferReader& reader);
 
   static Awaitable<void> Flush(sdb::BufferWriter& writer, const PageHeader& header);

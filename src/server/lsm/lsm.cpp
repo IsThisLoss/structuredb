@@ -2,6 +2,8 @@
 
 #include <spdlog/spdlog.h>
 
+#include "exceptions.hpp"
+
 namespace structuredb::server::lsm {
 
 Lsm::Lsm(io::Manager& io_manager, const std::string& base_dir)
@@ -82,8 +84,12 @@ Awaitable<void> Lsm::Scan(const std::string& key, const RecordConsumer& consume)
   SPDLOG_DEBUG("Did not find in ro mem tables, will scan ss tables, key = {}", key);
 
   for (auto it = ss_tables_.rbegin(); it != ss_tables_.rend(); ++it) {
-    if (co_await it->Scan(key, consume)) {
-      co_return;
+    try {
+      if (co_await it->Scan(key, consume)) {
+        co_return;
+      }
+    } catch (const CurraptedSSTable& e) {
+      SPDLOG_ERROR("Got currapted ss table: {}", e.what());
     }
   }
 

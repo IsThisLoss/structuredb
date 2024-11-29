@@ -1,5 +1,7 @@
 #pragma once
 
+#include <spdlog/spdlog.h>
+
 #include <boost/asio/bind_executor.hpp>
 #include <boost/asio/post.hpp>
 #include <boost/asio/thread_pool.hpp>
@@ -26,6 +28,7 @@ public:
       co_await boost::asio::post(original_executor, boost::asio::use_awaitable);
       co_return result;
     } else {
+      func();
       co_await boost::asio::post(original_executor, boost::asio::use_awaitable);
     }
   }

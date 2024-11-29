@@ -95,13 +95,19 @@ Awaitable<void> Database::CreateTable(const transaction::TransactionId& tx, cons
   if (kInternalTables.contains(name) || tables_.contains(name)) {
     throw DatabaseException{"Table already exists"};
   }
-  SPDLOG_INFO("Going to create table: {}", name);
-  const auto path = base_dir_ + "/" + name;
-  auto table = std::make_shared<table::Table>(std::make_shared<table::LoggedTable>(io_manager_, path, name), tx_storage_);
-  co_await table->Init();
-  tables_.try_emplace(name, std::move(table));
-  co_await sys_tables_->Upsert(tx, name, kCreated);
-  SPDLOG_INFO("Table {} is created", name);
+  try {
+    SPDLOG_INFO("Going to create table: {}", name);
+    const auto path = base_dir_ + "/" + name;
+    co_await io_manager_.CreateDirectory(path);
+    auto table = std::make_shared<table::Table>(std::make_shared<table::LoggedTable>(io_manager_, path, name), tx_storage_);
+    co_await table->Init();
+    tables_.try_emplace(name, std::move(table));
+    co_await sys_tables_->Upsert(tx, name, kCreated);
+    SPDLOG_INFO("Table {} is created", name);
+  } catch (const std::exception& e) {
+    SPDLOG_ERROR("Failed to create table: {}", e.what());
+    throw;
+  }
 }
 
 Awaitable<void> Database::DropTable(const transaction::TransactionId& tx, const std::string& name) {
