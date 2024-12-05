@@ -30,7 +30,7 @@ TransactionalValue ParseTransactionalValue(const std::string& data) {
 
 }
 
-Table::Table(LoggedTable::Ptr logged_table, transaction::Storage::Ptr tx_storage, transaction::TransactionId tx)
+Table::Table(LsmStorage::Ptr logged_table, transaction::Storage::Ptr tx_storage, transaction::TransactionId tx)
   : logged_table_{std::move(logged_table)}, tx_storage_{std::move(tx_storage)}, tx_{std::move(tx)}
 {}
 

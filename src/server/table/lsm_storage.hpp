@@ -6,11 +6,12 @@
 
 namespace structuredb::server::table {
 
-class LoggedTable {
+class LsmStorage {
 public:
-  using Ptr = std::shared_ptr<LoggedTable>;
+  using Ptr = std::shared_ptr<LsmStorage>;
+  using Id = std::string;
 
-  explicit LoggedTable(io::Manager& io_manager, const std::string& base_dir, const std::string& id);
+  explicit LsmStorage(io::Manager& io_manager, const std::string& base_dir, const std::string& id);
 
   Awaitable<void> Init();
 
@@ -24,7 +25,7 @@ public:
 
   Awaitable<void> Scan(const std::string& key, const lsm::RecordConsumer& consume);
 private:
-  const std::string id_;
+  const Id id_;
   lsm::Lsm lsm_;
   wal::Writer::Ptr wal_writer_{nullptr};
   lsm::Sequence seq_no_{0};

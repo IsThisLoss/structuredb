@@ -1,6 +1,6 @@
 #include "io.hpp"
 
-#include "logged_table_upsert_event.hpp"
+#include "lsm_storage_upsert_event.hpp"
 
 namespace structuredb::server::wal {
 
@@ -9,7 +9,7 @@ namespace {
 using Parser = std::function<Awaitable<Event::Ptr>(sdb::Reader&)>;
 
 std::unordered_map<EventType, Parser> kParsers{
-  {EventType::kLoggedTableUpsert, LoggedTableUpsertEvent::Parse},
+  {EventType::kLsmStorageUpsert, LsmStorageUpsertEvent::Parse},
 };
 
 }

@@ -3,6 +3,7 @@
 #include <spdlog/spdlog.h>
 
 #include <utils/uuid.hpp>
+
 #include "exceptions.hpp"
 
 namespace structuredb::server::database {
@@ -25,45 +26,45 @@ Catalog::TableInfo ParseRecord(const std::string& data) {
 
 Catalog::Catalog(
     table::Table::Ptr table
-) : table_{std::move(table)}
+) : sys_tables_{std::move(table)}
 {}
 
-Awaitable<std::string> Catalog::AddTable(const std::string& name) {
+Awaitable<std::string> Catalog::AddStorage(const std::string& name) {
   // check exists
   {
-    const auto table_info = co_await GetTableInfo(name);
-    if (table_info.has_value() && table_info.value().status == Catalog::TableStatus::kCreated) {
+    const auto sys_tables_info = co_await GetTableInfo(name);
+    if (sys_tables_info.has_value() && sys_tables_info.value().status == Catalog::TableStatus::kCreated) {
       throw DatabaseException{"Table " + name + " already exists"};
     }
   }
 
-  const TableInfo new_table_info{
+  const TableInfo new_sys_tables_info{
     .status = TableStatus::kCreated,
     .id = utils::ToString(utils::GenerateUuid()),
   };
-  co_await table_->Upsert(name, ToString(new_table_info));
-  co_return new_table_info.id;
+  co_await sys_tables_->Upsert(name, ToString(new_sys_tables_info));
+  co_return new_sys_tables_info.id;
 }
 
-Awaitable<void> Catalog::DeleteTable(const std::string& name) {
-  auto table_info = co_await GetTableInfo(name);
-  if (!table_info.has_value() || table_info.value().status == Catalog::TableStatus::kDropped) {
+Awaitable<void> Catalog::DeleteStorage(const std::string& name) {
+  auto sys_tables_info = co_await GetTableInfo(name);
+  if (!sys_tables_info.has_value() || sys_tables_info.value().status == Catalog::TableStatus::kDropped) {
     co_return;
   }
-  table_info.value().status = Catalog::TableStatus::kDropped;
-  co_await table_->Upsert(name, ToString(table_info.value()));
+  sys_tables_info.value().status = Catalog::TableStatus::kDropped;
+  co_await sys_tables_->Upsert(name, ToString(sys_tables_info.value()));
 }
 
-Awaitable<std::optional<std::string>> Catalog::GetTableId(const std::string& name) {
-  auto table_info = co_await GetTableInfo(name);
-  if (!table_info.has_value() || table_info.value().status == Catalog::TableStatus::kDropped) {
+Awaitable<std::optional<std::string>> Catalog::GetStorageId(const std::string& name) {
+  auto sys_tables_info = co_await GetTableInfo(name);
+  if (!sys_tables_info.has_value() || sys_tables_info.value().status == Catalog::TableStatus::kDropped) {
     co_return std::nullopt;
   }
-  co_return table_info.value().id;
+  co_return sys_tables_info.value().id;
 }
 
 Awaitable<std::optional<Catalog::TableInfo>> Catalog::GetTableInfo(const std::string& name) {
-  const auto raw = co_await table_->Lookup(name);
+  const auto raw = co_await sys_tables_->Lookup(name);
   if (!raw.has_value()) {
     co_return std::nullopt;
   }

@@ -12,7 +12,7 @@ std::string kRollbacked = "rollbacked";
 
 }
 
-Storage::Storage(table::LoggedTable::Ptr logged_table)
+Storage::Storage(table::LsmStorage::Ptr logged_table)
   : logged_table_{std::move(logged_table)}
 {}
 

@@ -6,10 +6,10 @@
 
 namespace structuredb::server::wal {
 
-class LoggedTableUpsertEvent : public Event {
+class LsmStorageUpsertEvent : public Event {
 public:
-  explicit LoggedTableUpsertEvent(
-      const std::string& table_id,
+  explicit LsmStorageUpsertEvent(
+      const std::string& storage_id,
       const lsm::Sequence seq_no,
       const std::string& key,
       const std::string& value
@@ -23,7 +23,7 @@ public:
 
   Awaitable<void> Apply(database::Database&) override;
 private:
-  const std::string table_id_;
+  const std::string storage_id_;
   const lsm::Sequence seq_no_;
   const std::string key_;
   const std::string value_;

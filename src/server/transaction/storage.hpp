@@ -1,7 +1,7 @@
 #pragma once
 
 #include "types.hpp"
-#include <table/logged_table.hpp>
+#include <table/lsm_storage.hpp>
 
 namespace structuredb::server::transaction {
 
@@ -10,7 +10,7 @@ class Storage {
 public:
   using Ptr = std::shared_ptr<Storage>;
 
-  explicit Storage(table::LoggedTable::Ptr logged_table);
+  explicit Storage(table::LsmStorage::Ptr logged_table);
 
   /// @brief starts transaction
   Awaitable<TransactionId> Begin();
@@ -27,7 +27,7 @@ public:
   /// @brief returns true if tx started
   Awaitable<bool> IsStarted(const TransactionId& tx);
 private:
-  table::LoggedTable::Ptr logged_table_;
+  table::LsmStorage::Ptr logged_table_;
 };
 
 }

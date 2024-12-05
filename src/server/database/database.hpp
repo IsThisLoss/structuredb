@@ -18,11 +18,9 @@ public:
 
   Awaitable<void> DropTable(const transaction::TransactionId& tx, const std::string& name);
 
-  table::LoggedTable::Ptr GetTableForRecover(const std::string& table_id);
+  table::LsmStorage::Ptr GetStorageForRecover(const table::LsmStorage::Id& storage_id);
 
   Awaitable<table::Table::Ptr> GetTable(const transaction::TransactionId& tx, const std::string& name);
-
-  table::LoggedTable::Ptr GetTxTable();
 
   transaction::Storage::Ptr GetTransactionStorage();
 private:
@@ -31,7 +29,7 @@ private:
 
   wal::Writer::Ptr wal_writer_;
 
-  std::unordered_map<std::string, table::LoggedTable::Ptr> tables_;
+  std::unordered_map<std::string, table::LsmStorage::Ptr> storages_;
 
   transaction::Storage::Ptr tx_storage_;
 };

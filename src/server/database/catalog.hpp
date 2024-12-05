@@ -20,13 +20,13 @@ public:
       table::Table::Ptr table
   );
 
-  Awaitable<std::string> AddTable(const std::string& name);
+  Awaitable<std::string> AddStorage(const std::string& name);
 
-  Awaitable<void> DeleteTable(const std::string& name);
+  Awaitable<void> DeleteStorage(const std::string& name);
 
-  Awaitable<std::optional<std::string>> GetTableId(const std::string& name);
+  Awaitable<std::optional<std::string>> GetStorageId(const std::string& name);
 private:
-  table::Table::Ptr table_;
+  table::Table::Ptr sys_tables_;
 
   Awaitable<std::optional<TableInfo>> GetTableInfo(const std::string& name);
 };

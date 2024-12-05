@@ -8,7 +8,7 @@ class Table {
 public:
   using Ptr = std::shared_ptr<Table>;
 
-  explicit Table(LoggedTable::Ptr logged_table, transaction::Storage::Ptr tx_storage, transaction::TransactionId tx);
+  explicit Table(LsmStorage::Ptr logged_table, transaction::Storage::Ptr tx_storage, transaction::TransactionId tx);
 
   Awaitable<void> Upsert(
       const std::string& key,
@@ -17,7 +17,7 @@ public:
 
   Awaitable<std::optional<std::string>> Lookup(const std::string& key);
 private:
-  LoggedTable::Ptr logged_table_;
+  LsmStorage::Ptr logged_table_;
   transaction::Storage::Ptr tx_storage_;
   transaction::TransactionId tx_;
 };
