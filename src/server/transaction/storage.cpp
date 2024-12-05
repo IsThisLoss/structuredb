@@ -6,9 +6,9 @@ namespace structuredb::server::transaction {
 
 namespace {
 
-std::string kStarted = "started";
-std::string kCommited = "commited";
-std::string kRollbacked = "rollbacked";
+const std::string kStarted = "started";
+const std::string kCommited = "commited";
+const std::string kRollbacked = "rollbacked";
 
 }
 

@@ -10,6 +10,7 @@ namespace structuredb::server::lsm::disk {
 
 PageBuilder::PageBuilder(const int64_t max_bytes_size)
   : max_bytes_size_{max_bytes_size}
+  , current_size_{0}
 {
   Clear();
 }

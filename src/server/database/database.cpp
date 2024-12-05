@@ -1,13 +1,13 @@
 #include "database.hpp"
 
-#include <unordered_set>
-
 #include <spdlog/spdlog.h>
 
+#include <unordered_set>
+#include <utility>
 #include <wal/recovery.hpp>
 
-#include "exceptions.hpp"
 #include "catalog.hpp"
+#include "exceptions.hpp"
 
 namespace structuredb::server::database {
 
@@ -16,7 +16,7 @@ namespace {
 const std::string kSysTransactions = "sys_transactions";
 const std::string kSysTables = "sys_tables";
 
-std::unordered_set<std::string> kInternalTables{
+const std::unordered_set<std::string> kInternalTables{
   kSysTransactions,
   kSysTables,
   "wal.sdb",
@@ -25,10 +25,8 @@ std::unordered_set<std::string> kInternalTables{
 
 }
 
-Database::Database(io::Manager& io_manager, const std::string& base_dir)
-  : io_manager_{io_manager}
-  , base_dir_{base_dir}
-{
+Database::Database(io::Manager& io_manager, std::string base_dir)
+    : io_manager_{io_manager}, base_dir_{std::move(base_dir)} {
   io_manager_.CoSpawn([this]() -> Awaitable<void> {
       try {
         co_await Init();

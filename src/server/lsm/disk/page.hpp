@@ -1,7 +1,5 @@
 #pragma once
 
-#include <optional>
-
 #include <sdb/buffer_reader.hpp>
 
 #include <lsm/types.hpp>

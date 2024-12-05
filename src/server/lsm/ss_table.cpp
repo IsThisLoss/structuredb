@@ -29,11 +29,11 @@ Awaitable<void> SSTable::Init() {
 
 Awaitable<bool> SSTable::Scan(const std::string& key, const RecordConsumer& consume) {
   // binary search
-  size_t lo = 0;
-  size_t hi = header_.page_count;
+  int64_t lo = 0;
+  int64_t hi = header_.page_count;
 
   while (lo < hi) {
-    size_t mid = lo + (hi - lo) / 2;
+    int64_t mid = lo + (hi - lo) / 2;
     auto page = co_await GetPage(mid);
 
     if (key <= page.MaxKey()) {
@@ -47,7 +47,7 @@ Awaitable<bool> SSTable::Scan(const std::string& key, const RecordConsumer& cons
     co_return false;
   }
 
-  for (size_t i = lo; i < header_.page_count; i++) {
+  for (int64_t i = lo; i < header_.page_count; i++) {
     auto page = co_await GetPage(i);
     if (key > page.MaxKey()) {
       break;

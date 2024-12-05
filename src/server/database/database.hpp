@@ -10,19 +10,25 @@ namespace structuredb::server::database {
 
 class Database {
 public:
-  explicit Database(io::Manager& io_manager, const std::string& base_dir);
+ explicit Database(io::Manager& io_manager, std::string base_dir);
 
-  Awaitable<void> Init();
+ Awaitable<void> Init();
 
-  Awaitable<void> CreateTable(const transaction::TransactionId& tx, const std::string& name);
+ Awaitable<void> CreateTable(const transaction::TransactionId& tx,
+                             const std::string& name);
 
-  Awaitable<void> DropTable(const transaction::TransactionId& tx, const std::string& name);
+ Awaitable<void> DropTable(const transaction::TransactionId& tx,
+                           const std::string& name);
 
-  table::LsmStorage::Ptr GetStorageForRecover(const table::LsmStorage::Id& storage_id);
+ table::LsmStorage::Ptr GetStorageForRecover(
+     const table::LsmStorage::Id& storage_id);
 
-  Awaitable<table::Table::Ptr> GetTable(const transaction::TransactionId& tx, const std::string& name);
+ Awaitable<table::Table::Ptr> GetTable(const transaction::TransactionId& tx,
+                                       const std::string& name);
 
-  transaction::Storage::Ptr GetTransactionStorage();
+ transaction::Storage::Ptr GetTransactionStorage();
+
+ ~Database() = default;
 private:
   io::Manager& io_manager_;
   const std::string base_dir_;

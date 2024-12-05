@@ -23,7 +23,7 @@ public:
 private:
   const int64_t max_bytes_size_;
 
-  size_t current_size_;
+  int64_t current_size_;
   utils::Crc crc_;
 
   /// @property keys places inside the page

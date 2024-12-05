@@ -1,0 +1,13 @@
+Checks:
+  clang-diagnostic-*,
+  clang-analyzer-*,
+  cppcoreguidelines-*,
+  -cppcoreguidelines-avoid-reference-coroutine-parameters,
+  -cppcoreguidelines-avoid-capturing-lambda-coroutines,
+  -cppcoreguidelines-pro-type-vararg,
+  modernize-*,
+  -modernize-use-nodiscard,
+  -modernize-use-trailing-return-type
+WarningsAsErrors: true
+FormatStyle:     google
+HeaderFilterRegex: ^(boost|grpc|proto)$
