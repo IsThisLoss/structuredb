@@ -3,4 +3,3 @@ port: 50051
 logger:
   level: debug
   console: true
-  file: /tmp/structuredb.log

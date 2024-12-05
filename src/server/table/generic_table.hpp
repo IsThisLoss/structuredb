@@ -1,5 +1,7 @@
 #pragma once
 
+#include "logged_table.hpp"
+
 #include <transaction/storage.hpp>
 
 namespace structuredb::server::table {

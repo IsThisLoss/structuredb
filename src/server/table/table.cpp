@@ -2,8 +2,6 @@
 
 #include <spdlog/spdlog.h>
 
-#include <database/database.hpp>
-
 namespace structuredb::server::table {
 
 namespace {
@@ -32,40 +30,23 @@ TransactionalValue ParseTransactionalValue(const std::string& data) {
 
 }
 
-Table::Table(LoggedTable::Ptr logged_table, transaction::Storage::Ptr tx_storage)
-  : logged_table_{std::move(logged_table)}, tx_storage_{std::move(tx_storage)}
+Table::Table(LoggedTable::Ptr logged_table, transaction::Storage::Ptr tx_storage, transaction::TransactionId tx)
+  : logged_table_{std::move(logged_table)}, tx_storage_{std::move(tx_storage)}, tx_{std::move(tx)}
 {}
 
-Awaitable<void> Table::Init() {
-  co_await logged_table_->Init();
-}
-
-void Table::StartLogInto(wal::Writer::Ptr wal_writer) {
-  logged_table_->StartLogInto(std::move(wal_writer));
-}
-
-Awaitable<void> Table::RecoverFromLog(
-      const lsm::Sequence seq_no,
-      const std::string& key,
-      const std::string& value
-) {
-  co_await logged_table_->RecoverFromLog(seq_no, key, value);
-}
-
 Awaitable<void> Table::Upsert(
-      const transaction::TransactionId& tx,
       const std::string& key,
       const std::string& value
 ) {
   const auto transactional_value = ToString(TransactionalValue{
-    .tx = tx,
+    .tx = tx_,
     .value = value,
   });
   co_await logged_table_->Upsert(key, transactional_value);
 }
 
-Awaitable<std::optional<std::string>> Table::Lookup(const transaction::TransactionId& tx, const std::string& key) {
-  SPDLOG_DEBUG("Lookup: tx = {}, key = {}", transaction::ToString(tx), key);
+Awaitable<std::optional<std::string>> Table::Lookup(const std::string& key) {
+  SPDLOG_DEBUG("Lookup: tx = {}, key = {}", transaction::ToString(tx_), key);
   std::vector<TransactionalValue> candidates{};
   co_await logged_table_->Scan(key, [&](const auto& data) {
       candidates.push_back(ParseTransactionalValue(data));
@@ -74,11 +55,14 @@ Awaitable<std::optional<std::string>> Table::Lookup(const transaction::Transacti
 
   for (auto& candidate : candidates) {
     SPDLOG_DEBUG("Lookup candidate: tx = {}, value = {}", transaction::ToString(candidate.tx), candidate.value);
-    if (candidate.tx == tx || co_await tx_storage_->IsCommited(candidate.tx)) {
+    if (candidate.tx == tx_ || co_await tx_storage_->IsCommited(candidate.tx)) {
+      SPDLOG_DEBUG("Lookup candidate: tx = {}, value = {} will be returned", transaction::ToString(candidate.tx), candidate.value);
       co_return std::make_optional(std::move(candidate.value));
     }
+    SPDLOG_DEBUG("Lookup next");
   }
 
+  SPDLOG_DEBUG("Lookup not found: tx = {}, key = {}", transaction::ToString(tx_), key);
   co_return std::nullopt;
 }
 

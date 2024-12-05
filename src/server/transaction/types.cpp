@@ -6,31 +6,20 @@
 
 namespace structuredb::server::transaction {
 
-namespace {
-
-thread_local boost::uuids::random_generator random_generator;
-thread_local boost::uuids::string_generator string_generator;
-
-}
-
 TransactionId GenerateTransactionId() {
-  return random_generator();
+  return utils::GenerateUuid();
 }
 
 std::string ToBinary(const TransactionId& uuid) {
-  std::string result;
-  result.resize(uuid.size());
-  ::memcpy(result.data(), uuid.data, uuid.size());
-  return result;
+  return utils::ToBinary(uuid);
 }
 
 std::string ToString(const TransactionId& uuid) {
-  const auto result = boost::uuids::to_string(uuid);
-  return result;
+  return utils::ToString(uuid);
 }
 
 TransactionId FromString(const std::string& tx) {
-  return string_generator(tx);
+  return utils::FromString(tx);
 }
 
 }

@@ -19,7 +19,7 @@ Storage::Storage(table::LoggedTable::Ptr logged_table)
 Awaitable<TransactionId> Storage::Begin() {
   auto tx = transaction::GenerateTransactionId();
   co_await logged_table_->Upsert(ToBinary(tx), kStarted);
-  SPDLOG_DEBUG("Begin transaction {}", ToString(tx));
+  SPDLOG_DEBUG("Begin transaction {}: {}", ToString(tx), ToBinary(tx));
   co_return tx;
 }
 

@@ -7,12 +7,12 @@
 namespace structuredb::server::wal {
 
 LoggedTableUpsertEvent::LoggedTableUpsertEvent(
-      const std::string& table_name,
+      const std::string& table_id,
       const lsm::Sequence seq_no,
       const std::string& key,
       const std::string& value
 )
-  : table_name_{table_name}, seq_no_{seq_no}, key_{key}, value_{value}
+  : table_id_{table_id}, seq_no_{seq_no}, key_{key}, value_{value}
 {}
 
 Awaitable<Event::Ptr> LoggedTableUpsertEvent::Parse(sdb::Reader& reader) {
@@ -30,20 +30,15 @@ EventType LoggedTableUpsertEvent::GetType() const {
 }
 
 Awaitable<void> LoggedTableUpsertEvent::Flush(sdb::Writer& writer) {
-  co_await writer.WriteString(table_name_);
+  co_await writer.WriteString(table_id_);
   co_await writer.WriteInt(seq_no_);
   co_await writer.WriteString(key_);
   co_await writer.WriteString(value_);
 }
 
 Awaitable<void> LoggedTableUpsertEvent::Apply(database::Database& db) {
-  SPDLOG_DEBUG("Got upsert event for table = {}, key = {}, value = {}", table_name_, key_, value_);
-  if (table_name_ == "sys_transactions") {
-    auto table = db.GetTxTable();
-    co_await table->RecoverFromLog(seq_no_, key_, value_);
-    co_return;
-  }
-  auto table = db.GetTableForRecover(table_name_);
+  SPDLOG_DEBUG("Got upsert event for table = {}, key = {}, value = {}", table_id_, key_, value_);
+  auto table = db.GetTableForRecover(table_id_);
   if (!table) {
     SPDLOG_ERROR("Got nullptr after GetTable during recovery");
     co_return;

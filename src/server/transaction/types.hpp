@@ -2,11 +2,11 @@
 
 #include <string>
 
-#include <boost/uuid/uuid.hpp>
+#include <utils/uuid.hpp>
 
 namespace structuredb::server::transaction {
 
-using TransactionId = boost::uuids::uuid;
+using TransactionId = utils::Uuid;
 
 TransactionId GenerateTransactionId();
 

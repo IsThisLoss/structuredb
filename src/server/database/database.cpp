@@ -7,6 +7,7 @@
 #include <wal/recovery.hpp>
 
 #include "exceptions.hpp"
+#include "catalog.hpp"
 
 namespace structuredb::server::database {
 
@@ -14,8 +15,6 @@ namespace {
 
 const std::string kSysTransactions = "sys_transactions";
 const std::string kSysTables = "sys_tables";
-const std::string kCreated = "created";
-const std::string kDropped = "dropped";
 
 std::unordered_set<std::string> kInternalTables{
   kSysTransactions,
@@ -38,6 +37,7 @@ Database::Database(io::Manager& io_manager, const std::string& base_dir)
         exit(1);
       }
       SPDLOG_INFO("Database is initialized");
+      SPDLOG_DEBUG("Some debug");
   });
 }
 
@@ -47,17 +47,19 @@ Awaitable<void> Database::Init() {
   {
     const auto path = base_dir_ + "/" + kSysTransactions;
     co_await io_manager_.CreateDirectory(path);
-    tx_table_ = std::make_shared<table::LoggedTable>(io_manager_, path, kSysTransactions);
-    co_await tx_table_->Init();
-    tx_storage_ = std::make_shared<transaction::Storage>(tx_table_);
+    auto tx_table = std::make_shared<table::LoggedTable>(io_manager_, path, kSysTransactions);
+    co_await tx_table->Init();
+    tables_.try_emplace(kSysTransactions, tx_table);
+    tx_storage_ = std::make_shared<transaction::Storage>(std::move(tx_table));
   }
 
   // 2. sys_tables
   {
     const auto path = base_dir_ + "/" + kSysTables;
     co_await io_manager_.CreateDirectory(path);
-    sys_tables_ = std::make_shared<table::Table>(std::make_shared<table::LoggedTable>(io_manager_, path, kSysTables), tx_storage_);
-    co_await sys_tables_->Init();
+    auto sys_tables = std::make_shared<table::LoggedTable>(io_manager_, path, kSysTables);
+    co_await sys_tables->Init();
+    tables_.try_emplace(kSysTables, std::move(sys_tables));
   }
 
   // 3. search for tables
@@ -67,7 +69,7 @@ Awaitable<void> Database::Init() {
   // 4. init user tables
   for (const auto& name : dir_content) {
     SPDLOG_INFO("Going to init table {}", name);
-    auto table = std::make_shared<table::Table>(std::make_shared<table::LoggedTable>(io_manager_, base_dir_ + "/" + name, name), tx_storage_);
+    auto table = std::make_shared<table::LoggedTable>(io_manager_, base_dir_ + "/" + name, name);
     co_await table->Init();
     tables_.try_emplace(name, std::move(table));
   }
@@ -79,8 +81,6 @@ Awaitable<void> Database::Init() {
 
   // start wal
   wal_writer_ = co_await wal::Open(io_manager_, wal_path, control_path);
-  tx_table_->StartLogInto(wal_writer_);
-  sys_tables_->StartLogInto(wal_writer_);
   for (const auto& [name, table] : tables_) {
     table->StartLogInto(wal_writer_);
     SPDLOG_INFO("Table {} is ready", name);
@@ -92,18 +92,20 @@ transaction::Storage::Ptr Database::GetTransactionStorage() {
 }
 
 Awaitable<void> Database::CreateTable(const transaction::TransactionId& tx, const std::string& name) {
-  if (kInternalTables.contains(name) || tables_.contains(name)) {
+  if (kInternalTables.contains(name)) {
     throw DatabaseException{"Table already exists"};
   }
+
   try {
     SPDLOG_INFO("Going to create table: {}", name);
-    const auto path = base_dir_ + "/" + name;
+    Catalog catalog(std::make_shared<table::Table>(tables_.at(kSysTables), tx_storage_, tx));
+    const auto table_id = co_await catalog.AddTable(name);
+    const auto path = base_dir_ + "/" + table_id;
     co_await io_manager_.CreateDirectory(path);
-    auto table = std::make_shared<table::Table>(std::make_shared<table::LoggedTable>(io_manager_, path, name), tx_storage_);
+    auto table = std::make_shared<table::LoggedTable>(io_manager_, path, table_id);
     co_await table->Init();
-    tables_.try_emplace(name, std::move(table));
-    co_await sys_tables_->Upsert(tx, name, kCreated);
-    SPDLOG_INFO("Table {} is created", name);
+    tables_.try_emplace(table_id, std::move(table));
+    SPDLOG_INFO("Table {} is created, id {}", name, table_id);
   } catch (const std::exception& e) {
     SPDLOG_ERROR("Failed to create table: {}", e.what());
     throw;
@@ -114,29 +116,21 @@ Awaitable<void> Database::DropTable(const transaction::TransactionId& tx, const 
   if (kInternalTables.contains(name)) {
     throw DatabaseException{"Cannot drop system table"};
   }
-
-  const auto table_status = co_await sys_tables_->Lookup(tx, name);
-  if (!table_status.has_value() || table_status.value() != kCreated) {
-    throw DatabaseException{"No such table"};
-  }
-
-  co_await sys_tables_->Upsert(tx, name, kDropped);
+  Catalog catalog(std::make_shared<table::Table>(tables_.at(kSysTables), tx_storage_, tx));
+  co_await catalog.DeleteTable(name);
 }
 
-table::Table::Ptr Database::GetTableForRecover(const std::string& table_name) {
-  return tables_.at(table_name);
+table::LoggedTable::Ptr Database::GetTableForRecover(const std::string& table_id) {
+  return tables_.at(table_id);
 }
 
-Awaitable<table::Table::Ptr> Database::GetTable(const transaction::TransactionId& tx, const std::string& table_name) {
-  const auto table_status = co_await sys_tables_->Lookup(tx, table_name);
-  if (!table_status.has_value() || table_status.value() != kCreated) {
+Awaitable<table::Table::Ptr> Database::GetTable(const transaction::TransactionId& tx, const std::string& name) {
+  Catalog catalog(std::make_shared<table::Table>(tables_.at(kSysTables), tx_storage_, tx));
+  const auto table_id = co_await catalog.GetTableId(name);
+  if (!table_id.has_value()) {
     co_return nullptr;
   }
-  co_return tables_.at(table_name);
-}
-
-table::LoggedTable::Ptr Database::GetTxTable() {
-  return tx_table_;
+  co_return std::make_shared<table::Table>(tables_.at(table_id.value()), tx_storage_, tx);
 }
 
 }

@@ -43,7 +43,6 @@ grpc::ServerUnaryReactor* TableServiceImpl::Upsert(
       }
 
       co_await table->Upsert(
-          tx,
           request->key(),
           request->value()
       );
@@ -85,13 +84,18 @@ grpc::ServerUnaryReactor* TableServiceImpl::Lookup(
           co_return;
       }
 
-      const auto value = co_await table->Lookup(
-          tx,
-          request->key()
-      );
-      if (value.has_value()) {
-        response->set_value(value.value());
+      try {
+        const auto value = co_await table->Lookup(
+            request->key()
+        );
+        if (value.has_value()) {
+          response->set_value(value.value());
+        }
+      } catch (const std::exception& e) {
+          reactor->Finish(grpc::Status(grpc::StatusCode::INTERNAL, e.what()));
+          co_return;
       }
+
       if (!request->has_tx()) {
         co_await tx_storage->Commit(tx);
       }
@@ -152,7 +156,9 @@ grpc::ServerUnaryReactor* TableServiceImpl::DropTable(
       auto tx_storage = database_.GetTransactionStorage();
       transaction::TransactionId tx{};
       if (request->has_tx()) {
+        SPDLOG_INFO("Got tx from request: {}", request->tx());
         tx = transaction::FromString(request->tx());
+        SPDLOG_INFO("Str from req {}", transaction::ToString(tx));
         if (!co_await tx_storage->IsStarted(tx)) {
           reactor->Finish(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "Invalid transaction id"));
           co_return;

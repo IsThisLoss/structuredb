@@ -6,6 +6,8 @@ file(
   ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp
 )
 
+add_compile_definitions(SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
+
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 find_package(spdlog REQUIRED)

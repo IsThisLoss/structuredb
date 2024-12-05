@@ -22,7 +22,6 @@
 ABSL_FLAG(std::string, config, "./config.yaml", "Path to config");
 
 void InitLogs(const structuredb::server::cfg::Config& config) {
-    spdlog::set_level(config.logger.level);
     std::vector<spdlog::sink_ptr> sinks{};
     if (config.logger.console) {
       auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
@@ -38,8 +37,9 @@ void InitLogs(const structuredb::server::cfg::Config& config) {
     }
     auto logger = std::make_shared<spdlog::logger>("main", sinks.begin(), sinks.end());
     logger->set_pattern("%^[%x %H:%M:%S.%e] %l %v %@%$");
+    logger->set_level(config.logger.level);
+    logger->flush_on(config.logger.level);
     spdlog::set_default_logger(std::move(logger));
-    spdlog::flush_every(std::chrono::seconds{1});
 }
 
 int main(int argc, char** argv) {

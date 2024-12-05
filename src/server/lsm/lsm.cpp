@@ -69,6 +69,7 @@ Awaitable<std::optional<std::string>> Lsm::Get(const std::string& key) {
 Awaitable<void> Lsm::Scan(const std::string& key, const RecordConsumer& consume) {
   SPDLOG_DEBUG("LSM scan key = {}", key);
   if (mem_table_.Scan(key, consume)) {
+    SPDLOG_DEBUG("Return from mem table, key = {}", key);
     co_return;
   }
 
