@@ -8,6 +8,16 @@
 
 namespace structuredb::server::database {
 
+const static std::string kSysTransactions = "sys_transactions";
+const static std::string kSysTables = "sys_tables";
+
+const static std::unordered_set<std::string> kInternalTables{
+  kSysTransactions,
+  kSysTables,
+  "wal.sdb",
+  "control.sdb",
+};
+
 std::string ToString(const Catalog::TableInfo& info) {
   std::string result;
   result.append(reinterpret_cast<const char*>(&info.status), sizeof(int64_t));
@@ -20,7 +30,7 @@ Catalog::TableInfo ParseRecord(const std::string& data) {
   const char* ptr = data.data();
   ::memcpy(&result.status, ptr, sizeof(int64_t));
   ptr += sizeof(int64_t);
-  result.id.assign(ptr, data.size() - sizeof(int64_t));
+  result.id.assign(ptr, data.size() - sizeof(int64_t) - 1);
   return result;
 }
 
@@ -29,8 +39,16 @@ Catalog::Catalog(
 ) : sys_tables_{std::move(table)}
 {}
 
+const std::unordered_set<std::string>& Catalog::GetInternalTableNames() {
+  return kInternalTables;
+}
+
 Awaitable<std::string> Catalog::AddStorage(const std::string& name) {
   // check exists
+  if (kInternalTables.contains(name)) {
+    throw DatabaseException{"Table already exists"};
+  }
+
   {
     const auto sys_tables_info = co_await GetTableInfo(name);
     if (sys_tables_info.has_value() && sys_tables_info.value().status == Catalog::TableStatus::kCreated) {
@@ -47,12 +65,16 @@ Awaitable<std::string> Catalog::AddStorage(const std::string& name) {
 }
 
 Awaitable<void> Catalog::DeleteStorage(const std::string& name) {
-  auto sys_tables_info = co_await GetTableInfo(name);
-  if (!sys_tables_info.has_value() || sys_tables_info.value().status == Catalog::TableStatus::kDropped) {
+  if (kInternalTables.contains(name)) {
+    throw DatabaseException{"Cannot drop system table"};
+  }
+
+  auto table_info = co_await GetTableInfo(name);
+  if (!table_info.has_value() || table_info.value().status == Catalog::TableStatus::kDropped) {
     co_return;
   }
-  sys_tables_info.value().status = Catalog::TableStatus::kDropped;
-  co_await sys_tables_->Upsert(name, ToString(sys_tables_info.value()));
+  table_info.value().status = Catalog::TableStatus::kDropped;
+  co_await sys_tables_->Upsert(name, ToString(table_info.value()));
 }
 
 Awaitable<std::optional<std::string>> Catalog::GetStorageId(const std::string& name) {
@@ -69,6 +91,7 @@ Awaitable<std::optional<Catalog::TableInfo>> Catalog::GetTableInfo(const std::st
     co_return std::nullopt;
   }
   const auto record = ParseRecord(raw.value());
+  SPDLOG_DEBUG("GetTableInfo: {} {}", record.id, static_cast<int>(record.status));
   co_return record;
 }
 

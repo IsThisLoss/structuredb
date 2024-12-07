@@ -1,6 +1,7 @@
 #pragma once
 
-#include <table/table.hpp>
+#include <unordered_set>
+#include <table/transactional_table.hpp>
 
 namespace structuredb::server::database {
 
@@ -19,6 +20,8 @@ public:
   explicit Catalog(
       table::Table::Ptr table
   );
+
+  static const std::unordered_set<std::string>& GetInternalTableNames();
 
   Awaitable<std::string> AddStorage(const std::string& name);
 

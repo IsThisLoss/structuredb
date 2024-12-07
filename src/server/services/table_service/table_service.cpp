@@ -1,11 +1,12 @@
 #include"table_service.hpp"
 
-#include <boost/asio/co_spawn.hpp>
-#include <boost/asio/detached.hpp>
-
-#include <wal/recovery.hpp>
+#include <rpc/utils.hpp>
 
 namespace structuredb::server::services {
+
+namespace {
+
+}
 
 TableServiceImpl::TableServiceImpl(
       io::Manager& io_manager,
@@ -21,37 +22,29 @@ grpc::ServerUnaryReactor* TableServiceImpl::Upsert(
     ::structuredb::v1::UpsertTableResponse* response) {
   auto* reactor = context->DefaultReactor();
 
-  io_manager_.CoSpawn([&]() -> Awaitable<void> {
+  io_manager_.CoSpawn([this, request, response, reactor]() -> Awaitable<void> {
       std::unique_lock lock{mu_};
 
-      auto tx_storage = database_.GetTransactionStorage();
-      transaction::TransactionId tx{};
-      if (request->has_tx()) {
-        tx = transaction::FromString(request->tx());
-        if (!co_await tx_storage->IsStarted(tx)) {
-          reactor->Finish(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "Invalid transaction id"));
-          co_return;
+      try {
+        const auto tx = rpc::ParseTx(request);
+        auto session = co_await database_.StartSession(tx);
+        auto table = co_await session.GetTable(request->table());
+        if (!table) {
+            reactor->Finish(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "No such table"));
+            co_return;
         }
-      } else {
-        tx = co_await tx_storage->Begin();
-      }
 
-      const auto table = co_await database_.GetTable(tx, request->table());
-      if (!table) {
-          reactor->Finish(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "No such table"));
-          co_return;
-      }
+        co_await table->Upsert(
+            request->key(),
+            request->value()
+        );
 
-      co_await table->Upsert(
-          request->key(),
-          request->value()
-      );
-
-      response->set_tx(transaction::ToString(tx));
-      if (!request->has_tx()) {
-        co_await tx_storage->Commit(tx);
+        auto result_tx = co_await session.Finish();
+        response->set_tx(transaction::ToString(result_tx));
+        reactor->Finish(grpc::Status::OK);
+      } catch (const std::exception& e) {
+        reactor->Finish(rpc::MakeInternalError(e.what()));
       }
-      reactor->Finish(grpc::Status::OK);
   });
 
   return reactor;
@@ -63,43 +56,64 @@ grpc::ServerUnaryReactor* TableServiceImpl::Lookup(
     ::structuredb::v1::LookupTableResponse* response) {
   auto* reactor = context->DefaultReactor();
 
-  io_manager_.CoSpawn([&]() -> Awaitable<void> {
+  io_manager_.CoSpawn([this, reactor, request, response]() -> Awaitable<void> {
       std::unique_lock lock{mu_};
 
-      auto tx_storage = database_.GetTransactionStorage();
-      transaction::TransactionId tx{};
-      if (request->has_tx()) {
-        tx = transaction::FromString(request->tx());
-        if (!co_await tx_storage->IsStarted(tx)) {
-          reactor->Finish(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "Invalid transaction id"));
-          co_return;
-        }
-      } else {
-        tx = co_await tx_storage->Begin();
-      }
-
-      const auto table = co_await database_.GetTable(tx, request->table());
-      if (!table) {
-          reactor->Finish(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "No such table"));
-          co_return;
-      }
-
       try {
-        const auto value = co_await table->Lookup(
+        const auto tx = rpc::ParseTx(request);
+        auto session = co_await database_.StartSession(tx);
+        auto table = co_await session.GetTable(request->table());
+        if (!table) {
+            reactor->Finish(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "No such table"));
+            co_return;
+        }
+
+        auto value = co_await table->Lookup(
             request->key()
         );
         if (value.has_value()) {
           response->set_value(value.value());
         }
-      } catch (const std::exception& e) {
-          reactor->Finish(grpc::Status(grpc::StatusCode::INTERNAL, e.what()));
-          co_return;
-      }
 
-      if (!request->has_tx()) {
-        co_await tx_storage->Commit(tx);
+        auto result_tx = co_await session.Finish();
+        reactor->Finish(grpc::Status::OK);
+      } catch (const std::exception& e) {
+        reactor->Finish(rpc::MakeInternalError(e.what()));
       }
-    reactor->Finish(grpc::Status::OK);
+  });
+
+  return reactor;
+}
+
+grpc::ServerUnaryReactor* TableServiceImpl::Delete(
+    grpc::CallbackServerContext* context,
+    const ::structuredb::v1::DeleteTableRequest* request,
+    ::structuredb::v1::DeleteTableResponse* response
+) {
+  auto* reactor = context->DefaultReactor();
+
+  io_manager_.CoSpawn([this, request, response, reactor]() -> Awaitable<void> {
+      std::unique_lock lock{mu_};
+
+      try {
+        const auto tx = rpc::ParseTx(request);
+        auto session = co_await database_.StartSession(tx);
+        auto table = co_await session.GetTable(request->table());
+        if (!table) {
+            reactor->Finish(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "No such table"));
+            co_return;
+        }
+
+        co_await table->Delete(
+            request->key()
+        );
+
+        auto result_tx = co_await session.Finish();
+        response->set_tx(transaction::ToString(result_tx));
+        reactor->Finish(grpc::Status::OK);
+      } catch (const std::exception& e) {
+        reactor->Finish(rpc::MakeInternalError(e.what()));
+      }
   });
 
   return reactor;
@@ -112,32 +126,23 @@ grpc::ServerUnaryReactor* TableServiceImpl::CreateTable(
 ) {
   auto* reactor = context->DefaultReactor();
 
-  io_manager_.CoSpawn([&]() -> Awaitable<void> {
+  io_manager_.CoSpawn([this, request, response, reactor]() -> Awaitable<void> {
       std::unique_lock lock{mu_};
 
-      auto tx_storage = database_.GetTransactionStorage();
-      transaction::TransactionId tx{};
-      if (request->has_tx()) {
-        tx = transaction::FromString(request->tx());
-        if (!co_await tx_storage->IsStarted(tx)) {
-          reactor->Finish(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "Invalid transaction id"));
-          co_return;
-        }
-      } else {
-        tx = co_await tx_storage->Begin();
-      }
-
       try {
-        co_await database_.CreateTable(tx, request->name());
-      } catch (const std::exception& e) {
-          reactor->Finish(grpc::Status(grpc::StatusCode::INTERNAL, e.what()));
-          co_return;
-      }
+        const auto tx = rpc::ParseTx(request);
+        auto session = co_await database_.StartSession(tx);
 
-      if (!request->has_tx()) {
-        co_await tx_storage->Commit(tx);
+        co_await session.CreateTable(
+            request->name()
+        );
+
+        auto result_tx = co_await session.Finish();
+        response->set_tx(transaction::ToString(result_tx));
+        reactor->Finish(grpc::Status::OK);
+      } catch (const std::exception& e) {
+        reactor->Finish(rpc::MakeInternalError(e.what()));
       }
-    reactor->Finish(grpc::Status::OK);
   });
 
   return reactor;
@@ -150,34 +155,23 @@ grpc::ServerUnaryReactor* TableServiceImpl::DropTable(
 ) {
   auto* reactor = context->DefaultReactor();
 
-  io_manager_.CoSpawn([&]() -> Awaitable<void> {
+  io_manager_.CoSpawn([this, request, response, reactor]() -> Awaitable<void> {
       std::unique_lock lock{mu_};
 
-      auto tx_storage = database_.GetTransactionStorage();
-      transaction::TransactionId tx{};
-      if (request->has_tx()) {
-        SPDLOG_INFO("Got tx from request: {}", request->tx());
-        tx = transaction::FromString(request->tx());
-        SPDLOG_INFO("Str from req {}", transaction::ToString(tx));
-        if (!co_await tx_storage->IsStarted(tx)) {
-          reactor->Finish(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "Invalid transaction id"));
-          co_return;
-        }
-      } else {
-        tx = co_await tx_storage->Begin();
-      }
-
       try {
-        co_await database_.DropTable(tx, request->name());
-      } catch (const std::exception& e) {
-          reactor->Finish(grpc::Status(grpc::StatusCode::INTERNAL, e.what()));
-          co_return;
-      }
+        const auto tx = rpc::ParseTx(request);
+        auto session = co_await database_.StartSession(tx);
 
-      if (!request->has_tx()) {
-        co_await tx_storage->Commit(tx);
+        co_await session.DropTable(
+            request->name()
+        );
+
+        auto result_tx = co_await session.Finish();
+        response->set_tx(transaction::ToString(result_tx));
+        reactor->Finish(grpc::Status::OK);
+      } catch (const std::exception& e) {
+        reactor->Finish(rpc::MakeInternalError(e.what()));
       }
-    reactor->Finish(grpc::Status::OK);
   });
 
   return reactor;

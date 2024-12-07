@@ -41,9 +41,20 @@ message DropTableResponse {
   string tx = 1;
 }
 
+message DeleteTableRequest {
+  optional string tx = 1;
+  string table = 2;
+  string key = 3;
+}
+
+message DeleteTableResponse {
+  string tx = 1;
+}
+
 service Tables {
   rpc Upsert(UpsertTableRequest) returns (UpsertTableResponse) {}
   rpc Lookup(LookupTableRequest) returns (LookupTableResponse) {}
+  rpc Delete(DeleteTableRequest) returns (DeleteTableResponse) {}
   rpc CreateTable(CreateTableRequest) returns (CreateTableResponse) {}
   rpc DropTable(DropTableRequest) returns (DropTableResponse) {}
 }

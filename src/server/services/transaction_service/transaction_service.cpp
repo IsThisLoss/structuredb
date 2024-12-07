@@ -1,5 +1,7 @@
 #include "transaction_service.hpp"
 
+#include <rpc/utils.hpp>
+
 namespace structuredb::server::services {
 
 TransactionServiceImpl::TransactionServiceImpl(io::Manager& io_manager, database::Database& db)
@@ -14,11 +16,15 @@ grpc::ServerUnaryReactor* TransactionServiceImpl::Begin(
 ) {
   auto* reactor = context->DefaultReactor();
 
-  io_manager_.CoSpawn([&]() -> Awaitable<void> {
-      const auto tx = co_await database_.GetTransactionStorage()->Begin();
-      response->set_tx(transaction::ToString(tx));
-      reactor->Finish(grpc::Status::OK);
-      co_return;
+  io_manager_.CoSpawn([this, request, response, reactor]() -> Awaitable<void> {
+      try {
+        auto session = co_await database_.StartSession();
+        response->set_tx(transaction::ToString(session.GetTx()));
+        // NOTE: do not call session.Finish() here
+        reactor->Finish(grpc::Status::OK);
+      } catch (const std::exception& e) {
+        reactor->Finish(rpc::MakeInternalError(e.what()));
+      }
   });
 
   return reactor;
@@ -31,11 +37,16 @@ grpc::ServerUnaryReactor* TransactionServiceImpl::Commit(
 ) {
   auto* reactor = context->DefaultReactor();
 
-  io_manager_.CoSpawn([&]() -> Awaitable<void> {
-      const auto tx = transaction::FromString(request->tx());
-      co_await database_.GetTransactionStorage()->Commit(tx);
-      reactor->Finish(grpc::Status::OK);
-      co_return;
+  io_manager_.CoSpawn([this, request, response, reactor]() -> Awaitable<void> {
+      try {
+        const auto tx = transaction::FromString(request->tx());
+        auto session = co_await database_.StartSession(tx);
+        co_await session.Commit();
+        co_await session.Finish();
+        reactor->Finish(grpc::Status::OK);
+      } catch (const std::exception& e) {
+        reactor->Finish(rpc::MakeInternalError(e.what()));
+      }
   });
 
   return reactor;

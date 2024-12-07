@@ -63,7 +63,29 @@ class TableServiceClient {
       std::cerr << status.error_code() << ": " << status.error_message() << std::endl;
       return std::nullopt;
     }
+    if (!response.has_value()) {
+      return std::nullopt;
+    }
     return response.value();
+  }
+
+  void Delete(const std::optional<std::string>& tx, const std::string& table, const std::string& key) {
+    structuredb::v1::DeleteTableRequest request;
+    if (tx.has_value()) {
+      request.set_tx(tx.value());
+    }
+    request.set_table(table);
+    request.set_key(key);
+
+    structuredb::v1::DeleteTableResponse response;
+    grpc::ClientContext context;
+
+    const auto status = stub_->Delete(&context, request, &response);
+
+    // Act upon its status.
+    if (!status.ok()) {
+      std::cerr << status.error_code() << ": " << status.error_message() << std::endl;
+    }
   }
 
   std::string CreateTable(const std::optional<std::string>& tx, const std::string& name) {
@@ -174,6 +196,10 @@ int main(int argc, char** argv) {
     std::cout << result.value_or("<null>") << std::endl;
     auto end = std::chrono::steady_clock::now();
     std::cout << "Elapsed: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << std::endl;
+    return 0;
+  }
+  if (cmd == "DELETE" && args.size() == 4) {
+    client.Delete(tx, args[2], args[3]);
     return 0;
   }
 

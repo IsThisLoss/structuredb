@@ -5,6 +5,7 @@ Checks:
   -cppcoreguidelines-avoid-reference-coroutine-parameters,
   -cppcoreguidelines-avoid-capturing-lambda-coroutines,
   -cppcoreguidelines-pro-type-vararg,
+  -cppcoreguidelines-avoid-const-or-ref-data-members,
   modernize-*,
   -modernize-use-nodiscard,
   -modernize-use-trailing-return-type

@@ -5,13 +5,13 @@ install-deps:
 	conan install conanfile.txt --build=missing
 
 cmake:
-	cmake --preset conan-release
+	cmake --preset conan-debug
 
 build: cmake
-	cmake --build --preset conan-release
+	cmake --build --preset conan-debug
 
 run: build
-	./build/Release/src/server/structuredb-server
+	./build/Debug/src/server/structuredb-server
 
 run-cli:
-	./build/Release/src/cli/structuredb-cli
+	./build/Debug/src/cli/structuredb-cli

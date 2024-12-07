@@ -10,7 +10,7 @@ class Storage {
 public:
   using Ptr = std::shared_ptr<Storage>;
 
-  explicit Storage(table::LsmStorage::Ptr logged_table);
+  explicit Storage(table::LsmStorage::Ptr lsm_storage);
 
   /// @brief starts transaction
   Awaitable<TransactionId> Begin();
@@ -26,8 +26,10 @@ public:
 
   /// @brief returns true if tx started
   Awaitable<bool> IsStarted(const TransactionId& tx);
+
+  Awaitable<std::optional<std::string>> GetStatus(const TransactionId& tx);
 private:
-  table::LsmStorage::Ptr logged_table_;
+  table::LsmStorage::Ptr lsm_storage_;
 };
 
 }

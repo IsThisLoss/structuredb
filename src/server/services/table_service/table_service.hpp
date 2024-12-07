@@ -23,6 +23,12 @@ public:
       ::structuredb::v1::LookupTableResponse* response
   ) override;
 
+  grpc::ServerUnaryReactor* Delete(
+      grpc::CallbackServerContext* context,
+      const ::structuredb::v1::DeleteTableRequest* request,
+      ::structuredb::v1::DeleteTableResponse* response
+  ) override;
+
   grpc::ServerUnaryReactor* CreateTable(
       grpc::CallbackServerContext* context,
       const ::structuredb::v1::CreateTableRequest* request,

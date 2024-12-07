@@ -12,35 +12,38 @@ const std::string kRollbacked = "rollbacked";
 
 }
 
-Storage::Storage(table::LsmStorage::Ptr logged_table)
-  : logged_table_{std::move(logged_table)}
+Storage::Storage(table::LsmStorage::Ptr lsm_storage)
+  : lsm_storage_{std::move(lsm_storage)}
 {}
 
 Awaitable<TransactionId> Storage::Begin() {
   auto tx = transaction::GenerateTransactionId();
-  co_await logged_table_->Upsert(ToBinary(tx), kStarted);
-  SPDLOG_DEBUG("Begin transaction {}: {}", ToString(tx), ToBinary(tx));
+  co_await lsm_storage_->Upsert(ToBinary(tx), kStarted);
   co_return tx;
 }
 
 Awaitable<void> Storage::Rollback(const TransactionId& tx) {
   SPDLOG_DEBUG("Rollback transaction {}", ToString(tx));
-  co_await logged_table_->Upsert(ToBinary(tx), kRollbacked);
+  co_await lsm_storage_->Upsert(ToBinary(tx), kRollbacked);
 }
 
 Awaitable<void> Storage::Commit(const TransactionId& tx) {
   SPDLOG_DEBUG("Commit transaction {}", ToString(tx));
-  co_await logged_table_->Upsert(ToBinary(tx), kCommited);
+  co_await lsm_storage_->Upsert(ToBinary(tx), kCommited);
 }
 
 Awaitable<bool> Storage::IsCommited(const TransactionId& tx) {
-  const auto tx_value = co_await logged_table_->Get(ToBinary(tx));
+  const auto tx_value = co_await lsm_storage_->Get(ToBinary(tx));
   co_return tx_value.has_value() && tx_value.value() == kCommited;
 }
 
 Awaitable<bool> Storage::IsStarted(const TransactionId& tx) {
-  const auto tx_value = co_await logged_table_->Get(ToBinary(tx));
+  const auto tx_value = co_await lsm_storage_->Get(ToBinary(tx));
   co_return tx_value.has_value() && tx_value.value() == kStarted;
+}
+
+Awaitable<std::optional<std::string>> Storage::GetStatus(const TransactionId& tx) {
+  co_return co_await lsm_storage_->Get(ToBinary(tx));
 }
 
 }

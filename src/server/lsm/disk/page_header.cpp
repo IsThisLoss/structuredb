@@ -14,7 +14,7 @@ Awaitable<void> PageHeader::Flush(sdb::BufferWriter& writer, const PageHeader& h
   co_await writer.WriteInt(header.checksum);
 }
 
-int64_t PageHeader::EstimateSize(const PageHeader& header) {
+size_t PageHeader::EstimateSize(const PageHeader& header) {
   return sdb::BufferWriter::EstimateSize(header.count) + sdb::BufferWriter::EstimateSize(header.checksum);
 }
 
