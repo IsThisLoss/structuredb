@@ -118,4 +118,73 @@ TEST_F(DatabaseTest, UpsertLookupDelete) {
   ASSERT_FALSE(value.has_value());
 }
 
+TEST_F(DatabaseTest, TxIsolation) {
+  auto& db = GetDatabase();
+
+  // create table
+  Run(
+    [&db]() -> server::Awaitable<void> {
+      auto session = co_await db.StartSession();
+      co_await session.CreateTable(kTableName);
+      co_await session.Finish();
+    }()
+  );
+ 
+  // begin transaction
+  auto tx = Run(
+    [&db]() -> server::Awaitable<server::transaction::TransactionId> {
+      auto session = co_await db.StartSession();
+      co_return session.GetTx();
+    }()
+  );
+
+  // upsert and lookup in transaction
+  auto value = Run(
+    [&db, &tx]() -> server::Awaitable<std::optional<std::string>> {
+      auto session = co_await db.StartSession(tx);
+      auto table = co_await session.GetTable(kTableName);
+      co_await table->Upsert(kKey, kValue);
+      auto result = co_await table->Lookup(kKey);
+      co_return result;
+    }()
+  );
+
+  ASSERT_TRUE(value.has_value());
+  ASSERT_EQ(value.value(), kValue);
+ 
+  // lookup outside of transaction
+  value = Run(
+    [&db]() -> server::Awaitable<std::optional<std::string>> {
+      auto session = co_await db.StartSession();
+      auto table = co_await session.GetTable(kTableName);
+      auto result = co_await table->Lookup(kKey);
+      co_await session.Finish();
+      co_return result;
+    }()
+  );
+
+  ASSERT_FALSE(value.has_value());
+
+  // commit transaction
+  // lookup again
+  value = Run(
+    [&db, &tx]() -> server::Awaitable<std::optional<std::string>> {
+      {
+        auto session = co_await db.StartSession(tx);
+        co_await session.Commit();
+        co_await session.Finish();
+      }
+
+      auto session = co_await db.StartSession();
+      auto table = co_await session.GetTable(kTableName);
+      auto result = co_await table->Lookup(kKey);
+      co_await session.Finish();
+      co_return result;
+    }()
+  );
+ 
+  ASSERT_TRUE(value.has_value());
+  ASSERT_EQ(value.value(), kValue);
+}
+
 }
