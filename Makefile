@@ -2,7 +2,7 @@ clean:
 	rm -rf build CMakeUserPresets.json
 
 install-deps:
-	conan install conanfile.txt --build=missing
+	conan install . --build=missing --settings=build_type=Debug
 
 cmake:
 	cmake --preset conan-debug
@@ -15,3 +15,6 @@ run: build
 
 run-cli:
 	./build/Debug/src/cli/structuredb-cli
+
+tests: build
+	cd ./build/Debug && ctest

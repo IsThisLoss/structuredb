@@ -30,7 +30,7 @@ Catalog::TableInfo ParseRecord(const std::string& data) {
   const char* ptr = data.data();
   ::memcpy(&result.status, ptr, sizeof(int64_t));
   ptr += sizeof(int64_t);
-  result.id.assign(ptr, data.size() - sizeof(int64_t) - 1);
+  result.id.assign(ptr, data.size() - sizeof(int64_t));
   return result;
 }
 

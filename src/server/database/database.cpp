@@ -4,6 +4,8 @@
 
 #include <wal/recovery.hpp>
 
+#include "exceptions.hpp"
+
 namespace structuredb::server::database {
 
 namespace {
@@ -18,20 +20,13 @@ Database::Database(io::Manager& io_manager, std::string base_dir)
       .io_manager = io_manager,
       .base_dir = base_dir,
     }
-{
-  context_.io_manager.CoSpawn([this]() -> Awaitable<void> {
-      try {
-        co_await Init();
-      } catch (const std::exception& e) {
-        SPDLOG_ERROR("Failed to initialize database: {}", e.what());
-        exit(1);
-      }
-      SPDLOG_INFO("Database is initialized");
-      SPDLOG_DEBUG("Some debug");
-  });
-}
+{}
 
 Awaitable<void> Database::Init() {
+  if (is_initialized_) {
+    co_return;
+  }
+
   // init sys tables
   // 1. sys_transactions
   {
@@ -76,6 +71,8 @@ Awaitable<void> Database::Init() {
     table->StartLogInto(context_.wal_writer);
     SPDLOG_INFO("Table {} is ready", name);
   }
+
+  is_initialized_ = true;
 }
 
 table::LsmStorage::Ptr Database::GetStorageForRecover(const table::LsmStorage::Id& storage_id) {
@@ -83,6 +80,9 @@ table::LsmStorage::Ptr Database::GetStorageForRecover(const table::LsmStorage::I
 }
 
 Awaitable<Session> Database::StartSession(const std::optional<transaction::TransactionId>& tx) {
+  if (!is_initialized_) {
+    throw DatabaseException{"Database is not ready"};
+  }
   Session session{context_};
   co_await session.Start(tx);
   co_return session;

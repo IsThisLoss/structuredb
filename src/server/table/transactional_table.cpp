@@ -27,7 +27,7 @@ TransactionalValue ParseTransactionalValue(const std::string& data) {
   ptr += result.tx.size();
   result.is_deleted = *reinterpret_cast<const bool*>(ptr);
   ptr += sizeof(bool);
-  result.value.assign(ptr, data.size() - result.tx.size());
+  result.value.assign(ptr, data.size() - result.tx.size() - 1);
   return result;
 }
 

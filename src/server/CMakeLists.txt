@@ -6,6 +6,8 @@ file(
   ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp
 )
 
+list(REMOVE_ITEM SERVER_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp)
+
 add_compile_definitions(SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
@@ -16,10 +18,10 @@ find_package(yaml-cpp REQUIRED)
 
 include_directories(${Boost_INCLUDE_DIRS})
 
-add_executable(structuredb-server ${SERVER_SRCS})
+add_library(structuredb-server-lib ${SERVER_SRCS})
 
 target_link_libraries(
-  structuredb-server
+  structuredb-server-lib
   PUBLIC
   Boost::boost
   Boost::coroutine
@@ -31,4 +33,12 @@ target_link_libraries(
   spdlog::spdlog
   structuredb-proto
   yaml-cpp
+)
+
+add_executable(structuredb-server main.cpp)
+
+target_link_libraries(
+  structuredb-server
+  PUBLIC
+  structuredb-server-lib
 )

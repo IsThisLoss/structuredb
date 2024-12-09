@@ -14,6 +14,7 @@
 #include <services/transaction_service/transaction_service.hpp>
 
 #include <boost/asio/io_context.hpp>
+#include <boost/asio/use_future.hpp>
 
 #include <io/manager.hpp>
 #include <database/database.hpp>
@@ -42,6 +43,16 @@ void InitLogs(const structuredb::server::cfg::Config& config) {
     spdlog::set_default_logger(std::move(logger));
 }
 
+structuredb::server::Awaitable<void> Init(structuredb::server::database::Database& database) {
+  try {
+    co_await database.Init();
+  } catch (const std::exception& e) {
+    SPDLOG_ERROR("Failed to initialize database: {}", e.what());
+    exit(1);
+  }
+  SPDLOG_INFO("Database is initialized");
+}
+
 int main(int argc, char** argv) {
 
     const auto args = absl::ParseCommandLine(argc, argv);
@@ -61,6 +72,7 @@ int main(int argc, char** argv) {
     structuredb::server::io::Manager io_manager{io_context};
 
     structuredb::server::database::Database database{io_manager, config.root};
+    auto init_future = boost::asio::co_spawn(io_context, Init(database), boost::asio::use_future);
 
     const auto table_service = structuredb::server::services::MakeService(io_manager, database);
     builder.RegisterService(table_service.get());
@@ -79,8 +91,9 @@ int main(int argc, char** argv) {
         SPDLOG_INFO("Starting asio thread");
     });
 
-    const auto server = builder.BuildAndStart();
+    init_future.get();
 
+    const auto server = builder.BuildAndStart();
     SPDLOG_INFO("Launch grpc server");
     server->Wait();
 

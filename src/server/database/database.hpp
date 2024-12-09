@@ -18,6 +18,7 @@ public:
  ~Database() = default;
 private:
  Context context_;
+ bool is_initialized_{false};
 };
 
 }
