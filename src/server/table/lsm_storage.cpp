@@ -39,9 +39,9 @@ Awaitable<std::optional<std::string>> LsmStorage::Get(const std::string& key) {
   co_return result;
 }
 
-Awaitable<void> LsmStorage::Scan(const std::string& key, const lsm::RecordConsumer& consume) {
+Awaitable<lsm::Iterator::Ptr> LsmStorage::Scan(const std::string& key) {
   SPDLOG_DEBUG("Scan table {} for key {}", id_, key);
-  co_await lsm_.Scan(key, consume);
+  co_return co_await lsm_.Scan(key);
 }
 
 Awaitable<lsm::Iterator::Ptr> LsmStorage::Scan(const std::optional<std::string>& lower_bound, const std::optional<std::string>& upper_bound) {

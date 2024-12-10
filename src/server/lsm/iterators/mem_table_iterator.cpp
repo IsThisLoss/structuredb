@@ -25,6 +25,7 @@ bool MemTableIterator::HasMore() const {
 
 Awaitable<Record> MemTableIterator::Next() {
   auto result = *it_;
+  SPDLOG_INFO("Mem next: {}", result.value);
   it_ = std::next(it_);
   co_return result;
 }

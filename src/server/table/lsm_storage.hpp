@@ -23,7 +23,7 @@ public:
 
   Awaitable<std::optional<std::string>> Get(const std::string& key);
 
-  Awaitable<void> Scan(const std::string& key, const lsm::RecordConsumer& consume);
+  Awaitable<lsm::Iterator::Ptr> Scan(const std::string& key);
 
   Awaitable<lsm::Iterator::Ptr> Scan(const std::optional<std::string>& lower_bound, const std::optional<std::string>& upper_bound);
 private:

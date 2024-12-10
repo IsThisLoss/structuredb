@@ -1,6 +1,6 @@
 #pragma once
 
-#include <list>
+#include <deque>
 
 #include <io/manager.hpp>
 
@@ -12,8 +12,6 @@
 #include "ss_table.hpp"
 
 namespace structuredb::server::lsm {
-
-class LsmRangeIterator;
 
 /// @brief Log Structure Merge Tree
 class Lsm {
@@ -39,7 +37,7 @@ public:
   /// @brief retrives all value's versions by key
   ///
   /// @p consume will be called for each value version assossiated with @p key
-  Awaitable<void> Scan(const std::string& key, const RecordConsumer& consume);
+  Awaitable<Iterator::Ptr> Scan(const std::string& key);
 
   /// @brief scan lsm tree by range of keys
   Awaitable<Iterator::Ptr> Scan(const ScanRange& range);
@@ -52,7 +50,7 @@ private:
   const std::string base_dir_{};
 
   MemTable mem_table_;
-  std::list<MemTable> ro_mem_tables_{};
+  std::deque<MemTable> ro_mem_tables_{};
   std::vector<SSTable> ss_tables_{};
 
   Sequence next_seq_no_{0};
@@ -60,6 +58,7 @@ private:
   Awaitable<void> DoPut(const Sequence seq_no, const std::string& key, const std::string& value);
 
   friend class LsmRangeIterator;
+  friend class LsmKeyIterator;
 };
 
 }

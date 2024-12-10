@@ -51,12 +51,11 @@ Awaitable<void> TransactionalTable::Upsert(
 Awaitable<std::optional<std::string>> TransactionalTable::Lookup(const std::string& key) {
   SPDLOG_DEBUG("Lookup: tx = {}, key = {}", transaction::ToString(tx_), key);
   std::vector<TransactionalValue> candidates{};
-  co_await lsm_storage_->Scan(key, [&](const auto& data) {
-      candidates.push_back(ParseTransactionalValue(data));
-      return false;
-  });
+  auto iterator = co_await lsm_storage_->Scan(key);
 
-  for (auto& candidate : candidates) {
+  while (iterator->HasMore()) {
+    const auto record = co_await iterator->Next();
+    auto candidate = ParseTransactionalValue(record.value);
     SPDLOG_DEBUG("Lookup candidate: tx = {}, value = {}", transaction::ToString(candidate.tx), candidate.value);
     if (candidate.tx == tx_ || co_await tx_storage_->IsCommited(candidate.tx)) {
       SPDLOG_DEBUG("Lookup candidate: tx = {}, value = {} will be returned", transaction::ToString(candidate.tx), candidate.value);

@@ -13,7 +13,6 @@ public:
   bool HasMore() const override;
 
   Awaitable<Record> Next() override;
-  explicit LsmRangeIterator() = delete;
 private:
   explicit LsmRangeIterator(ScanRange range);
 

@@ -13,22 +13,6 @@ void MemTable::Put(Record&& record) {
   impl_.insert(std::move(record));
 }
 
-bool MemTable::Scan(const std::string& key, const RecordConsumer& consume) const {
-  auto it = impl_.lower_bound(Record{key});
-  for (; it != impl_.end() && it->key == key; it++) {
-    if (consume(it->value)) {
-      return true;
-    }
-  }
-  return false;
-}
-
-void MemTable::ScanValues(const RecordConsumer& consume) const {
-  for (const auto& [key, seq_no, value] : impl_) {
-    consume(value);
-  }
-}
-
 size_t MemTable::Size() const {
   return impl_.size();
 

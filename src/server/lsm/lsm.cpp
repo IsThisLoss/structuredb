@@ -5,6 +5,7 @@
 #include "exceptions.hpp"
 
 #include "iterators/lsm_range_iterator.hpp"
+#include "iterators/lsm_key_iterator.hpp"
 
 namespace structuredb::server::lsm {
 
@@ -61,42 +62,19 @@ Awaitable<void> Lsm::DoPut(const Sequence seq_no, const std::string& key, const 
 
 Awaitable<std::optional<std::string>> Lsm::Get(const std::string& key) {
   std::optional<std::string> result;
-  co_await Scan(key, [&](const auto& value) {
-      result = value;
-      return true;
-  });
+  const auto iterator = co_await Scan(key);
+  while (iterator->HasMore()) {
+    auto record = co_await iterator->Next();
+    result = record.value;
+    break;
+  }
   co_return result;
 }
 
-Awaitable<void> Lsm::Scan(const std::string& key, const RecordConsumer& consume) {
-  SPDLOG_DEBUG("LSM scan key = {}", key);
-  if (mem_table_.Scan(key, consume)) {
-    SPDLOG_DEBUG("Return from mem table, key = {}", key);
-    co_return;
-  }
-
-  SPDLOG_DEBUG("Did not find in active mem table, will scan ro, key = {}", key);
-
-  // TODO use Bloom Filter
-  for (auto it = ro_mem_tables_.rbegin(); it != ro_mem_tables_.rend(); ++it) {
-    if (it->Scan(key, consume)) {
-      co_return;
-    }
-  }
-
-  SPDLOG_DEBUG("Did not find in ro mem tables, will scan ss tables, key = {}", key);
-
-  for (auto it = ss_tables_.rbegin(); it != ss_tables_.rend(); ++it) {
-    try {
-      if (co_await it->Scan(key, consume)) {
-        co_return;
-      }
-    } catch (const CurraptedSSTable& e) {
-      SPDLOG_ERROR("Got currapted ss table: {}", e.what());
-    }
-  }
-
-  SPDLOG_DEBUG("Key {} was not found", key);
+Awaitable<Iterator::Ptr> Lsm::Scan(const std::string& key) {
+  SPDLOG_INFO("LSM scan: {} {} {}", mem_table_.Size(), ro_mem_tables_.size(), ss_tables_.size());
+  auto iterator = co_await LsmKeyIterator::Create(this, key);
+  co_return std::make_shared<LsmKeyIterator>(std::move(iterator));
 }
 
 Awaitable<Iterator::Ptr> Lsm::Scan(const ScanRange& range) {
