@@ -1,16 +1,19 @@
 #pragma once
 
-#include <map>
 #include <list>
 
 #include <io/manager.hpp>
 
 #include <wal/writer.hpp>
 
+#include "iterators/iterator.hpp"
+
 #include "mem_table.hpp"
 #include "ss_table.hpp"
 
 namespace structuredb::server::lsm {
+
+class LsmRangeIterator;
 
 /// @brief Log Structure Merge Tree
 class Lsm {
@@ -37,6 +40,9 @@ public:
   ///
   /// @p consume will be called for each value version assossiated with @p key
   Awaitable<void> Scan(const std::string& key, const RecordConsumer& consume);
+
+  /// @brief scan lsm tree by range of keys
+  Awaitable<Iterator::Ptr> Scan(const ScanRange& range);
 private:
   constexpr static const size_t kMaxRecordsInMemTable{50};
 
@@ -53,20 +59,7 @@ private:
 
   Awaitable<void> DoPut(const Sequence seq_no, const std::string& key, const std::string& value);
 
-  friend class LsmIterator;
-};
-
-class LsmIterator : public Iterator {
-public:
-  static Awaitable<LsmIterator> Create(Lsm& lsm);
-
-  bool HasMore() const override;
-
-  Awaitable<Record> Next() override;
-private:
-  std::map<Record, Iterator::Ptr> queue_;
-
-  Awaitable<void> Add(Iterator::Ptr iter);
+  friend class LsmRangeIterator;
 };
 
 }

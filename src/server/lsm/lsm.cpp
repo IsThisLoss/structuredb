@@ -4,6 +4,8 @@
 
 #include "exceptions.hpp"
 
+#include "iterators/lsm_range_iterator.hpp"
+
 namespace structuredb::server::lsm {
 
 Lsm::Lsm(io::Manager& io_manager, const std::string& base_dir)
@@ -97,36 +99,9 @@ Awaitable<void> Lsm::Scan(const std::string& key, const RecordConsumer& consume)
   SPDLOG_DEBUG("Key {} was not found", key);
 }
 
-Awaitable<LsmIterator> LsmIterator::Create(Lsm& lsm) {
-  LsmIterator result{};
-  co_await result.Add(std::make_shared<MemTableIterator>(lsm.mem_table_));
-  for (auto& ro_mem_table : lsm.ro_mem_tables_) {
-    co_await result.Add(std::make_shared<MemTableIterator>(ro_mem_table));
-  }
-  for (auto& ss_table : lsm.ss_tables_) {
-    co_await result.Add(std::make_shared<SSTableIterator>(ss_table));
-  }
-  co_return result;
-}
-
-bool LsmIterator::HasMore() const {
-  return !queue_.empty();
-}
-
-Awaitable<Record> LsmIterator::Next() {
-  assert(HasMore());
-
-  auto it = queue_.begin();
-  auto result = it->first;
-  co_await Add(it->second);
-  queue_.erase(it);
-  co_return result;
-}
-
-Awaitable<void> LsmIterator::Add(Iterator::Ptr iter) {
-  if (iter->HasMore()) {
-    queue_.try_emplace(co_await iter->Next(), std::move(iter));
-  }
+Awaitable<Iterator::Ptr> Lsm::Scan(const ScanRange& range) {
+  auto iterator = co_await LsmRangeIterator::Create(*this, range);
+  co_return std::make_shared<LsmRangeIterator>(std::move(iterator));
 }
 
 }

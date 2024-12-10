@@ -177,10 +177,10 @@ grpc::ServerUnaryReactor* TableServiceImpl::DropTable(
   return reactor;
 }
 
-grpc::ServerUnaryReactor* TableServiceImpl::GetAll(
+grpc::ServerUnaryReactor* TableServiceImpl::Scan(
     grpc::CallbackServerContext* context,
-    const ::structuredb::v1::GetAllTableRequest* request,
-    ::structuredb::v1::GetAllTableResponse* response
+    const ::structuredb::v1::ScanTableRequest* request,
+    ::structuredb::v1::ScanTableResponse* response
 ) {
   auto* reactor = context->DefaultReactor();
 
@@ -196,9 +196,18 @@ grpc::ServerUnaryReactor* TableServiceImpl::GetAll(
             co_return;
         }
 
-        const auto all = co_await table->GetAll();
+        std::optional<std::string> lower_bound{};
+        if (request->has_lower_bound()) {
+          lower_bound = request->lower_bound();
+        }
+        std::optional<std::string> upper_bound{};
+        if (request->has_upper_bound()) {
+          upper_bound = request->upper_bound();
+        }
 
-        for (const auto& [key, value] : all) {
+        const auto records = co_await table->Scan(lower_bound, upper_bound);
+
+        for (const auto& [key, value] : records) {
           auto* record = response->add_records();
           record->set_key(key);
           record->set_value(value);

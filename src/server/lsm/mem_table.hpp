@@ -4,9 +4,12 @@
 
 #include <io/manager.hpp>
 
+#include "iterators/iterator.hpp"
 #include "ss_table.hpp"
 
 namespace structuredb::server::lsm {
+
+class MemTableIterator;
 
 class MemTable {
 public:
@@ -19,22 +22,13 @@ public:
   size_t Size() const;
 
   Awaitable<SSTable> Flush(io::Manager& io_manager, const std::string& file_path) const;
+
+  Iterator::Ptr Scan(const ScanRange& range) const;
+
 private:
   std::multiset<Record> impl_;
 
   friend class MemTableIterator;
-};
-
-class MemTableIterator : public Iterator {
-public:
-  explicit MemTableIterator(MemTable& mem_table);
-
-  bool HasMore() const override;
-
-  Awaitable<Record> Next() override;
-private:
-  std::multiset<Record>::iterator it_;
-  std::multiset<Record>::iterator end_;
 };
 
 }

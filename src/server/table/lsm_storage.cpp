@@ -44,8 +44,13 @@ Awaitable<void> LsmStorage::Scan(const std::string& key, const lsm::RecordConsum
   co_await lsm_.Scan(key, consume);
 }
 
-Awaitable<lsm::Iterator::Ptr> LsmStorage::Iter() {
-  co_return std::make_shared<lsm::LsmIterator>(co_await lsm::LsmIterator::Create(lsm_));
+Awaitable<lsm::Iterator::Ptr> LsmStorage::Scan(const std::optional<std::string>& lower_bound, const std::optional<std::string>& upper_bound) {
+  lsm::ScanRange range{
+      .lower_bound = lower_bound,
+      .upper_bound = upper_bound,
+  };
+  auto result = co_await lsm_.Scan(range);
+  co_return result;
 }
 
 }

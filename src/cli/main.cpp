@@ -128,17 +128,24 @@ class TableServiceClient {
     return response.tx();
   }
 
-  void GetAll(const std::optional<std::string>& tx, const std::string& name) {
-    structuredb::v1::GetAllTableRequest request;
+  void Scan(const std::optional<std::string>& tx, const std::string& name, const std::optional<std::string>& lower_bound, const std::optional<std::string>& upper_bound) {
+    structuredb::v1::ScanTableRequest request;
     if (tx.has_value()) {
       request.set_tx(tx.value());
     }
     request.set_table(name);
+    
+    if (lower_bound.has_value()) {
+      request.set_lower_bound(lower_bound.value());
+    }
+    if (upper_bound.has_value()) {
+      request.set_upper_bound(upper_bound.value());
+    }
 
-    structuredb::v1::GetAllTableResponse response;
+    structuredb::v1::ScanTableResponse response;
     grpc::ClientContext context;
 
-    const auto status = stub_->GetAll(&context, request, &response);
+    const auto status = stub_->Scan(&context, request, &response);
 
     // Act upon its status.
     if (!status.ok()) {
@@ -248,9 +255,19 @@ int main(int argc, char** argv) {
     return 0;
   }
 
-  if (cmd == "SELECT" && args.size() == 3) {
-    client.GetAll(tx, args[2]);
-    return 0;
+  if (cmd == "SCAN") {
+    if (args.size() == 3) {
+      client.Scan(tx, args[2], std::nullopt, std::nullopt);
+      return 0;
+    }
+    if (args.size() == 4) {
+      client.Scan(tx, args[2], args[3], std::nullopt);
+      return 0;
+    }
+    if (args.size() == 5) {
+      client.Scan(tx, args[2], args[3], args[4]);
+      return 0;
+    }
   }
 
   std::cerr << "Wrong usage\n";

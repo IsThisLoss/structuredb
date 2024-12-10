@@ -6,8 +6,8 @@
 
 #include "disk/page.hpp"
 #include "disk/ss_table_header.hpp"
+#include "iterators/iterator.hpp"
 #include "record_consumer.hpp"
-#include "iterator.hpp"
 
 namespace structuredb::server::lsm {
 
@@ -16,6 +16,8 @@ public:
   static Awaitable<SSTable> Create(io::FileReader::Ptr file_reader);
 
   Awaitable<bool> Scan(const std::string& key, const RecordConsumer& consumer);
+
+  Awaitable<Iterator::Ptr> Scan(const ScanRange& range);
 
   Sequence GetMaxSeqNo() const;
 private:
@@ -43,21 +45,9 @@ private:
 
   Awaitable<disk::Page> GetPage(int64_t page_num);
 
+  Awaitable<int64_t> LowerBound(const std::string& key);
+
   friend class SSTableIterator;
-};
-
-class SSTableIterator : public Iterator {
-public:
-  explicit SSTableIterator(SSTable& ss_table);
-
-  bool HasMore() const override;
-
-  Awaitable<Record> Next() override;
-
-private:
-  SSTable& ss_table_;
-  int64_t current_page_{0};
-  int64_t current_record_{0};
 };
 
 }

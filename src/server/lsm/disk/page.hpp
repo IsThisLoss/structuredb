@@ -11,7 +11,7 @@ public:
   static Awaitable<Page> Load(sdb::BufferReader& reader);
 
   /// @brief searches key in the page
-  std::vector<std::string> Find(const std::string& key) const;
+  int64_t Find(const std::string& key) const;
 
   /// @brief returns record by position
   Record At(int64_t pos);

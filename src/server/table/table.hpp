@@ -19,7 +19,7 @@ public:
 
   virtual Awaitable<bool> Delete(const std::string& key) = 0;
 
-  virtual Awaitable<std::vector<std::pair<std::string, std::string>>> GetAll() = 0;
+  virtual Awaitable<std::vector<std::pair<std::string, std::string>>> Scan(const std::optional<std::string>& lower_bound, const std::optional<std::string>& upper_bound) = 0;
 
   virtual ~Table() = default;
 };

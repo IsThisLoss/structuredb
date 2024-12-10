@@ -41,10 +41,10 @@ public:
       ::structuredb::v1::DropTableResponse* response
   ) override;
 
-  grpc::ServerUnaryReactor* GetAll(
+  grpc::ServerUnaryReactor* Scan(
       grpc::CallbackServerContext* context,
-      const ::structuredb::v1::GetAllTableRequest* request,
-      ::structuredb::v1::GetAllTableResponse* response
+      const ::structuredb::v1::ScanTableRequest* request,
+      ::structuredb::v1::ScanTableResponse* response
   ) override;
 
 private:

@@ -36,16 +36,11 @@ Awaitable<Page> Page::Load(sdb::BufferReader& reader) {
   co_return result;
 }
 
-std::vector<std::string> Page::Find(const std::string& key) const {
+int64_t Page::Find(const std::string& key) const {
   std::vector<std::string> result;
   auto it = std::lower_bound(keys_.begin(), keys_.end(), key);
   const auto offset = std::distance(keys_.begin(), it);
-  auto result_it = std::next(values_.begin(), offset);
-  for (; it != keys_.end() && *it == key; ++it) {
-    result.push_back(*result_it);
-    result_it = std::next(result_it);
-  }
-  return result;
+  return offset;
 }
 
 Record Page::At(int64_t pos) {

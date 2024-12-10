@@ -51,9 +51,11 @@ message DeleteTableResponse {
   string tx = 1;
 }
 
-message GetAllTableRequest {
+message ScanTableRequest {
   optional string tx = 1;
   string table = 2;
+  optional string lower_bound = 3;
+  optional string upper_bound = 4;
 }
 
 message Record {
@@ -61,7 +63,7 @@ message Record {
   string value = 2;
 };
 
-message GetAllTableResponse {
+message ScanTableResponse {
   string tx = 1;
   repeated Record records = 2;
 }
@@ -69,8 +71,9 @@ message GetAllTableResponse {
 service Tables {
   rpc Upsert(UpsertTableRequest) returns (UpsertTableResponse) {}
   rpc Lookup(LookupTableRequest) returns (LookupTableResponse) {}
-  rpc GetAll(GetAllTableRequest) returns (GetAllTableResponse) {}
+  rpc Scan(ScanTableRequest) returns (ScanTableResponse) {}
   rpc Delete(DeleteTableRequest) returns (DeleteTableResponse) {}
+
   rpc CreateTable(CreateTableRequest) returns (CreateTableResponse) {}
   rpc DropTable(DropTableRequest) returns (DropTableResponse) {}
 }

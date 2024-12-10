@@ -16,4 +16,9 @@ struct Record {
   bool operator<(const Record& rhs) const;
 };
 
+struct ScanRange {
+  std::optional<std::string> lower_bound{std::nullopt};
+  std::optional<std::string> upper_bound{std::nullopt};
+};
+
 }

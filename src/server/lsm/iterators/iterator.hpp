@@ -4,7 +4,7 @@
 
 #include <io/types.hpp>
 
-#include "types.hpp"
+#include <lsm/types.hpp>
 
 namespace structuredb::server::lsm {
 
