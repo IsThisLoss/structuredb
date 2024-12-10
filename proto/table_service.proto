@@ -51,9 +51,25 @@ message DeleteTableResponse {
   string tx = 1;
 }
 
+message GetAllTableRequest {
+  optional string tx = 1;
+  string table = 2;
+}
+
+message Record {
+  string key = 1;
+  string value = 2;
+};
+
+message GetAllTableResponse {
+  string tx = 1;
+  repeated Record records = 2;
+}
+
 service Tables {
   rpc Upsert(UpsertTableRequest) returns (UpsertTableResponse) {}
   rpc Lookup(LookupTableRequest) returns (LookupTableResponse) {}
+  rpc GetAll(GetAllTableRequest) returns (GetAllTableResponse) {}
   rpc Delete(DeleteTableRequest) returns (DeleteTableResponse) {}
   rpc CreateTable(CreateTableRequest) returns (CreateTableResponse) {}
   rpc DropTable(DropTableRequest) returns (DropTableResponse) {}

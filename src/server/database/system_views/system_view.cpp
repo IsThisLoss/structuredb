@@ -15,4 +15,8 @@ Awaitable<bool> SystemView::Delete(const std::string& key) {
   throw DatabaseException{"Cannot perform mutation on system view"};
 }
 
+Awaitable<std::vector<std::pair<std::string, std::string>>> SystemView::GetAll() {
+  throw DatabaseException{"Unimplemented"};
+}
+
 }

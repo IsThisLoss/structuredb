@@ -83,4 +83,23 @@ Awaitable<disk::Page> SSTable::GetPage(int64_t page_num) {
   co_return page_cache_[page_num] = co_await disk::Page::Load(buffer_reader);
 }
 
+SSTableIterator::SSTableIterator(SSTable& ss_table)
+  : ss_table_{ss_table}
+{}
+
+bool SSTableIterator::HasMore() const {
+  return current_page_ < ss_table_.header_.page_count;
+}
+
+Awaitable<Record> SSTableIterator::Next() {
+  auto page = co_await ss_table_.GetPage(current_page_);
+  auto result = page.At(current_record_);
+  current_record_++;
+  if (current_record_ >= page.Size()) {
+    current_record_ = 0;
+    current_page_++;
+  }
+  co_return result;
+}
+
 }

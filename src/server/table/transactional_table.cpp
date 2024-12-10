@@ -85,4 +85,23 @@ Awaitable<bool> TransactionalTable::Delete(const std::string& key) {
   co_return true;
 }
 
+Awaitable<std::vector<std::pair<std::string, std::string>>> TransactionalTable::GetAll() {
+  std::vector<std::pair<std::string, std::string>> result;
+  auto iterator = co_await lsm_storage_->Iter();
+  while (iterator->HasMore()) {
+    auto record = co_await iterator->Next();
+    auto candidate = ParseTransactionalValue(record.value);
+    if (candidate.tx == tx_ || co_await tx_storage_->IsCommited(candidate.tx)) {
+      if (candidate.is_deleted) {
+        continue;
+      }
+      if (!result.empty() && result.back().first == record.key) {
+        continue;
+      }
+      result.emplace_back(std::move(record.key), std::move(candidate.value));
+    }
+  }
+  co_return result;
+}
+
 }

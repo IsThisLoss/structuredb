@@ -41,6 +41,12 @@ public:
       ::structuredb::v1::DropTableResponse* response
   ) override;
 
+  grpc::ServerUnaryReactor* GetAll(
+      grpc::CallbackServerContext* context,
+      const ::structuredb::v1::GetAllTableRequest* request,
+      ::structuredb::v1::GetAllTableResponse* response
+  ) override;
+
 private:
   io::Manager& io_manager_;
   database::Database& database_;

@@ -55,4 +55,22 @@ Awaitable<SSTable> MemTable::Flush(io::Manager& io_manager, const std::string& f
   co_return ss_table;
 }
 
+
+/// iter
+
+
+MemTableIterator::MemTableIterator(MemTable& mem_table)
+  : it_{mem_table.impl_.begin()}, end_{mem_table.impl_.end()}
+{}
+
+bool MemTableIterator::HasMore() const {
+  return it_ != end_;
+}
+
+Awaitable<Record> MemTableIterator::Next() {
+  auto result = *it_;
+  it_ = std::next(it_);
+  co_return result;
+}
+
 }

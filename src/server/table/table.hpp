@@ -19,6 +19,8 @@ public:
 
   virtual Awaitable<bool> Delete(const std::string& key) = 0;
 
+  virtual Awaitable<std::vector<std::pair<std::string, std::string>>> GetAll() = 0;
+
   virtual ~Table() = default;
 };
 

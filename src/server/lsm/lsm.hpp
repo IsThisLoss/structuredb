@@ -1,5 +1,6 @@
 #pragma once
 
+#include <map>
 #include <list>
 
 #include <io/manager.hpp>
@@ -51,6 +52,21 @@ private:
   Sequence next_seq_no_{0};
 
   Awaitable<void> DoPut(const Sequence seq_no, const std::string& key, const std::string& value);
+
+  friend class LsmIterator;
+};
+
+class LsmIterator : public Iterator {
+public:
+  static Awaitable<LsmIterator> Create(Lsm& lsm);
+
+  bool HasMore() const override;
+
+  Awaitable<Record> Next() override;
+private:
+  std::map<Record, Iterator::Ptr> queue_;
+
+  Awaitable<void> Add(Iterator::Ptr iter);
 };
 
 }

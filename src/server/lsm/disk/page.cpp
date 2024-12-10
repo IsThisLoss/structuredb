@@ -48,12 +48,24 @@ std::vector<std::string> Page::Find(const std::string& key) const {
   return result;
 }
 
+Record Page::At(int64_t pos) {
+  return Record{
+    .key = keys_[pos],
+    .seq_no = seq_nos_[pos],
+    .value = values_[pos],
+  };
+}
+
 const std::string& Page::MinKey() const {
   return keys_.front();
 }
 
 const std::string& Page::MaxKey() const {
   return keys_.back();
+}
+
+int64_t Page::Size() const {
+  return static_cast<int64_t>(keys_.size());
 }
 
 }

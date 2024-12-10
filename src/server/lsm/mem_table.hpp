@@ -21,6 +21,20 @@ public:
   Awaitable<SSTable> Flush(io::Manager& io_manager, const std::string& file_path) const;
 private:
   std::multiset<Record> impl_;
+
+  friend class MemTableIterator;
+};
+
+class MemTableIterator : public Iterator {
+public:
+  explicit MemTableIterator(MemTable& mem_table);
+
+  bool HasMore() const override;
+
+  Awaitable<Record> Next() override;
+private:
+  std::multiset<Record>::iterator it_;
+  std::multiset<Record>::iterator end_;
 };
 
 }

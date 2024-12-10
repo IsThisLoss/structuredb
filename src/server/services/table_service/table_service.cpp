@@ -177,6 +177,44 @@ grpc::ServerUnaryReactor* TableServiceImpl::DropTable(
   return reactor;
 }
 
+grpc::ServerUnaryReactor* TableServiceImpl::GetAll(
+    grpc::CallbackServerContext* context,
+    const ::structuredb::v1::GetAllTableRequest* request,
+    ::structuredb::v1::GetAllTableResponse* response
+) {
+  auto* reactor = context->DefaultReactor();
+
+  io_manager_.CoSpawn([this, request, response, reactor]() -> Awaitable<void> {
+      std::unique_lock lock{mu_};
+
+      try {
+        const auto tx = rpc::ParseTx(request);
+        auto session = co_await database_.StartSession(tx);
+        auto table = co_await session.GetTable(request->table());
+        if (!table) {
+            reactor->Finish(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "No such table"));
+            co_return;
+        }
+
+        const auto all = co_await table->GetAll();
+
+        for (const auto& [key, value] : all) {
+          auto* record = response->add_records();
+          record->set_key(key);
+          record->set_value(value);
+        }
+
+        auto result_tx = co_await session.Finish();
+        response->set_tx(transaction::ToString(result_tx));
+        reactor->Finish(grpc::Status::OK);
+      } catch (const std::exception& e) {
+        reactor->Finish(rpc::MakeInternalError(e.what()));
+      }
+  });
+
+  return reactor;
+}
+
 std::unique_ptr<grpc::Service> MakeService(
   io::Manager& io_manager,
   database::Database& db

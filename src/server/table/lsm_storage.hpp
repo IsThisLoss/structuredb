@@ -24,6 +24,8 @@ public:
   Awaitable<std::optional<std::string>> Get(const std::string& key);
 
   Awaitable<void> Scan(const std::string& key, const lsm::RecordConsumer& consume);
+
+  Awaitable<lsm::Iterator::Ptr> Iter();
 private:
   const Id id_;
   lsm::Lsm lsm_;

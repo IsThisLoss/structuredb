@@ -12,6 +12,8 @@ public:
   ) override;
 
   Awaitable<bool> Delete(const std::string& key) override;
+
+  Awaitable<std::vector<std::pair<std::string, std::string>>> GetAll() override;
 };
 
 }

@@ -44,4 +44,8 @@ Awaitable<void> LsmStorage::Scan(const std::string& key, const lsm::RecordConsum
   co_await lsm_.Scan(key, consume);
 }
 
+Awaitable<lsm::Iterator::Ptr> LsmStorage::Iter() {
+  co_return std::make_shared<lsm::LsmIterator>(co_await lsm::LsmIterator::Create(lsm_));
+}
+
 }

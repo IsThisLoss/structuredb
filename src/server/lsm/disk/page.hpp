@@ -13,11 +13,16 @@ public:
   /// @brief searches key in the page
   std::vector<std::string> Find(const std::string& key) const;
 
+  /// @brief returns record by position
+  Record At(int64_t pos);
+
   /// @returns minimum key in the page
   const std::string& MinKey() const;
 
   /// @returns maximum key in the page
   const std::string& MaxKey() const;
+
+  int64_t Size() const;
 private:
   /// @property keys places inside the page
   std::vector<std::string> keys_;

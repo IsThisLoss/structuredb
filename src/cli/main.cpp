@@ -128,6 +128,29 @@ class TableServiceClient {
     return response.tx();
   }
 
+  void GetAll(const std::optional<std::string>& tx, const std::string& name) {
+    structuredb::v1::GetAllTableRequest request;
+    if (tx.has_value()) {
+      request.set_tx(tx.value());
+    }
+    request.set_table(name);
+
+    structuredb::v1::GetAllTableResponse response;
+    grpc::ClientContext context;
+
+    const auto status = stub_->GetAll(&context, request, &response);
+
+    // Act upon its status.
+    if (!status.ok()) {
+      std::cerr << status.error_code() << ": " << status.error_message() << std::endl;
+    }
+
+    std::cout << "Tx: " << response.tx() << std::endl;
+    for (const auto& record : response.records()) {
+      std::cout << "key: " << record.key() << " value: " << record.value() << std::endl;
+    }
+  }
+
  private:
   std::unique_ptr<structuredb::v1::Tables::Stub> stub_;
 };
@@ -222,6 +245,11 @@ int main(int argc, char** argv) {
 
   if (cmd == "DROP" && args.size() == 3) {
     std::cout << "Tx: " << client.DropTable(tx, args[2]) << std::endl;
+    return 0;
+  }
+
+  if (cmd == "SELECT" && args.size() == 3) {
+    client.GetAll(tx, args[2]);
     return 0;
   }
 

@@ -20,6 +20,8 @@ public:
   Awaitable<std::optional<std::string>> Lookup(const std::string& key) override;
 
   Awaitable<bool> Delete(const std::string& key) override;
+
+  Awaitable<std::vector<std::pair<std::string, std::string>>> GetAll() override;
 private:
   LsmStorage::Ptr lsm_storage_;
   transaction::Storage::Ptr tx_storage_;

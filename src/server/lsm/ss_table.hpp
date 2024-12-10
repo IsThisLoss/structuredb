@@ -7,6 +7,7 @@
 #include "disk/page.hpp"
 #include "disk/ss_table_header.hpp"
 #include "record_consumer.hpp"
+#include "iterator.hpp"
 
 namespace structuredb::server::lsm {
 
@@ -41,6 +42,22 @@ private:
   std::unordered_map<size_t, disk::Page> page_cache_;
 
   Awaitable<disk::Page> GetPage(int64_t page_num);
+
+  friend class SSTableIterator;
+};
+
+class SSTableIterator : public Iterator {
+public:
+  explicit SSTableIterator(SSTable& ss_table);
+
+  bool HasMore() const override;
+
+  Awaitable<Record> Next() override;
+
+private:
+  SSTable& ss_table_;
+  int64_t current_page_{0};
+  int64_t current_record_{0};
 };
 
 }

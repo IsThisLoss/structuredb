@@ -1,5 +1,5 @@
 [requires]
-boost/1.83.0
+boost/1.86.0
 grpc/1.54.3
 gtest/1.15.0
 protobuf/3.21.12

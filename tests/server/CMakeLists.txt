@@ -6,9 +6,6 @@ file(
   ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp
 )
 
-message("HERE")
-message(${SERVER_TESTS_SRCS})
-
 find_package(Boost REQUIRED)
 find_package(GTest REQUIRED)
 find_package(spdlog REQUIRED)
