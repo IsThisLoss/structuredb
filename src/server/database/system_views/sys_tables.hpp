@@ -6,6 +6,7 @@
 
 namespace structuredb::server::database::system_views {
 
+/// @brief system view for tables
 class SysTables : public SystemView {
 public:
   explicit SysTables(Catalog catalog);

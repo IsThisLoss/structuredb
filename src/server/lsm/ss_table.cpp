@@ -29,32 +29,6 @@ Awaitable<void> SSTable::Init() {
   SPDLOG_INFO("Initialize ss table, pages = {}, page_size = {}", header_.page_count, header_.page_size);
 }
 
-Awaitable<bool> SSTable::Scan(const std::string& key, const RecordConsumer& consume) {
-  const int64_t lo = co_await LowerBound(key);
-  if (lo >= header_.page_count) {
-    co_return false;
-  }
-
-  for (int64_t i = lo; i < header_.page_count; i++) {
-    auto page = co_await GetPage(i);
-    if (key > page.MaxKey()) {
-      break;
-    }
-
-    auto pos = page.Find(key);
-    std::string last_key;
-    do {
-      auto record = page.At(pos);
-      last_key = record.key;
-      if (consume(record.value)) {
-        co_return true;
-      }
-      pos++;
-    } while (pos < page.Size() && last_key == key);
-  }
-  co_return false;
-}
-
 Awaitable<Iterator::Ptr> SSTable::Scan(const ScanRange& range) {
   co_return std::make_shared<SSTableIterator>(co_await SSTableIterator::Create(*this, range));
 }

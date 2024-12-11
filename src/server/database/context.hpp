@@ -7,6 +7,7 @@
 
 namespace structuredb::server::database {
 
+/// @brief database common structures
 struct Context {
   io::Manager& io_manager;
   std::string base_dir;

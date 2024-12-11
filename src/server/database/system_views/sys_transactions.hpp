@@ -6,6 +6,7 @@
 
 namespace structuredb::server::database::system_views {
 
+/// @brief system view for transactions
 class SysTransactions : public SystemView {
 public:
   explicit SysTransactions(transaction::Storage::Ptr tx_storage);

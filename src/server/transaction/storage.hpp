@@ -27,6 +27,7 @@ public:
   /// @brief returns true if tx started
   Awaitable<bool> IsStarted(const TransactionId& tx);
 
+  /// @brief returns status of transaction by its id
   Awaitable<std::optional<std::string>> GetStatus(const TransactionId& tx);
 private:
   table::LsmStorage::Ptr lsm_storage_;

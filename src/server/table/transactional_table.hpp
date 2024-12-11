@@ -6,6 +6,7 @@
 
 namespace structuredb::server::table {
 
+/// @brief implements table interface with MVCC transaction model and LsmStorage as undelying storage
 class TransactionalTable : public Table {
 public:
   using Ptr = std::shared_ptr<TransactionalTable>;

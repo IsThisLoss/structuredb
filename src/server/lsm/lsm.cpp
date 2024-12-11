@@ -2,16 +2,14 @@
 
 #include <spdlog/spdlog.h>
 
-#include "exceptions.hpp"
-
 #include "iterators/lsm_range_iterator.hpp"
 #include "iterators/lsm_key_iterator.hpp"
 
 namespace structuredb::server::lsm {
 
-Lsm::Lsm(io::Manager& io_manager, const std::string& base_dir)
+Lsm::Lsm(io::Manager& io_manager, std::string base_dir)
   : io_manager_{io_manager}
-  , base_dir_{base_dir}
+  , base_dir_{std::move(base_dir)}
 {}
 
 Awaitable<void> Lsm::Init() {
@@ -34,6 +32,7 @@ Awaitable<Sequence> Lsm::Put(const std::string& key, const std::string& value) {
 }
 
 Awaitable<bool> Lsm::Put(const Sequence seq_no, const std::string& key, const std::string& value) {
+  // ignore record out of order
   if (seq_no != next_seq_no_) {
     co_return false;
   }
@@ -73,7 +72,7 @@ Awaitable<std::optional<std::string>> Lsm::Get(const std::string& key) {
 
 Awaitable<Iterator::Ptr> Lsm::Scan(const std::string& key) {
   SPDLOG_INFO("LSM scan: {} {} {}", mem_table_.Size(), ro_mem_tables_.size(), ss_tables_.size());
-  auto iterator = co_await LsmKeyIterator::Create(this, key);
+  auto iterator = co_await LsmKeyIterator::Create(*this, key);
   co_return std::make_shared<LsmKeyIterator>(std::move(iterator));
 }
 

@@ -23,23 +23,30 @@ Awaitable<LsmRangeIterator> LsmRangeIterator::Create(Lsm& lsm, ScanRange range) 
 }
 
 bool LsmRangeIterator::HasMore() const {
-  return !queue_.empty();
+  return !heap_.empty();
 }
 
 Awaitable<Record> LsmRangeIterator::Next() {
   assert(HasMore());
-  auto it = queue_.begin();
-  auto result = it->first;
-  co_await Add(it->second);
-  queue_.erase(it);
-  co_return result;
+  auto top = std::move(heap_.top());
+  heap_.pop();
+
+  co_await Add(std::move(top.iterator));
+  co_return top.record;
 }
 
 Awaitable<void> LsmRangeIterator::Add(Iterator::Ptr iter) {
   if (iter->HasMore()) {
-    queue_.try_emplace(co_await iter->Next(), iter);
+    heap_.push(Item{
+        .record = co_await iter->Next(),
+        .iterator = std::move(iter)
+    });
   }
   co_return;
+}
+
+bool LsmRangeIterator::Item::operator<(const LsmRangeIterator::Item& other) const {
+  return other.record < record;
 }
 
 }

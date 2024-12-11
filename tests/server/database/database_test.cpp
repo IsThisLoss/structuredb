@@ -187,4 +187,49 @@ TEST_F(DatabaseTest, TxIsolation) {
   ASSERT_EQ(value.value(), kValue);
 }
 
+TEST_F(DatabaseTest, RangeScan) {
+  const int64_t kSize = 100;
+  const int64_t kLowerBound = 20;
+  const int64_t kUpperBound = 40;
+  auto& db = GetDatabase();
+
+  // create table and insert 100 key-values into it
+  Run(
+    [&db]() -> server::Awaitable<void> {
+      auto session = co_await db.StartSession();
+      co_await session.CreateTable(kTableName);
+      auto table = co_await session.GetTable(kTableName);
+      for (int64_t i = 0; i < kSize; i++) {
+        const auto key = fmt::format("{:02}", i);
+        const auto value = fmt::format("{:02}", -1 * i);
+        co_await table->Upsert(key, value);
+      }
+      co_await session.Finish();
+    }()
+  );
+
+  const auto result = Run([&db] () -> server::Awaitable<std::vector<std::pair<std::string, std::string>>> {
+      auto session = co_await db.StartSession();
+      auto table = co_await session.GetTable(kTableName);
+      co_await table->Upsert(kKey, kValue);
+      auto result = co_await table->Scan(std::to_string(kLowerBound), std::to_string(kUpperBound));
+      co_await session.Finish();
+      co_return result;
+  }());
+
+  const int64_t kExpectedSize = kUpperBound - kLowerBound +1; // [20; 40], include right border
+
+  ASSERT_EQ(result.size(), kExpectedSize);
+
+  int64_t idx = 0;
+  for (int64_t i = kLowerBound; i <= kUpperBound; i++) {
+    const auto expected_key = fmt::format("{:02}", i);
+    ASSERT_EQ(result[idx].first, expected_key);
+    const auto expected_value = fmt::format("{:02}", -1 * i);
+    ASSERT_EQ(result[idx].second, expected_value);
+    idx++;
+  }
+
+}
+
 }

@@ -1,22 +1,24 @@
 #pragma once
 
-#include <map>
-
 #include <lsm/lsm.hpp>
 
 namespace structuredb::server::lsm {
 
+/// @brief iterator over all key versions
 class LsmKeyIterator : public Iterator {
 public:
-  static Awaitable<LsmKeyIterator> Create(Lsm* lsm, std::string key);
+  /// @brief creates iterator
+  ///
+  /// Do no call it directly, use Lsm::Scan
+  static Awaitable<LsmKeyIterator> Create(Lsm& lsm, std::string key);
 
   bool HasMore() const override;
 
   Awaitable<Record> Next() override;
 private:
-  explicit LsmKeyIterator(Lsm* lsm, std::string key);
+  explicit LsmKeyIterator(Lsm& lsm, std::string key);
 
-  Lsm* lsm_;
+  Lsm& lsm_;
   const ScanRange range_;
 
   bool mem_table_checked_{false};

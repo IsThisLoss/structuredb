@@ -4,6 +4,10 @@
 
 namespace structuredb::server::database::system_views {
 
+/// @brief base class of system views
+///
+/// SystemView is a structure that have read-only table interface
+/// Database user could use such views for debug and diagnostic
 class SystemView : public table::Table {
 public:
   Awaitable<void> Upsert(

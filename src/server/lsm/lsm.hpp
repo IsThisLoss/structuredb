@@ -3,11 +3,9 @@
 #include <deque>
 
 #include <io/manager.hpp>
-
 #include <wal/writer.hpp>
 
 #include "iterators/iterator.hpp"
-
 #include "mem_table.hpp"
 #include "ss_table.hpp"
 
@@ -16,7 +14,7 @@ namespace structuredb::server::lsm {
 /// @brief Log Structure Merge Tree
 class Lsm {
 public:
-  explicit Lsm(io::Manager& io_manager, const std::string& base_dir);
+  explicit Lsm(io::Manager& io_manager, std::string base_dir);
 
   Awaitable<void> Init();
 
@@ -35,8 +33,6 @@ public:
   Awaitable<std::optional<std::string>> Get(const std::string& key);
 
   /// @brief retrives all value's versions by key
-  ///
-  /// @p consume will be called for each value version assossiated with @p key
   Awaitable<Iterator::Ptr> Scan(const std::string& key);
 
   /// @brief scan lsm tree by range of keys
