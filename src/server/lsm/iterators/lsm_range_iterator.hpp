@@ -2,9 +2,11 @@
 
 #include <lsm/lsm.hpp>
 
+#include "merge_iterator.hpp"
+
 namespace structuredb::server::lsm {
 
-/// @brief iterator over sorted range of keys
+/// @brief iterator over sorted range of all lsm keys
 class LsmRangeIterator : public Iterator {
 public:
   /// @brief creates iterator
@@ -20,18 +22,7 @@ private:
 
   const ScanRange range_;
 
-  struct Item {
-    Record record{};
-    Iterator::Ptr iterator{};
-
-    bool operator<(const Item& other) const;
-  };
-
-  using MinHeap = std::priority_queue<Item>;
-
-  MinHeap heap_{};
-
-  Awaitable<void> Add(Iterator::Ptr iter);
+  MergeIterator impl_;
 };
 
 }

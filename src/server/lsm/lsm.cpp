@@ -4,6 +4,7 @@
 
 #include "iterators/lsm_range_iterator.hpp"
 #include "iterators/lsm_key_iterator.hpp"
+#include "iterators/merge_iterator.hpp"
 
 namespace structuredb::server::lsm {
 
@@ -42,7 +43,7 @@ Awaitable<bool> Lsm::Put(const Sequence seq_no, const std::string& key, const st
 }
 
 Awaitable<void> Lsm::DoPut(const Sequence seq_no, const std::string& key, const std::string& value) {
-  mem_table_.Put(Record{key, seq_no, value});
+  mem_table_.Put(Record{.key = key, .seq_no = seq_no, .value = value});
 
   if (mem_table_.Size() > kMaxRecordsInMemTable) {
     SPDLOG_INFO("Mem table reached max size, freeze it");
@@ -79,6 +80,38 @@ Awaitable<Iterator::Ptr> Lsm::Scan(const std::string& key) {
 Awaitable<Iterator::Ptr> Lsm::Scan(const ScanRange& range) {
   auto iterator = co_await LsmRangeIterator::Create(*this, range);
   co_return std::make_shared<LsmRangeIterator>(std::move(iterator));
+}
+
+Awaitable<void> Lsm::Compact(CompactionStrategy::Ptr strategy) {
+  SPDLOG_INFO("Compaction started");
+
+  constexpr static const int64_t kPageSize = 512;
+
+  std::vector<Iterator::Ptr> iterators;
+  iterators.reserve(ss_tables_.size());
+  for (auto& ss_table : ss_tables_) {
+    iterators.push_back(co_await ss_table.Scan(ScanRange::FullScan()));
+  }
+  auto merge_iterator = std::make_shared<MergeIterator>(co_await MergeIterator::Create(std::move(iterators)));
+
+  const auto file_path = base_dir_ + "/" + std::to_string(ss_tables_.size()) + ".sst.sdb";
+
+  // This bock is important because
+  // file_writer closes file in destructor
+  {
+    auto file_writer = co_await io_manager_.CreateFileWriter(file_path);
+    auto builder = co_await disk::SSTableBuilder::Create(file_writer, kPageSize);
+    co_await strategy->CompactRecords(merge_iterator, builder);
+    co_await std::move(builder).Finish();
+    SPDLOG_INFO("SSTableBuilder finished");
+  }
+
+  auto file_reader = co_await io_manager_.CreateFileReader(file_path);
+  auto ss_table = co_await SSTable::Create(std::move(file_reader));
+  ss_tables_.clear();
+  ss_tables_.push_back(std::move(ss_table));
+
+  SPDLOG_INFO("Compaction finished");
 }
 
 }

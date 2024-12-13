@@ -15,7 +15,7 @@ void Crc::Clear() {
 }
 
 int32_t Crc::Result() {
-  return impl_.checksum();
+  return static_cast<int32_t>(impl_.checksum());
 }
 
 }

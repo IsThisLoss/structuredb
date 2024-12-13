@@ -3,7 +3,7 @@
 namespace structuredb::server::sdb {
 
 BufferReader::BufferReader(std::vector<char> data)
-  : data_{data}
+  : data_{std::move(data)}
   , buf_{data_.data()}
 {}
 

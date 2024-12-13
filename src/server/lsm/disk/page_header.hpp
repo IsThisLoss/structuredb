@@ -19,7 +19,7 @@ struct PageHeader {
 
   static Awaitable<void> Flush(sdb::BufferWriter& writer, const PageHeader& header);
 
-  static size_t EstimateSize(const PageHeader& header);
+  static int64_t EstimateSize(const PageHeader& header);
 };
 
 }

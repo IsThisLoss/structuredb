@@ -11,8 +11,10 @@ namespace structuredb::server::utils {
 
 namespace {
 
+#pragma clang-tidy off
 thread_local boost::uuids::random_generator random_generator;
 thread_local boost::uuids::string_generator string_generator;
+#pragma clang-tidy on
 
 }
 
@@ -23,7 +25,7 @@ Uuid GenerateUuid() {
 std::string ToBinary(const Uuid& uuid) {
   std::string result;
   result.resize(uuid.size());
-  ::memcpy(result.data(), uuid.data, uuid.size());
+  ::memcpy(result.data(), &uuid.data, uuid.size());
   return result;
 }
 

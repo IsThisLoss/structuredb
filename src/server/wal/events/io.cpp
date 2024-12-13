@@ -8,7 +8,7 @@ namespace {
 
 using Parser = std::function<Awaitable<Event::Ptr>(sdb::Reader&)>;
 
-std::unordered_map<EventType, Parser> kParsers{
+const std::unordered_map<EventType, Parser> kParsers{
   {EventType::kLsmStorageUpsert, LsmStorageUpsertEvent::Parse},
 };
 

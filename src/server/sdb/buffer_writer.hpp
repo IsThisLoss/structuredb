@@ -14,10 +14,10 @@ public:
   Awaitable<void> WriteInt(int64_t value);
 
   /// @brief returns size of value after serialization
-  static size_t EstimateSize(int64_t value);
+  static int64_t EstimateSize(int64_t value);
 
   /// @brief returns size of value after serialization
-  static size_t EstimateSize(const std::string& value);
+  static int64_t EstimateSize(const std::string& value);
 
   std::vector<char> Extract() &&;
 private:

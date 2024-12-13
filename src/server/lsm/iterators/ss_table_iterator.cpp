@@ -2,12 +2,12 @@
 
 namespace structuredb::server::lsm {
 
-SSTableIterator::SSTableIterator(SSTable& ss_table, const ScanRange& range)
-  : ss_table_{ss_table}, range_{range}
+SSTableIterator::SSTableIterator(SSTable& ss_table, ScanRange range)
+  : ss_table_{ss_table}, range_{std::move(range)}
 {}
 
-Awaitable<SSTableIterator> SSTableIterator::Create(SSTable& ss_table, const ScanRange& range) {
-  SSTableIterator result{ss_table, range};
+Awaitable<SSTableIterator> SSTableIterator::Create(SSTable& ss_table, ScanRange range) {
+  SSTableIterator result{ss_table, std::move(range)};
   if (result.range_.lower_bound.has_value()) {
     result.current_page_ = co_await result.ss_table_.LowerBound(result.range_.lower_bound.value());
     if (result.current_page_ < result.ss_table_.header_.page_count) {

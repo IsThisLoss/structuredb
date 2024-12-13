@@ -12,5 +12,9 @@ bool Record::operator<(const Record& rhs) const {
   return value < rhs.value;
 }
 
+ScanRange ScanRange::FullScan() {
+  return ScanRange{};
+}
+
 }
 

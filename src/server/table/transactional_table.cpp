@@ -2,6 +2,8 @@
 
 #include <spdlog/spdlog.h>
 
+#include <lsm/compaction/compact_strategy.hpp>
+
 namespace structuredb::server::table {
 
 namespace {
@@ -23,7 +25,7 @@ std::string ToString(const TransactionalValue& value) {
 TransactionalValue ParseTransactionalValue(const std::string& data) {
   TransactionalValue result{};
   const char* ptr = data.data();
-  ::memcpy(result.tx.data, ptr, result.tx.size());
+  ::memcpy(&result.tx.data, ptr, result.tx.size());
   ptr += result.tx.size();
   result.is_deleted = *reinterpret_cast<const bool*>(ptr);
   ptr += sizeof(bool);

@@ -24,12 +24,12 @@ void PageBuilder::Clear() {
 }
 
 bool PageBuilder::IsEnoughPlace(const Record& record) const {
-  const size_t next_record_size = sdb::Writer::EstimateSize(record.key) + sdb::Writer::EstimateSize(record.seq_no) + sdb::Writer::EstimateSize(record.value);
+  const int64_t next_record_size = sdb::Writer::EstimateSize(record.key) + sdb::Writer::EstimateSize(record.seq_no) + sdb::Writer::EstimateSize(record.value);
   return current_size_ + next_record_size < max_bytes_size_;
 }
 
 void PageBuilder::Add(const Record& record) {
-  const size_t next_record_size = sdb::Writer::EstimateSize(record.key) + sdb::Writer::EstimateSize(record.seq_no) + sdb::Writer::EstimateSize(record.value);
+  const int64_t next_record_size = sdb::Writer::EstimateSize(record.key) + sdb::Writer::EstimateSize(record.seq_no) + sdb::Writer::EstimateSize(record.value);
 
   keys_.push_back(record.key);
   crc_.Update(record.key);

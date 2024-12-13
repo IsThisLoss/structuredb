@@ -16,7 +16,7 @@ public:
   using Ptr = std::shared_ptr<LsmStorage>;
   using Id = std::string;
 
-  explicit LsmStorage(io::Manager& io_manager, const std::string& base_dir, const std::string& id);
+  explicit LsmStorage(io::Manager& io_manager, std::string base_dir, std::string id);
 
   Awaitable<void> Init();
 

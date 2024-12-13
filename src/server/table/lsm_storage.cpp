@@ -6,8 +6,8 @@
 
 namespace structuredb::server::table {
 
-LsmStorage::LsmStorage(io::Manager& io_manager, const std::string& base_dir, const std::string& id)
-  : lsm_{io_manager, base_dir}, id_{id}
+LsmStorage::LsmStorage(io::Manager& io_manager, std::string base_dir, std::string id)
+  : lsm_{io_manager, std::move(base_dir)}, id_{std::move(id)}
 {}
 
 Awaitable<void> LsmStorage::Init() {

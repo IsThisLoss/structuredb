@@ -38,7 +38,7 @@ Awaitable<Page> Page::Load(sdb::BufferReader& reader) {
 
 int64_t Page::Find(const std::string& key) const {
   std::vector<std::string> result;
-  auto it = std::lower_bound(keys_.begin(), keys_.end(), key);
+  auto it = std::ranges::lower_bound(keys_, key);
   const auto offset = std::distance(keys_.begin(), it);
   return offset;
 }

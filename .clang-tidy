@@ -1,15 +1,17 @@
 Checks:
   clang-diagnostic-*,
   clang-analyzer-*,
+  -clang-analyzer-core.CallAndMessage,
   cppcoreguidelines-*,
   -cppcoreguidelines-avoid-reference-coroutine-parameters,
   -cppcoreguidelines-avoid-capturing-lambda-coroutines,
   -cppcoreguidelines-pro-type-vararg,
   -cppcoreguidelines-avoid-const-or-ref-data-members,
   -cppcoreguidelines-special-member-functions,
+  -cppcoreguidelines-pro-type-reinterpret-cast,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
   modernize-*,
   -modernize-use-nodiscard,
   -modernize-use-trailing-return-type
 WarningsAsErrors: true
 FormatStyle:     google
-HeaderFilterRegex: ^(boost|grpc|proto)$

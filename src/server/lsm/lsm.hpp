@@ -6,6 +6,7 @@
 #include <wal/writer.hpp>
 
 #include "iterators/iterator.hpp"
+#include "compaction/compact_strategy.hpp"
 #include "mem_table.hpp"
 #include "ss_table.hpp"
 
@@ -37,6 +38,8 @@ public:
 
   /// @brief scan lsm tree by range of keys
   Awaitable<Iterator::Ptr> Scan(const ScanRange& range);
+
+  Awaitable<void> Compact(CompactionStrategy::Ptr strategy);
 private:
   constexpr static const size_t kMaxRecordsInMemTable{50};
 

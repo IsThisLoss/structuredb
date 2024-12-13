@@ -9,44 +9,29 @@ LsmRangeIterator::LsmRangeIterator(ScanRange range)
 Awaitable<LsmRangeIterator> LsmRangeIterator::Create(Lsm& lsm, ScanRange range) {
   LsmRangeIterator result{std::move(range)};
 
-  co_await result.Add(lsm.mem_table_.Scan(result.range_));
+  std::vector<Iterator::Ptr> iterators;
+  iterators.reserve(lsm.ro_mem_tables_.size() + lsm.ss_tables_.size() + 1);
 
+  iterators.push_back(lsm.mem_table_.Scan(result.range_));
   for (auto& ro_mem_table : lsm.ro_mem_tables_) {
-    co_await result.Add(ro_mem_table.Scan(result.range_));
+    iterators.push_back(ro_mem_table.Scan(result.range_));
+  }
+  for (auto& ss_table : lsm.ss_tables_) {
+    iterators.push_back(co_await ss_table.Scan(result.range_));
   }
 
-  for (auto& ss_table : lsm.ss_tables_) {
-    co_await result.Add(co_await ss_table.Scan(result.range_));
-  }
+  result.impl_ = co_await MergeIterator::Create(std::move(iterators));
 
   co_return result;
 }
 
 bool LsmRangeIterator::HasMore() const {
-  return !heap_.empty();
+  return impl_.HasMore();
 }
 
 Awaitable<Record> LsmRangeIterator::Next() {
   assert(HasMore());
-  auto top = std::move(heap_.top());
-  heap_.pop();
-
-  co_await Add(std::move(top.iterator));
-  co_return top.record;
-}
-
-Awaitable<void> LsmRangeIterator::Add(Iterator::Ptr iter) {
-  if (iter->HasMore()) {
-    heap_.push(Item{
-        .record = co_await iter->Next(),
-        .iterator = std::move(iter)
-    });
-  }
-  co_return;
-}
-
-bool LsmRangeIterator::Item::operator<(const LsmRangeIterator::Item& other) const {
-  return other.record < record;
+  co_return co_await impl_.Next();
 }
 
 }
