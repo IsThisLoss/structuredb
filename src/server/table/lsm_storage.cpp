@@ -53,4 +53,8 @@ Awaitable<lsm::Iterator::Ptr> LsmStorage::Scan(const std::optional<std::string>&
   co_return result;
 }
 
+Awaitable<void> LsmStorage::Compact(lsm::CompactionStrategy::Ptr strategy) {
+  co_await lsm_.Compact(std::move(strategy));
+}
+
 }

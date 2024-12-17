@@ -68,6 +68,14 @@ message ScanTableResponse {
   repeated Record records = 2;
 }
 
+message CompactTableRequest {
+  optional string tx = 1;
+  string table = 2;
+}
+
+message CompactTableResponse {
+}
+
 service Tables {
   rpc Upsert(UpsertTableRequest) returns (UpsertTableResponse) {}
   rpc Lookup(LookupTableRequest) returns (LookupTableResponse) {}
@@ -76,4 +84,5 @@ service Tables {
 
   rpc CreateTable(CreateTableRequest) returns (CreateTableResponse) {}
   rpc DropTable(DropTableRequest) returns (DropTableResponse) {}
+  rpc CompactTable(CompactTableRequest) returns (CompactTableResponse) {}
 }

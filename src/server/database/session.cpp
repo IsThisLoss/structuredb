@@ -111,4 +111,12 @@ Catalog Session::GetCatalog() const {
   };
 }
 
+Awaitable<void> Session::CompactTable(const std::string& name) {
+  auto table = co_await GetTable(name);
+  if (!table) {
+    co_return;
+  }
+  co_await table->Compact();
+}
+
 }

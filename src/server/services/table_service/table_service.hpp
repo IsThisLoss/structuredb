@@ -47,6 +47,12 @@ public:
       ::structuredb::v1::ScanTableResponse* response
   ) override;
 
+  grpc::ServerUnaryReactor* CompactTable(
+      grpc::CallbackServerContext* context,
+      const ::structuredb::v1::CompactTableRequest* request,
+      ::structuredb::v1::CompactTableResponse* response
+  ) override;
+
 private:
   io::Manager& io_manager_;
   database::Database& database_;

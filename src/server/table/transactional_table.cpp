@@ -33,6 +33,33 @@ TransactionalValue ParseTransactionalValue(const std::string& data) {
   return result;
 }
 
+class CompactStrategy : public lsm::CompactionStrategy {
+public:
+  explicit CompactStrategy(transaction::Storage::Ptr tx_storage)
+    : tx_storage_{std::move(tx_storage)}
+  {}
+
+  Awaitable<void> CompactRecords(lsm::Iterator::Ptr records, lsm::disk::SSTableBuilder& ss_table_builder) override {
+    std::optional<lsm::Record> last_added;
+    std::optional<std::string> last_status;
+    while (records->HasMore()) {
+      auto record = co_await records->Next();
+      auto value = ParseTransactionalValue(record.value);
+      auto status = co_await tx_storage_->GetStatus(value.tx);
+
+      if (!last_added.has_value() || last_added.value().key != record.key || status == "started") {
+        co_await ss_table_builder.Add(record);
+        last_added = std::move(record);
+        last_status = std::move(status);
+        continue;
+      }
+    }
+  }
+
+private:
+  transaction::Storage::Ptr tx_storage_;
+};
+
 }
 
 TransactionalTable::TransactionalTable(LsmStorage::Ptr lsm_storage, transaction::Storage::Ptr tx_storage, transaction::TransactionId tx)
@@ -104,6 +131,10 @@ TransactionalTable::Scan(const std::optional<std::string>& lower_bound, const st
     }
   }
   co_return result;
+}
+
+Awaitable<void> TransactionalTable::Compact() {
+  co_await lsm_storage_->Compact(std::make_shared<CompactStrategy>(tx_storage_));
 }
 
 }

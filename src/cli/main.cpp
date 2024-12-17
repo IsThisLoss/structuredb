@@ -128,6 +128,24 @@ class TableServiceClient {
     return response.tx();
   }
 
+  void CompactTable(const std::optional<std::string>& tx, const std::string& name) {
+    structuredb::v1::CompactTableRequest request;
+    if (tx.has_value()) {
+      request.set_tx(tx.value());
+    }
+    request.set_table(name);
+
+    structuredb::v1::CompactTableResponse response;
+    grpc::ClientContext context;
+
+    const auto status = stub_->CompactTable(&context, request, &response);
+
+    // Act upon its status.
+    if (!status.ok()) {
+      std::cerr << status.error_code() << ": " << status.error_message() << std::endl;
+    }
+  }
+
   void Scan(const std::optional<std::string>& tx, const std::string& name, const std::optional<std::string>& lower_bound, const std::optional<std::string>& upper_bound) {
     structuredb::v1::ScanTableRequest request;
     if (tx.has_value()) {
@@ -252,6 +270,11 @@ int main(int argc, char** argv) {
 
   if (cmd == "DROP" && args.size() == 3) {
     std::cout << "Tx: " << client.DropTable(tx, args[2]) << std::endl;
+    return 0;
+  }
+
+  if (cmd == "COMPACT" && args.size() == 3) {
+    client.CompactTable(tx, args[2]);
     return 0;
   }
 

@@ -44,6 +44,8 @@ public:
   /// and we have lower_bound = b, upper_bound = d
   /// when iterator wil return values {b, c, d}
   Awaitable<lsm::Iterator::Ptr> Scan(const std::optional<std::string>& lower_bound, const std::optional<std::string>& upper_bound);
+
+  Awaitable<void> Compact(lsm::CompactionStrategy::Ptr strategy);
 private:
   const Id id_;
   lsm::Lsm lsm_;

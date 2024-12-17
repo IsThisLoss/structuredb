@@ -26,6 +26,8 @@ public:
   /// @brief returns all key, values from given range
   virtual Awaitable<std::vector<std::pair<std::string, std::string>>> Scan(const std::optional<std::string>& lower_bound, const std::optional<std::string>& upper_bound) = 0;
 
+  virtual Awaitable<void> Compact() { co_return; };
+
   virtual ~Table() = default;
 };
 

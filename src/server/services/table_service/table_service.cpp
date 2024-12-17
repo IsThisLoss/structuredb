@@ -224,6 +224,29 @@ grpc::ServerUnaryReactor* TableServiceImpl::Scan(
   return reactor;
 }
 
+grpc::ServerUnaryReactor* TableServiceImpl::CompactTable(
+    grpc::CallbackServerContext* context,
+    const ::structuredb::v1::CompactTableRequest* request,
+    ::structuredb::v1::CompactTableResponse* response
+) {
+  auto* reactor = context->DefaultReactor();
+
+  io_manager_.CoSpawn([this, request, response, reactor]() -> Awaitable<void> {
+      std::unique_lock lock{mu_};
+
+      try {
+        const auto tx = rpc::ParseTx(request);
+        auto session = co_await database_.StartSession(tx);
+        co_await session.CompactTable(request->table());
+        reactor->Finish(grpc::Status::OK);
+      } catch (const std::exception& e) {
+        reactor->Finish(rpc::MakeInternalError(e.what()));
+      }
+  });
+
+  return reactor;
+}
+
 std::unique_ptr<grpc::Service> MakeService(
   io::Manager& io_manager,
   database::Database& db
