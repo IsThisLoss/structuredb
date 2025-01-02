@@ -23,8 +23,11 @@ public:
 
   Awaitable<void> Seek(size_t pos);
 
+  const std::string& Path();
+
   ~FileReader();
 private:
+  std::string path_;
   boost::asio::posix::stream_descriptor stream_; 
   BlockingExecutor& blocking_executor_;
 };

@@ -71,4 +71,8 @@ Awaitable<disk::Page> SSTable::GetPage(int64_t page_num) {
   co_return page_cache_[page_num] = co_await disk::Page::Load(buffer_reader);
 }
 
+const std::string& SSTable::GetFilePath() const {
+  return file_reader_->Path();
+}
+
 }

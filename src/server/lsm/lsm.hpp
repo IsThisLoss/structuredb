@@ -3,6 +3,7 @@
 #include <deque>
 
 #include <io/manager.hpp>
+#include <io/shared_mutex.hpp>
 #include <wal/writer.hpp>
 
 #include "iterators/iterator.hpp"
@@ -47,6 +48,7 @@ private:
 
   io::Manager& io_manager_;
   const std::string base_dir_{};
+  io::SharedMutex shared_mutex_;
 
   MemTable mem_table_;
   std::deque<MemTable> ro_mem_tables_{};

@@ -20,7 +20,8 @@ Awaitable<void> FileReader::Open(std::string path) {
     return ::open(path.c_str(), O_RDONLY);
   });
   stream_.assign(fd);
-  SPDLOG_INFO("Open file {} for read, fd = {}", path, fd);
+  path_ = std::move(path);
+  SPDLOG_INFO("Open file {} for read, fd = {}", path_, fd);
 }
 
 Awaitable<size_t> FileReader::Read(char* buffer, size_t size) {
@@ -42,9 +43,13 @@ Awaitable<size_t> FileReader::Read(char* buffer, size_t size) {
   co_return 0;
 }
 
+const std::string& FileReader::Path() {
+  return path_;
+}
+
 Awaitable<void> FileReader::Seek(size_t pos) {
   co_await blocking_executor_.Execute([&]() {
-    ::lseek(stream_.native_handle(), pos, SEEK_SET);
+    ::lseek(stream_.native_handle(), static_cast<off_t>(pos), SEEK_SET);
   });
 }
 

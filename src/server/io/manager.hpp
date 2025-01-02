@@ -28,6 +28,8 @@ public:
   void CoSpawn(Coro&& coro) const {
     boost::asio::co_spawn(io_context_, std::forward<Coro>(coro), boost::asio::detached);
   }
+
+  boost::asio::io_context& Context();
 private:
   boost::asio::io_context& io_context_;
   BlockingExecutor blocking_executor_;

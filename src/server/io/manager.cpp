@@ -60,4 +60,8 @@ Awaitable<void> Manager::Remove(const std::string& path) {
   });
 }
 
+boost::asio::io_context& Manager::Context() {
+  return io_context_;
+}
+
 }

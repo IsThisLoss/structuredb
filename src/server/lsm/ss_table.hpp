@@ -26,6 +26,8 @@ public:
   ///
   /// it is required to keep track what wal records was persisted or not
   Sequence GetMaxSeqNo() const;
+
+  const std::string& GetFilePath() const;
 private:
   explicit SSTable(io::FileReader::Ptr file_reader);
 
