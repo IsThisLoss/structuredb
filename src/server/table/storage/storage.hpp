@@ -8,6 +8,8 @@
 #include <table/row.hpp>
 #include <wal/writer.hpp>
 
+#include "compaction_strategy.hpp"
+
 namespace structuredb::server::table::storage {
 
 /// @brief interface of table storage
@@ -42,7 +44,8 @@ public:
   /// then iterator will return values {b, c, d}
   virtual Awaitable<Iterator::Ptr> Scan(const std::optional<std::string>& lower_bound, const std::optional<std::string>& upper_bound) = 0;
 
-  virtual Awaitable<void> Compact(lsm::CompactionStrategy::Ptr strategy) = 0;
+  /// @brief runs optimization of storage
+  virtual Awaitable<void> Compact(CompactionStrategy::Ptr strategy) = 0;
 
   virtual ~Storage() = default;
 };

@@ -2,7 +2,7 @@
 
 #include <spdlog/spdlog.h>
 
-#include <lsm/compaction/compact_strategy.hpp>
+#include <table/storage/compaction_strategy.hpp>
 
 namespace structuredb::server::table {
 
@@ -33,23 +33,23 @@ TransactionalValue ParseTransactionalValue(const std::string& data) {
   return result;
 }
 
-class CompactStrategy : public lsm::CompactionStrategy {
+class CompactStrategy : public storage::CompactionStrategy {
 public:
   explicit CompactStrategy(transaction::Storage::Ptr tx_storage)
     : tx_storage_{std::move(tx_storage)}
   {}
 
-  Awaitable<void> CompactRecords(lsm::Iterator::Ptr records, lsm::disk::SSTableBuilder& ss_table_builder) override {
-    std::optional<lsm::Record> last_added;
+  Awaitable<void> CompactRows(Iterator::Ptr input, OutputIterator::Ptr output) override {
+    std::optional<Row> last_added;
     std::optional<std::string> last_status;
-    while (records->HasMore()) {
-      auto record = co_await records->Next();
-      auto value = ParseTransactionalValue(record.value);
+    while (input->HasMore()) {
+      auto row = co_await input->Next();
+      auto value = ParseTransactionalValue(row.value);
       auto status = co_await tx_storage_->GetStatus(value.tx);
 
-      if (!last_added.has_value() || last_added.value().key != record.key || status == "started") {
-        co_await ss_table_builder.Add(record);
-        last_added = std::move(record);
+      if (!last_added.has_value() || last_added.value().key != row.key || status == "started") {
+        co_await output->Write(row);
+        last_added = std::move(row);
         last_status = std::move(status);
         continue;
       }

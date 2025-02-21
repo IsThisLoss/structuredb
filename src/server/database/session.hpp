@@ -53,7 +53,7 @@ private:
  transaction::TransactionId tx_{};
  bool is_autocommit_{true};
 
-  Catalog GetCatalog() const;
+ Catalog GetCatalog() const;
 };
 
 }

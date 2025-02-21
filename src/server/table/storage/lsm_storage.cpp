@@ -20,8 +20,13 @@ public:
     return iterator_->HasMore();
   }
 
+  lsm::Sequence GetLastSeqNo() {
+    return last_seq_no_;
+  }
+
   Awaitable<Row> Next() override {
     auto record = co_await iterator_->Next();
+    last_seq_no_ = record.seq_no;
     co_return Row{
       .key = std::move(record.key),
       .value = std::move(record.value),
@@ -30,6 +35,49 @@ public:
 
 private:
   lsm::Iterator::Ptr iterator_;
+  lsm::Sequence last_seq_no_{0};
+};
+
+class LsmOutputIterator : public OutputIterator {
+public:
+  explicit LsmOutputIterator(
+      std::shared_ptr<LsmStorageIterator> input_iterator,
+      lsm::disk::SSTableBuilder& ss_table_builder
+  )
+    : input_iterator_{std::move(input_iterator)}
+    , ss_table_builder_{ss_table_builder}
+  {
+    assert(input_iterator_);
+  }
+
+  Awaitable<void> Write(Row row) override {
+    lsm::Record record{
+      .key = std::move(row.key),
+      .seq_no = input_iterator_->GetLastSeqNo(),
+      .value = std::move(row.value),
+    };
+    co_await ss_table_builder_.Add(record);
+  }
+
+private:
+  std::shared_ptr<LsmStorageIterator> input_iterator_;
+  lsm::disk::SSTableBuilder& ss_table_builder_;
+};
+
+class LsmStorageCompactStrategy : public lsm::CompactionStrategy {
+public:
+  explicit LsmStorageCompactStrategy(table::storage::CompactionStrategy::Ptr strategy)
+    : strategy_{std::move(strategy)}
+  {}
+
+  Awaitable<void> CompactRecords(lsm::Iterator::Ptr records, lsm::disk::SSTableBuilder& ss_table_builder) override {
+    auto input = std::make_shared<LsmStorageIterator>(std::move(records));
+    auto output = std::make_shared<LsmOutputIterator>(input, ss_table_builder);
+    co_await strategy_->CompactRows(std::move(input), output);
+  }
+
+private:
+  table::storage::CompactionStrategy::Ptr strategy_;
 };
 
 }
@@ -75,8 +123,8 @@ Awaitable<Iterator::Ptr> LsmStorage::Scan(const std::optional<std::string>& lowe
   co_return std::make_shared<LsmStorageIterator>(std::move(result));
 }
 
-Awaitable<void> LsmStorage::Compact(lsm::CompactionStrategy::Ptr strategy) {
-  co_await lsm_.Compact(std::move(strategy));
+Awaitable<void> LsmStorage::Compact(CompactionStrategy::Ptr strategy) { 
+  co_await lsm_.Compact(std::make_shared<LsmStorageCompactStrategy>(std::move(strategy)));
 }
 
 }

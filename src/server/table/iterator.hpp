@@ -17,4 +17,15 @@ public:
   virtual ~Iterator() = default;
 };
 
+/// @brief interface of table writer
+class OutputIterator {
+public:
+  using Ptr = std::shared_ptr<OutputIterator>;
+
+  /// @brief writes row into table
+  virtual Awaitable<void> Write(Row row) = 0;
+
+  virtual ~OutputIterator() = default;
+};
+
 }
