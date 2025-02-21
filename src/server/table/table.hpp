@@ -4,6 +4,8 @@
 
 #include <io/types.hpp>
 
+#include "iterator.hpp"
+
 namespace structuredb::server::table {
 
 /// @brief table interface
@@ -24,7 +26,7 @@ public:
   virtual Awaitable<bool> Delete(const std::string& key) = 0;
 
   /// @brief returns all key, values from given range
-  virtual Awaitable<std::vector<std::pair<std::string, std::string>>> Scan(const std::optional<std::string>& lower_bound, const std::optional<std::string>& upper_bound) = 0;
+  virtual Awaitable<Iterator::Ptr> Scan(const std::optional<std::string>& lower_bound, const std::optional<std::string>& upper_bound) = 0;
 
   virtual Awaitable<void> Compact() { co_return; };
 

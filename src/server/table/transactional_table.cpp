@@ -60,10 +60,29 @@ private:
   transaction::Storage::Ptr tx_storage_;
 };
 
+class TransactionalTableIterator : public Iterator {
+public:
+  explicit TransactionalTableIterator(std::vector<Row> rows)
+    : rows_{std::move(rows)}
+  {}
+
+  bool HasMore() override {
+    return idx_ < rows_.size();
+  }
+
+  Awaitable<Row> Next() override {
+    co_return rows_[idx_++];
+  }
+
+private:
+  std::vector<Row> rows_;
+  size_t idx_{0};
+};
+
 }
 
-TransactionalTable::TransactionalTable(LsmStorage::Ptr lsm_storage, transaction::Storage::Ptr tx_storage, transaction::TransactionId tx)
-  : lsm_storage_{std::move(lsm_storage)}, tx_storage_{std::move(tx_storage)}, tx_{std::move(tx)}
+TransactionalTable::TransactionalTable(storage::Storage::Ptr lsm_storage, transaction::Storage::Ptr tx_storage, transaction::TransactionId tx)
+  : table_storage_{std::move(lsm_storage)}, tx_storage_{std::move(tx_storage)}, tx_{std::move(tx)}
 {}
 
 Awaitable<void> TransactionalTable::Upsert(
@@ -74,13 +93,13 @@ Awaitable<void> TransactionalTable::Upsert(
     .tx = tx_,
     .value = value,
   });
-  co_await lsm_storage_->Upsert(key, transactional_value);
+  co_await table_storage_->Upsert(Row{key, transactional_value});
 }
 
 Awaitable<std::optional<std::string>> TransactionalTable::Lookup(const std::string& key) {
   SPDLOG_DEBUG("Lookup: tx = {}, key = {}", transaction::ToString(tx_), key);
   std::vector<TransactionalValue> candidates{};
-  auto iterator = co_await lsm_storage_->Scan(key);
+  auto iterator = co_await table_storage_->Scan(key);
 
   while (iterator->HasMore()) {
     const auto record = co_await iterator->Next();
@@ -109,14 +128,14 @@ Awaitable<bool> TransactionalTable::Delete(const std::string& key) {
     .tx = tx_,
     .is_deleted = true,
   });
-  co_await lsm_storage_->Upsert(key, transactional_value);
+  co_await table_storage_->Upsert(Row{key, transactional_value});
   co_return true;
 }
 
-Awaitable<std::vector<std::pair<std::string, std::string>>>
+Awaitable<Iterator::Ptr>
 TransactionalTable::Scan(const std::optional<std::string>& lower_bound, const std::optional<std::string>& upper_bound) {
-  std::vector<std::pair<std::string, std::string>> result;
-  auto iterator = co_await lsm_storage_->Scan(lower_bound, upper_bound);
+  std::vector<Row> result;
+  auto iterator = co_await table_storage_->Scan(lower_bound, upper_bound);
   while (iterator->HasMore()) {
     auto record = co_await iterator->Next();
     auto candidate = ParseTransactionalValue(record.value);
@@ -124,17 +143,17 @@ TransactionalTable::Scan(const std::optional<std::string>& lower_bound, const st
       if (candidate.is_deleted) {
         continue;
       }
-      if (!result.empty() && result.back().first == record.key) {
+      if (!result.empty() && result.back().key == record.key) {
         continue;
       }
       result.emplace_back(std::move(record.key), std::move(candidate.value));
     }
   }
-  co_return result;
+  co_return std::make_shared<TransactionalTableIterator>(std::move(result));
 }
 
 Awaitable<void> TransactionalTable::Compact() {
-  co_await lsm_storage_->Compact(std::make_shared<CompactStrategy>(tx_storage_));
+  co_await table_storage_->Compact(std::make_shared<CompactStrategy>(tx_storage_));
 }
 
 }

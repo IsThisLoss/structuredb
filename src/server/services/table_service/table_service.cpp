@@ -205,12 +205,13 @@ grpc::ServerUnaryReactor* TableServiceImpl::Scan(
           upper_bound = request->upper_bound();
         }
 
-        const auto records = co_await table->Scan(lower_bound, upper_bound);
+        const auto iter = co_await table->Scan(lower_bound, upper_bound);
 
-        for (const auto& [key, value] : records) {
+        for (; iter->HasMore(); ) {
+          auto row = co_await iter->Next();
           auto* record = response->add_records();
-          record->set_key(key);
-          record->set_value(value);
+          record->set_key(std::move(row.key));
+          record->set_value(std::move(row.value));
         }
 
         auto result_tx = co_await session.Finish();

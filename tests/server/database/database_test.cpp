@@ -212,8 +212,13 @@ TEST_F(DatabaseTest, RangeScan) {
       auto session = co_await db.StartSession();
       auto table = co_await session.GetTable(kTableName);
       co_await table->Upsert(kKey, kValue);
-      auto result = co_await table->Scan(std::to_string(kLowerBound), std::to_string(kUpperBound));
+      auto iter = co_await table->Scan(std::to_string(kLowerBound), std::to_string(kUpperBound));
       co_await session.Finish();
+      std::vector<std::pair<std::string, std::string>> result;
+      while (iter->HasMore()) {
+        auto row = co_await iter->Next();
+        result.emplace_back(std::move(row.key), std::move(row.value));
+      }
       co_return result;
   }());
 

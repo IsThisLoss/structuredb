@@ -13,7 +13,7 @@ public:
  Awaitable<void> Init();
 
  /// @returns storage by its id for recovery
- table::LsmStorage::Ptr GetStorageForRecover(const table::LsmStorage::Id& storage_id);
+ table::storage::Storage::Ptr GetStorageForRecover(const table::storage::Storage::Id& storage_id);
 
   /// @brief starts session
   ///

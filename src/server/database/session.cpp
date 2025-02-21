@@ -6,6 +6,8 @@
 #include "system_views/sys_tables.hpp"
 #include "system_views/sys_transactions.hpp"
 
+#include <table/storage/lsm_storage.hpp>
+
 namespace structuredb::server::database {
 
 namespace {
@@ -50,10 +52,10 @@ Awaitable<void> Session::CreateTable(const std::string& name) {
     const auto storage_id = co_await catalog.AddStorage(name);
     const auto path = context_.base_dir + "/" + storage_id;
     co_await context_.io_manager.CreateDirectory(path);
-    auto table = std::make_shared<table::LsmStorage>(context_.io_manager, path, storage_id);
-    co_await table->Init();
-    table->StartLogInto(context_.wal_writer);
-    context_.storages.try_emplace(storage_id, std::move(table));
+    auto storage = std::make_shared<table::storage::LsmStorage>(context_.io_manager, path, storage_id);
+    co_await storage->Init();
+    storage->StartLogInto(context_.wal_writer);
+    context_.storages.try_emplace(storage_id, std::move(storage));
     SPDLOG_INFO("Table {} is created, id {}", name, storage_id);
   } catch (const std::exception& e) {
     SPDLOG_ERROR("Failed to create table: {}", e.what());

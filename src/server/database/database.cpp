@@ -2,6 +2,8 @@
 
 #include <spdlog/spdlog.h>
 
+#include <table/raw_table.hpp>
+#include <table/storage/lsm_storage.hpp>
 #include <wal/recovery.hpp>
 
 #include "exceptions.hpp"
@@ -32,9 +34,10 @@ Awaitable<void> Database::Init() {
   {
     const auto path = context_.base_dir + "/" + kSysTransactions;
     co_await context_.io_manager.CreateDirectory(path);
-    auto tx_table = std::make_shared<table::LsmStorage>(context_.io_manager, path, kSysTransactions);
-    co_await tx_table->Init();
-    context_.storages.try_emplace(kSysTransactions, tx_table);
+    auto tx_storage = std::make_shared<table::storage::LsmStorage>(context_.io_manager, path, kSysTransactions);
+    co_await tx_storage->Init();
+    context_.storages.try_emplace(kSysTransactions, tx_storage);
+    auto tx_table = std::make_shared<table::RawTable>(std::move(tx_storage));
     context_.tx_storage = std::make_shared<transaction::Storage>(std::move(tx_table));
   }
 
@@ -42,9 +45,9 @@ Awaitable<void> Database::Init() {
   {
     const auto path = context_.base_dir + "/" + kSysTables;
     co_await context_.io_manager.CreateDirectory(path);
-    auto sys_tables = std::make_shared<table::LsmStorage>(context_.io_manager, path, kSysTables);
-    co_await sys_tables->Init();
-    context_.storages.try_emplace(kSysTables, std::move(sys_tables));
+    auto sys_storage = std::make_shared<table::storage::LsmStorage>(context_.io_manager, path, kSysTables);
+    co_await sys_storage->Init();
+    context_.storages.try_emplace(kSysTables, std::move(sys_storage));
   }
 
   // 3. search for tables
@@ -55,9 +58,9 @@ Awaitable<void> Database::Init() {
   // 4. init user tables
   for (const auto& name : dir_content) {
     SPDLOG_INFO("Going to init table {}", name);
-    auto table = std::make_shared<table::LsmStorage>(context_.io_manager, context_.base_dir + "/" + name, name);
-    co_await table->Init();
-    context_.storages.try_emplace(name, std::move(table));
+    auto storage = std::make_shared<table::storage::LsmStorage>(context_.io_manager, context_.base_dir + "/" + name, name);
+    co_await storage->Init();
+    context_.storages.try_emplace(name, std::move(storage));
   }
 
   // recovery
@@ -75,7 +78,7 @@ Awaitable<void> Database::Init() {
   is_initialized_ = true;
 }
 
-table::LsmStorage::Ptr Database::GetStorageForRecover(const table::LsmStorage::Id& storage_id) {
+table::storage::Storage::Ptr Database::GetStorageForRecover(const table::storage::LsmStorage::Id& storage_id) {
   return context_.storages.at(storage_id);
 }
 

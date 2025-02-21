@@ -17,7 +17,7 @@ public:
 
   Awaitable<bool> Delete(const std::string& key) override;
 
-  Awaitable<std::vector<std::pair<std::string, std::string>>> Scan(const std::optional<std::string>& lower_bound, const std::optional<std::string>& upper_bound) override;
+  Awaitable<table::Iterator::Ptr> Scan(const std::optional<std::string>& lower_bound, const std::optional<std::string>& upper_bound) override;
 };
 
 }
