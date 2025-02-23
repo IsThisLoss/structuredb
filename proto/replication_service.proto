@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package structuredb.v1;
+
+message LsmStorageUpsertEvent {
+  string storage_id = 1;
+  int64 seq_no = 2;
+  string key = 3;
+  string value = 4;
+}
+
+message WalEvent {
+  oneof event {
+    LsmStorageUpsertEvent lsm_storage_upsert_event = 1;
+  }
+}
+
+message GetEventsRequest {
+}
+
+service Replication {
+  rpc GetEvents(GetEventsRequest) returns (stream WalEvent) {}
+}
