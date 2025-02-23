@@ -56,4 +56,8 @@ void Session::CompactTable(const std::string& name) {
   io_manager_.RunSync(impl_->CompactTable(name));
 }
 
+int Session::CountSSTables(const std::string& name) {
+  return io_manager_.RunSync(impl_->CountSSTables(name));
+}
+
 }

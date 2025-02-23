@@ -189,7 +189,51 @@ TEST_F(DatabaseTest, RangeScan) {
     ASSERT_EQ(result[idx].second, expected_value);
     idx++;
   }
+}
 
+TEST_F(DatabaseTest, Compaction) {
+  const int64_t kSize = 1000;
+  auto& db = GetDatabase();
+
+  // create table and insert 100 key-values into it
+  {
+    auto session = db.StartSession();
+    session.CreateTable(kTableName);
+    auto table = session.GetTable(kTableName);
+    for (int64_t i = 0; i < kSize; i++) {
+      const auto key = fmt::format("{:03}", i);
+      const auto value = fmt::format("{:03}", -1 * i);
+      table->Upsert(key, value);
+    }
+    session.Finish();
+  }
+
+  auto session = db.StartSession();
+  auto table = session.GetTable(kTableName);
+
+  const int old_ss_tables_count = session.CountSSTables(kTableName);
+  ASSERT_TRUE(old_ss_tables_count > 1);
+
+  table->Compact();
+  const int new_ss_tables_count = session.CountSSTables(kTableName);
+  ASSERT_EQ(new_ss_tables_count, 1);
+  ASSERT_TRUE(new_ss_tables_count < old_ss_tables_count) << "new: " << new_ss_tables_count << " old: " << old_ss_tables_count;
+
+  auto iter = table->Scan(std::nullopt, std::nullopt);
+  session.Finish();
+
+  // assert all keys stil in table
+  // TODO THIS IS BROKEN
+  int count = 0;
+  while (iter->HasMore()) {
+    auto row = iter->Next();
+    const auto expected_key = fmt::format("{:03}", count);
+    EXPECT_EQ(row.key, expected_key);
+    const auto expected_value = fmt::format("{:03}", -1 * count);
+    EXPECT_EQ(row.value, expected_value);
+    count++;
+  }
+  ASSERT_EQ(count, kSize);
 }
 
 }

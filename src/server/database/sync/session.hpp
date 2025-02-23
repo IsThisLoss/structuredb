@@ -30,6 +30,7 @@ public:
 
  void CompactTable(const std::string& name);
 
+ int CountSSTables(const std::string& name);
 private:
   io::Manager& io_manager_;
   database::Session::Ptr impl_;

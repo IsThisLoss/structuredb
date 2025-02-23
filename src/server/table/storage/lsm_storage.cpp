@@ -127,4 +127,8 @@ Awaitable<void> LsmStorage::Compact(CompactionStrategy::Ptr strategy) {
   co_await lsm_.Compact(std::make_shared<LsmStorageCompactStrategy>(std::move(strategy)));
 }
 
+int LsmStorage::CountSSTables() const {
+  return lsm_.CountSSTables();
+}
+
 }

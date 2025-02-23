@@ -121,4 +121,14 @@ Awaitable<void> Session::CompactTable(const std::string& name) {
   co_await table->Compact();
 }
 
+Awaitable<int> Session::CountSSTables(const std::string& name) {
+  auto catalog = GetCatalog();
+  auto storage_id = co_await catalog.GetStorageId(name);
+  if (!storage_id.has_value()) {
+    co_return 0;
+  }
+  auto storage = context_.storages.at(storage_id.value());
+  co_return storage->CountSSTables();
+}
+
 }

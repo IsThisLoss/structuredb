@@ -32,6 +32,8 @@ public:
   Awaitable<Iterator::Ptr> Scan(const std::optional<std::string>& lower_bound, const std::optional<std::string>& upper_bound) override;
 
   Awaitable<void> Compact(CompactionStrategy::Ptr strategy) override;
+
+  int CountSSTables() const override;
 private:
   const Id id_;
   lsm::Lsm lsm_;

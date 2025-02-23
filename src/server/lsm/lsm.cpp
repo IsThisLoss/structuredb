@@ -133,7 +133,11 @@ Awaitable<void> Lsm::Compact(CompactionStrategy::Ptr strategy) {
     co_await io_manager_.Remove(path);
   }
 
-  SPDLOG_INFO("Compaction finished");
+  SPDLOG_INFO("Compaction finished, new ss_tables count: {}", ss_tables_.size());
+}
+
+int Lsm::CountSSTables() const {
+  return static_cast<int>(ss_tables_.size());
 }
 
 }

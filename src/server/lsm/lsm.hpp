@@ -41,6 +41,8 @@ public:
   Awaitable<Iterator::Ptr> Scan(const ScanRange& range);
 
   Awaitable<void> Compact(CompactionStrategy::Ptr strategy);
+
+  int CountSSTables() const;
 private:
   constexpr static const size_t kMaxRecordsInMemTable{50};
 
