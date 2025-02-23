@@ -227,7 +227,6 @@ TEST_F(DatabaseTest, Compaction) {
   auto iter = table->Scan(std::nullopt, std::nullopt);
 
   // assert all keys stil in table
-  // TODO THIS IS BROKEN
   int count = 0;
   while (iter->HasMore()) {
     auto row = iter->Next();
