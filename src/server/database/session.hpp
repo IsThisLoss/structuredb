@@ -8,6 +8,8 @@ namespace structuredb::server::database {
 /// @brief database's session
 class Session {
 public:
+  using Ptr = std::shared_ptr<Session>;
+
   explicit Session(
       Context& context
   );

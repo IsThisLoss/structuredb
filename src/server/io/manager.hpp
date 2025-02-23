@@ -2,6 +2,7 @@
 
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/detached.hpp>
+#include <boost/asio/use_future.hpp>
 #include <boost/asio/io_context.hpp>
 
 #include "file_reader.hpp"
@@ -24,9 +25,17 @@ public:
 
   Awaitable<void> Remove(const std::string& path);
 
+  /// @brief launches coroutine
   template <std::invocable<> Coro>
   void CoSpawn(Coro&& coro) const {
     boost::asio::co_spawn(io_context_, std::forward<Coro>(coro), boost::asio::detached);
+  }
+
+  /// @brief launches coroutine and synchronously waits for its completion
+  template <typename T>
+  T RunSync(boost::asio::awaitable<T>&& coro) {
+    auto future = boost::asio::co_spawn(io_context_, std::move(coro), boost::asio::use_future);
+    return future.get();
   }
 
   boost::asio::io_context& Context();

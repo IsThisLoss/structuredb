@@ -7,7 +7,7 @@
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/use_future.hpp>
 
-#include <database/database.hpp>
+#include <database/sync/database.hpp>
 
 namespace structuredb::tests {
 
@@ -18,10 +18,16 @@ protected:
     const auto prefix = ::testing::TempDir();
     const auto dir = server::utils::ToString(server::utils::GenerateUuid());
     tmp_dir_ = "/tmp/structuredb." + dir;
-    std::filesystem::create_directory(tmp_dir_);
+    assert(std::filesystem::create_directory(tmp_dir_));
 
     io_manager_ = std::make_unique<server::io::Manager>(io_context_);
-    db_ = std::make_unique<server::database::Database>(*io_manager_, tmp_dir_);
+    db_ = std::make_unique<server::database::sync::Database>(
+        *io_manager_,
+        server::database::Database{
+          *io_manager_,
+          tmp_dir_,
+        }
+    );
 
     asio_thread_ = std::thread([this]() {
         SPDLOG_INFO("Starting asio thread...");
@@ -34,7 +40,7 @@ protected:
         SPDLOG_INFO("Exit asio thread");
     });
 
-    Run(db_->Init());
+    db_->Init();
   }
 
   void TearDown() override {
@@ -46,14 +52,8 @@ protected:
     std::filesystem::remove_all(tmp_dir_);
   }
 
-
-  template <typename T>
-  T Run(boost::asio::awaitable<T>&& coro) {
-    auto future = boost::asio::co_spawn(io_context_, std::move(coro), boost::asio::use_future);
-    return future.get();
-  }
-
-  server::database::Database& GetDatabase() {
+  server::database::sync::Database& GetDatabase() {
+    assert(db_ != nullptr);
     return *db_;
   }
 
@@ -62,7 +62,7 @@ private:
   std::string tmp_dir_;
 
   std::unique_ptr<server::io::Manager> io_manager_;
-  std::unique_ptr<server::database::Database> db_;
+  std::unique_ptr<server::database::sync::Database> db_;
 
   std::thread asio_thread_;
 };

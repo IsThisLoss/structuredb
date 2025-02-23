@@ -16,175 +16,134 @@ TEST_F(DatabaseTest, CreateDropTable) {
   auto& db = GetDatabase();
 
   // create table
-  Run(
-    [&db]() -> server::Awaitable<void> {
-      auto session = co_await db.StartSession();
-      co_await session.CreateTable(kTableName);
-      co_await session.Finish();
-    }()
-  );
+  {
+    auto session = db.StartSession();
+    session.CreateTable(kTableName);
+    session.Finish();
+  }
 
   // get table
-  auto table = Run(
-    [&db]() -> server::Awaitable<server::table::Table::Ptr> {
-      auto session = co_await db.StartSession();
-      auto result = co_await session.GetTable(kTableName);
-      co_await session.Finish();
-      co_return result;
-    }()
-  );
-
-  ASSERT_NE(table, nullptr);
+  {
+    auto session = db.StartSession();
+    auto table = session.GetTable(kTableName);
+    session.Finish();
+    ASSERT_NE(table, nullptr);
+  }
 
   // drop table
-  Run(
-    [&db]() -> server::Awaitable<void> {
-      auto session = co_await db.StartSession();
-      co_await session.DropTable(kTableName);
-      co_await session.Finish();
-    }()
-  );
+  {
+    auto session = db.StartSession();
+    session.DropTable(kTableName);
+    session.Finish();
+  }
 
   // get table
-  table = Run(
-    [&db]() -> server::Awaitable<server::table::Table::Ptr> {
-      auto session = co_await db.StartSession();
-      auto result = co_await session.GetTable(kTableName);
-      co_await session.Finish();
-      co_return result;
-    }()
-  );
-
-  ASSERT_EQ(table, nullptr);
+  {
+    auto session = db.StartSession();
+    auto table = session.GetTable(kTableName);
+    session.Finish();
+    ASSERT_EQ(table, nullptr);
+  }
 }
 
 TEST_F(DatabaseTest, UpsertLookupDelete) {
   auto& db = GetDatabase();
 
   // create table
-  Run(
-    [&db]() -> server::Awaitable<void> {
-      auto session = co_await db.StartSession();
-      co_await session.CreateTable(kTableName);
-      co_await session.Finish();
-    }()
-  );
+  {
+    auto session = db.StartSession();
+    session.CreateTable(kTableName);
+    session.Finish();
+  }
 
   // upsert
-  Run(
-    [&db]() -> server::Awaitable<void> {
-      auto session = co_await db.StartSession();
-      auto table = co_await session.GetTable(kTableName);
-      co_await table->Upsert(kKey, kValue);
-      co_await session.Finish();
-    }()
-  );
+  {
+    auto session = db.StartSession();
+    auto table = session.GetTable(kTableName);
+    table->Upsert(kKey, kValue);
+    session.Finish();
+  }
  
   // lookup
-  auto value = Run(
-    [&db]() -> server::Awaitable<std::optional<std::string>> {
-      auto session = co_await db.StartSession();
-      auto table = co_await session.GetTable(kTableName);
-      auto result = co_await table->Lookup(kKey);
-      co_await session.Finish();
-      co_return result;
-    }()
-  );
- 
-  ASSERT_TRUE(value.has_value());
-  ASSERT_EQ(value.value(), kValue);
+  {
+    auto session = db.StartSession();
+    auto table = session.GetTable(kTableName);
+    auto value = table->Lookup(kKey);
+    session.Finish();
+   
+    ASSERT_TRUE(value.has_value());
+    ASSERT_EQ(value.value(), kValue);
+  }
 
   // delete
-  Run(
-    [&db]() -> server::Awaitable<void> {
-      auto session = co_await db.StartSession();
-      auto table = co_await session.GetTable(kTableName);
-      co_await table->Delete(kKey);
-      co_await session.Finish();
-    }()
-  );
+  {
+    auto session = db.StartSession();
+    auto table = session.GetTable(kTableName);
+    table->Delete(kKey);
+    session.Finish();
+  }
 
   // lookup
-  value = Run(
-    [&db]() -> server::Awaitable<std::optional<std::string>> {
-      auto session = co_await db.StartSession();
-      auto table = co_await session.GetTable(kTableName);
-      auto result = co_await table->Lookup(kKey);
-      co_await session.Finish();
-      co_return result;
-    }()
-  );
- 
-  ASSERT_FALSE(value.has_value());
+  {
+    auto session = db.StartSession();
+    auto table = session.GetTable(kTableName);
+    auto value = table->Lookup(kKey);
+    session.Finish();
+    ASSERT_FALSE(value.has_value());
+  }
 }
 
 TEST_F(DatabaseTest, TxIsolation) {
   auto& db = GetDatabase();
 
   // create table
-  Run(
-    [&db]() -> server::Awaitable<void> {
-      auto session = co_await db.StartSession();
-      co_await session.CreateTable(kTableName);
-      co_await session.Finish();
-    }()
-  );
+  auto session = db.StartSession();
+  session.CreateTable(kTableName);
+  session.Finish();
  
   // begin transaction
-  auto tx = Run(
-    [&db]() -> server::Awaitable<server::transaction::TransactionId> {
-      auto session = co_await db.StartSession();
-      co_return session.GetTx();
-    }()
-  );
+  server::transaction::TransactionId tx{};
+  {
+    auto session = db.StartSession();
+    tx = session.GetTx();
+  }
 
   // upsert and lookup in transaction
-  auto value = Run(
-    [&db, &tx]() -> server::Awaitable<std::optional<std::string>> {
-      auto session = co_await db.StartSession(tx);
-      auto table = co_await session.GetTable(kTableName);
-      co_await table->Upsert(kKey, kValue);
-      auto result = co_await table->Lookup(kKey);
-      co_return result;
-    }()
-  );
+  {
+    auto session = db.StartSession(tx);
+    auto table = session.GetTable(kTableName);
+    table->Upsert(kKey, kValue);
+    auto value = table->Lookup(kKey);
 
-  ASSERT_TRUE(value.has_value());
-  ASSERT_EQ(value.value(), kValue);
+    ASSERT_TRUE(value.has_value());
+    ASSERT_EQ(value.value(), kValue);
+  }
  
   // lookup outside of transaction
-  value = Run(
-    [&db]() -> server::Awaitable<std::optional<std::string>> {
-      auto session = co_await db.StartSession();
-      auto table = co_await session.GetTable(kTableName);
-      auto result = co_await table->Lookup(kKey);
-      co_await session.Finish();
-      co_return result;
-    }()
-  );
-
-  ASSERT_FALSE(value.has_value());
+  {
+    auto session = db.StartSession();
+    auto table = session.GetTable(kTableName);
+    auto value = table->Lookup(kKey);
+    session.Finish();
+    ASSERT_FALSE(value.has_value());
+  }
 
   // commit transaction
   // lookup again
-  value = Run(
-    [&db, &tx]() -> server::Awaitable<std::optional<std::string>> {
-      {
-        auto session = co_await db.StartSession(tx);
-        co_await session.Commit();
-        co_await session.Finish();
-      }
+  {
+    auto session = db.StartSession(tx);
+    session.Commit();
+    session.Finish();
+  }
 
-      auto session = co_await db.StartSession();
-      auto table = co_await session.GetTable(kTableName);
-      auto result = co_await table->Lookup(kKey);
-      co_await session.Finish();
-      co_return result;
-    }()
-  );
- 
-  ASSERT_TRUE(value.has_value());
-  ASSERT_EQ(value.value(), kValue);
+  {
+    auto session = db.StartSession();
+    auto table = session.GetTable(kTableName);
+    auto value = table->Lookup(kKey);
+    session.Finish();
+    ASSERT_TRUE(value.has_value());
+    ASSERT_EQ(value.value(), kValue);
+  }
 }
 
 TEST_F(DatabaseTest, RangeScan) {
@@ -194,33 +153,29 @@ TEST_F(DatabaseTest, RangeScan) {
   auto& db = GetDatabase();
 
   // create table and insert 100 key-values into it
-  Run(
-    [&db]() -> server::Awaitable<void> {
-      auto session = co_await db.StartSession();
-      co_await session.CreateTable(kTableName);
-      auto table = co_await session.GetTable(kTableName);
-      for (int64_t i = 0; i < kSize; i++) {
-        const auto key = fmt::format("{:02}", i);
-        const auto value = fmt::format("{:02}", -1 * i);
-        co_await table->Upsert(key, value);
-      }
-      co_await session.Finish();
-    }()
-  );
+  {
+    auto session = db.StartSession();
+    session.CreateTable(kTableName);
+    auto table = session.GetTable(kTableName);
+    for (int64_t i = 0; i < kSize; i++) {
+      const auto key = fmt::format("{:02}", i);
+      const auto value = fmt::format("{:02}", -1 * i);
+      table->Upsert(key, value);
+    }
+    session.Finish();
+  }
 
-  const auto result = Run([&db] () -> server::Awaitable<std::vector<std::pair<std::string, std::string>>> {
-      auto session = co_await db.StartSession();
-      auto table = co_await session.GetTable(kTableName);
-      co_await table->Upsert(kKey, kValue);
-      auto iter = co_await table->Scan(std::to_string(kLowerBound), std::to_string(kUpperBound));
-      co_await session.Finish();
-      std::vector<std::pair<std::string, std::string>> result;
-      while (iter->HasMore()) {
-        auto row = co_await iter->Next();
-        result.emplace_back(std::move(row.key), std::move(row.value));
-      }
-      co_return result;
-  }());
+  auto session = db.StartSession();
+  auto table = session.GetTable(kTableName);
+  table->Upsert(kKey, kValue);
+  auto iter = table->Scan(std::to_string(kLowerBound), std::to_string(kUpperBound));
+  session.Finish();
+
+  std::vector<std::pair<std::string, std::string>> result;
+  while (iter->HasMore()) {
+    auto row = iter->Next();
+    result.emplace_back(std::move(row.key), std::move(row.value));
+  }
 
   const int64_t kExpectedSize = kUpperBound - kLowerBound +1; // [20; 40], include right border
 
