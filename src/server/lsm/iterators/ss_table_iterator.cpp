@@ -15,31 +15,32 @@ Awaitable<SSTableIterator> SSTableIterator::Create(SSTable& ss_table, ScanRange 
       result.current_record_ = start_page.Find(result.range_.lower_bound.value());
     }
   }
-  if (result.HasMore()) {
-    result.next_ = co_await result.NextImpl();
-  }
+  result.next_ = co_await result.NextImpl();
   co_return result;
 }
 
 bool SSTableIterator::HasMore() const {
-  if (current_page_ >= ss_table_.header_.page_count) {
+  if (!next_.has_value()) {
     return false;
   }
   
   if (range_.upper_bound.has_value()) {
-    return next_.key <= range_.upper_bound.value();
+    return next_.value().key <= range_.upper_bound.value();
   }
   return true;
 }
 
 Awaitable<Record> SSTableIterator::Next() {
-  auto result = std::move(next_);
+  assert(next_.has_value());
+  auto result = std::move(next_.value());
   next_ = co_await NextImpl();
   co_return result;
 }
 
-Awaitable<Record> SSTableIterator::NextImpl() {
-  assert(current_page_ < ss_table_.header_.page_count);
+Awaitable<std::optional<Record>> SSTableIterator::NextImpl() {
+  if (current_page_ >= ss_table_.header_.page_count) {
+    co_return std::nullopt;
+  }
 
   auto page = co_await ss_table_.GetPage(current_page_);
   auto result = page.At(current_record_);

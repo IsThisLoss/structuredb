@@ -51,7 +51,6 @@ public:
         co_await output->Write(row);
         last_added = std::move(row);
         last_status = std::move(status);
-        continue;
       }
     }
   }

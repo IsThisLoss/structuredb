@@ -20,9 +20,9 @@ private:
   const ScanRange range_;
   int64_t current_page_{0};
   int64_t current_record_{0};
-  Record next_{};
+  std::optional<Record> next_{std::nullopt};
 
-  Awaitable<Record> NextImpl();
+  Awaitable<std::optional<Record>> NextImpl();
 };
 
 }

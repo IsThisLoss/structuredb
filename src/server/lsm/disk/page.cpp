@@ -7,6 +7,8 @@
 
 #include <utils/crc.hpp>
 
+#include <boost/algorithm/string/join.hpp>
+
 namespace structuredb::server::lsm::disk {
 
 Awaitable<Page> Page::Load(sdb::BufferReader& reader) {
@@ -33,6 +35,7 @@ Awaitable<Page> Page::Load(sdb::BufferReader& reader) {
     throw CurraptedSSTable{std::move(msg)};
   }
   SPDLOG_DEBUG("Checksum match {}", checksum);
+  SPDLOG_DEBUG("Loaded page keys: {}", boost::algorithm::join(result.keys_, ", "));
   co_return result;
 }
 

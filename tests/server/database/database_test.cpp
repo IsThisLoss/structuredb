@@ -208,19 +208,23 @@ TEST_F(DatabaseTest, Compaction) {
     session.Finish();
   }
 
+  {
+    auto session = db.StartSession();
+    auto table = session.GetTable(kTableName);
+
+    const int old_ss_tables_count = session.CountSSTables(kTableName);
+    ASSERT_TRUE(old_ss_tables_count > 1);
+
+    table->Compact();
+    const int new_ss_tables_count = session.CountSSTables(kTableName);
+    ASSERT_EQ(new_ss_tables_count, 1);
+    ASSERT_TRUE(new_ss_tables_count < old_ss_tables_count) << "new: " << new_ss_tables_count << " old: " << old_ss_tables_count;
+    session.Finish();
+  }
+
   auto session = db.StartSession();
   auto table = session.GetTable(kTableName);
-
-  const int old_ss_tables_count = session.CountSSTables(kTableName);
-  ASSERT_TRUE(old_ss_tables_count > 1);
-
-  table->Compact();
-  const int new_ss_tables_count = session.CountSSTables(kTableName);
-  ASSERT_EQ(new_ss_tables_count, 1);
-  ASSERT_TRUE(new_ss_tables_count < old_ss_tables_count) << "new: " << new_ss_tables_count << " old: " << old_ss_tables_count;
-
   auto iter = table->Scan(std::nullopt, std::nullopt);
-  session.Finish();
 
   // assert all keys stil in table
   // TODO THIS IS BROKEN
@@ -228,12 +232,13 @@ TEST_F(DatabaseTest, Compaction) {
   while (iter->HasMore()) {
     auto row = iter->Next();
     const auto expected_key = fmt::format("{:03}", count);
-    EXPECT_EQ(row.key, expected_key);
+    ASSERT_EQ(row.key, expected_key);
     const auto expected_value = fmt::format("{:03}", -1 * count);
-    EXPECT_EQ(row.value, expected_value);
+    ASSERT_EQ(row.value, expected_value);
     count++;
   }
   ASSERT_EQ(count, kSize);
+  session.Finish();
 }
 
 }

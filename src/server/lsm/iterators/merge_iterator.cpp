@@ -1,5 +1,7 @@
 #include "merge_iterator.hpp"
 
+#include <spdlog/spdlog.h>
+
 namespace structuredb::server::lsm {
 
 Awaitable<MergeIterator> MergeIterator::Create(std::vector<Iterator::Ptr> iterators) {
@@ -29,8 +31,7 @@ Awaitable<void> MergeIterator::Add(Iterator::Ptr iter) {
         .record = co_await iter->Next(),
         .iterator = std::move(iter)
     });
-  }
-  co_return;
+  } 
 }
 
 bool MergeIterator::Item::operator<(const MergeIterator::Item& other) const {
