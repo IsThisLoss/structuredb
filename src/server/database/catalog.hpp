@@ -38,6 +38,8 @@ public:
 
   /// @brief returns table id by its name
   Awaitable<std::optional<std::string>> GetStorageId(const std::string& name);
+
+  Awaitable<table::Iterator::Ptr> Scan(const std::optional<std::string>& lower_bound, const std::optional<std::string>& upper_bound);
 private:
   table::Table::Ptr sys_tables_;
 

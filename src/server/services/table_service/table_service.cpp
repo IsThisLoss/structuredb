@@ -238,7 +238,12 @@ grpc::ServerUnaryReactor* TableServiceImpl::CompactTable(
       try {
         const auto tx = rpc::ParseTx(request);
         auto session = co_await database_.StartSession(tx);
-        co_await session.CompactTable(request->table());
+        auto table = co_await session.GetTable(request->table());
+        if (!table) {
+            reactor->Finish(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "No such table"));
+            co_return;
+        }
+        co_await table->Compact();
         reactor->Finish(grpc::Status::OK);
       } catch (const std::exception& e) {
         reactor->Finish(rpc::MakeInternalError(e.what()));

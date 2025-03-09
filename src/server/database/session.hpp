@@ -47,9 +47,6 @@ public:
   /// @brief returns table by its @p name
  Awaitable<table::Table::Ptr> GetTable(const std::string& name);
 
- /// @brief compacts tables data
- Awaitable<void> CompactTable(const std::string& name);
-
  /// @brief return the number of ss tables to table
  ///
  /// TODO make more general statistics method

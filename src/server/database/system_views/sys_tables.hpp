@@ -13,6 +13,8 @@ public:
 
   Awaitable<std::optional<std::string>> Lookup(const std::string& key) override;
 
+  Awaitable<table::Iterator::Ptr> Scan(const std::optional<std::string>& lower_bound, const std::optional<std::string>& upper_bound) override;
+
 private:
   Catalog catalog_;
 };

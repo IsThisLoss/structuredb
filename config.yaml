@@ -3,3 +3,5 @@ port: 50051
 logger:
   level: debug
   console: true
+compaction:
+  interval: 60000

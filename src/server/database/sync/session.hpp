@@ -28,8 +28,6 @@ public:
 
  table::sync::Table::Ptr GetTable(const std::string& name);
 
- void CompactTable(const std::string& name);
-
  int CountSSTables(const std::string& name);
 private:
   io::Manager& io_manager_;

@@ -113,14 +113,6 @@ Catalog Session::GetCatalog() const {
   };
 }
 
-Awaitable<void> Session::CompactTable(const std::string& name) {
-  auto table = co_await GetTable(name);
-  if (!table) {
-    co_return;
-  }
-  co_await table->Compact();
-}
-
 Awaitable<int> Session::CountSSTables(const std::string& name) {
   auto catalog = GetCatalog();
   auto storage_id = co_await catalog.GetStorageId(name);

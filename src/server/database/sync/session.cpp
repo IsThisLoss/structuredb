@@ -52,10 +52,6 @@ table::sync::Table::Ptr Session::GetTable(const std::string& name) {
   return std::make_shared<table::sync::Table>(io_manager_, std::move(async_table));
 }
 
-void Session::CompactTable(const std::string& name) {
-  io_manager_.RunSync(impl_->CompactTable(name));
-}
-
 int Session::CountSSTables(const std::string& name) {
   return io_manager_.RunSync(impl_->CountSSTables(name));
 }

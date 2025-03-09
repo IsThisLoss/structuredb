@@ -28,6 +28,16 @@ Logger ParseLogger(const YAML::Node& node){
   return result;
 }
 
+Compaction ParseCompaction(const YAML::Node& node) {
+  Compaction result{};
+
+  if (node["interval"]) {
+    result.interval = std::chrono::milliseconds{node["interval"].as<int>()};
+  }
+
+  return result;
+}
+
 }
 
 Config Parse(const std::string& cfg_path) {
@@ -45,6 +55,10 @@ Config Parse(const std::string& cfg_path) {
 
   if (yaml["port"]) {
     result.port = yaml["port"].as<int>();
+  }
+
+  if (yaml["compaction"]) {
+    result.compaction = ParseCompaction(yaml["compaction"]);
   }
 
   return result;

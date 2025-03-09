@@ -16,9 +16,11 @@
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/use_future.hpp>
 
-#include <io/manager.hpp>
-#include <database/database.hpp>
 #include <cfg/config.hpp>
+#include <database/database.hpp>
+#include <database/jobs/compaction.hpp>
+#include <database/jobs/job_launcher.hpp>
+#include <io/manager.hpp>
 
 ABSL_FLAG(std::string, config, "./config.yaml", "Path to config");
 
@@ -93,6 +95,11 @@ int main(int argc, char** argv) {
 
     init_future.get();
 
+    // background jobs
+    structuredb::server::database::JobLauncher job_launcher{io_manager};
+    job_launcher.Launch(std::make_shared<structuredb::server::database::Compaction>(database, config.compaction.interval));
+
+    // server
     const auto server = builder.BuildAndStart();
     SPDLOG_INFO("Launch grpc server");
     server->Wait();

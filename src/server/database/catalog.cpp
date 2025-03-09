@@ -95,4 +95,8 @@ Awaitable<std::optional<Catalog::TableInfo>> Catalog::GetTableInfo(const std::st
   co_return record;
 }
 
+Awaitable<table::Iterator::Ptr> Catalog::Scan(const std::optional<std::string>& lower_bound, const std::optional<std::string>& upper_bound) {
+  co_return co_await sys_tables_->Scan(lower_bound, upper_bound);
+}
+
 }
