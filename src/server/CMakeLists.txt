@@ -10,15 +10,15 @@ list(REMOVE_ITEM SERVER_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp)
 
 add_compile_definitions(SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+add_library(structuredb-server-lib ${SERVER_SRCS})
+
+target_include_directories(structuredb-server-lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 find_package(spdlog REQUIRED)
 find_package(Boost REQUIRED)
 find_package(yaml-cpp REQUIRED)
 
 include_directories(${Boost_INCLUDE_DIRS})
-
-add_library(structuredb-server-lib ${SERVER_SRCS})
 
 target_link_libraries(
   structuredb-server-lib

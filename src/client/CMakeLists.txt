@@ -1,17 +1,17 @@
 file(
   GLOB_RECURSE
-  CLI_SRCS
+  CLIENT_SRCS
   ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/*.h
   ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp
 )
 
-add_executable(structuredb-cli ${CLI_SRCS})
+add_library(structuredb-client ${CLIENT_SRCS})
+
+target_include_directories(structuredb-client PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_link_libraries(
-  structuredb-cli
-  PUBLIC
   structuredb-client
-  absl::flags
-  absl::flags_parse
+  PUBLIC
+  structuredb-proto
 )

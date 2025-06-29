@@ -6,6 +6,7 @@ protobuf_generate(TARGET structuredb-proto)
 
 protobuf_generate(
   TARGET structuredb-proto
+  PUBLIC
   LANGUAGE grpc
   PLUGIN protoc-gen-grpc=$<TARGET_FILE:gRPC::grpc_cpp_plugin>
   PLUGIN_OPTIONS generate_mock_code=true

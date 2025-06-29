@@ -1,12 +1,8 @@
-#include"table_service.hpp"
+#include "table_service.hpp"
 
 #include <rpc/utils.hpp>
 
 namespace structuredb::server::services {
-
-namespace {
-
-}
 
 TableServiceImpl::TableServiceImpl(
       io::Manager& io_manager,
