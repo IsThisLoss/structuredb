@@ -1,52 +1,109 @@
-#include <iostream>
-#include <memory>
 #include <string>
-
-#include <client.hpp>
 
 #include <absl/flags/flag.h>
 #include <absl/flags/parse.h>
 
+#include <linenoise/linenoise.h>
+
+#include <client.hpp>
+
+#include <command/manager.hpp>
+#include <execute/context.hpp>
+#include <utils/time.hpp>
+
+constexpr const char* kHistoryFile = ".structuredb_cli_history";
+constexpr int kMaxHistorySize = 100;
+
+const std::string kExit = "exit";
+const std::string kQuit = "quit";
+
+constexpr static const char* kDefaultPrompt = "structuredb> ";
+constexpr static const char* kTxPrompt = "structuredb (tx)> ";
+
+
+const structuredb::cli::CommandManager::Ptr command_manager = std::make_unique<structuredb::cli::CommandManager>();
 
 ABSL_FLAG(std::string, target, "localhost:50051", "Server address");
-ABSL_FLAG(std::optional<std::string>, tx, std::nullopt, "Transaction number");
 
+void completion(const char* buf, linenoiseCompletions* lc) {
+  std::string input(buf);
+  const auto completions = command_manager->FindCompletion(input);
+  for (const auto& completion : completions) {
+    linenoiseAddCompletion(lc, completion.c_str());
+  }
+}
+
+char* hints(const char* buf, int* color, int* bold) {
+  constexpr static const int kHintColor = 32; // green
+
+  std::string input(buf);
+  auto& hint = command_manager->GetHint(input);
+  if (hint.empty()) {
+    return nullptr;
+  }
+  *color = kHintColor;
+  return hint.data();
+}
+
+std::string GetHistoryFilePath() {
+  const char* home = getenv("HOME");
+  if (!home) {
+    return kHistoryFile;
+  }
+  return std::string(home) + "/" + kHistoryFile;
+}
+
+const char* Read(const structuredb::cli::Context& context) {
+  return linenoise(context.tx ? kTxPrompt : kDefaultPrompt);
+}
 
 int main(int argc, char** argv) {
   const auto args = absl::ParseCommandLine(argc, argv);
-  if (args.size() <= 1) {
-    std::cerr << "Wrong usage\n";
-    return 1;
-  }
 
   const auto target_str = absl::GetFlag(FLAGS_target);
-  const auto tx = absl::GetFlag(FLAGS_tx);
-  auto client = structuredb::client::Connect(target_str);
 
-  const auto cmd = std::string(args[1]);
-  if (cmd == "UPSERT" && args.size() == 5) {
-    client->Table(args[2])->Upsert(args[3], args[4]);
-    return 0;
+  std::cerr << "Connecting to DB at " << target_str << std::endl;
+
+  auto context = structuredb::cli::Context{
+    .db = structuredb::client::Connect(target_str),
+    .tx = nullptr,
+  };
+
+  RegisterCommands(*command_manager);
+
+  const auto history_file = GetHistoryFilePath();
+
+  linenoiseSetCompletionCallback(completion);
+  linenoiseSetHintsCallback(hints);
+  linenoiseHistoryLoad(history_file.c_str());
+  linenoiseHistorySetMaxLen(kMaxHistorySize);
+
+  while (const char* raw_input = Read(context)) {
+    std::string line(raw_input);
+    linenoiseFree((void*)raw_input);
+    if (line.empty()) {
+      continue;
+    }
+
+    if (line == kExit || line == kQuit) {
+      break;
+    }
+
+    linenoiseHistoryAdd(line.c_str());
+
+    try {
+      const auto command = command_manager->ParseCommand(line);
+      structuredb::cli::MeasureTime([&]() {
+          command->Execute(context);
+      });
+    } catch (const std::exception& e) {
+      std::cerr << "Error: " << e.what() << std::endl;
+    }
   }
 
-  if (cmd == "LOOKUP" && args.size() == 4) {
-    std::cout << client->Table(args[2])->Lookup(args[3]).value_or("<null>") << std::endl;
-  }
-  if (cmd == "DELETE" && args.size() == 4) {
-    client->Table(args[2])->Delete(args[3]);
-    return 0;
-  }
+  linenoiseHistorySave(history_file.c_str());
 
-  if (cmd == "CREATE" && args.size() == 3) {
-    client->CreateTable(args[2]);
-    return 0;
-  }
+  std::cerr << "Exiting CLI." << std::endl;
 
-  if (cmd == "DROP" && args.size() == 3) {
-    client->DropTable(args[2]);
-    return 0;
-  }
-
-  std::cerr << "Wrong usage\n";
-  return 1;
+  return 0;
 }

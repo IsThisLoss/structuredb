@@ -17,7 +17,8 @@ public:
     req.set_name(table_name);
 
     v1::CreateTableResponse res{};
-    const auto status = connection_->tables->CreateTable(&connection_->context, req, &res);
+    grpc::ClientContext context{};
+    const auto status = connection_->tables->CreateTable(&context, req, &res);
     CheckStatus(status);
   }
 
@@ -26,7 +27,8 @@ public:
     req.set_name(table_name);
 
     v1::DropTableResponse res{};
-    const auto status = connection_->tables->DropTable(&connection_->context, req, &res);
+    grpc::ClientContext context{};
+    const auto status = connection_->tables->DropTable(&context, req, &res);
     CheckStatus(status);
   }
 
@@ -37,7 +39,8 @@ public:
   Transaction::Ptr Begin() const override {
     v1::BeginRequest req{};
     v1::BeginResponse resp{};
-    connection_->transactions->Begin(&connection_->context, req, &resp);
+    grpc::ClientContext context{};
+    connection_->transactions->Begin(&context, req, &resp);
     return MakeTransaction(connection_, resp.tx());
   }
 

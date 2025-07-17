@@ -10,13 +10,18 @@ public:
     : connection_{std::move(connection)}, tx_{std::move(tx)}
   {}
 
+  std::string GetId() const override {
+    return tx_;
+  }
+
   void CreateTable(const std::string& table_name) const override {
     v1::CreateTableRequest req{};
     req.set_name(table_name);
     req.set_tx(tx_);
 
     v1::CreateTableResponse res{};
-    const auto status = connection_->tables->CreateTable(&connection_->context, req, &res);
+    grpc::ClientContext context{};
+    const auto status = connection_->tables->CreateTable(&context, req, &res);
     CheckStatus(status);
   }
 
@@ -26,7 +31,8 @@ public:
     req.set_tx(tx_);
 
     v1::DropTableResponse res{};
-    const auto status = connection_->tables->DropTable(&connection_->context, req, &res);
+    grpc::ClientContext context{};
+    const auto status = connection_->tables->DropTable(&context, req, &res);
     CheckStatus(status);
   }
 
@@ -39,7 +45,8 @@ public:
     req.set_tx(tx_);
 
     v1::CommitResponse res{};
-    const auto status = connection_->transactions->Commit(&connection_->context, req, &res);
+    grpc::ClientContext context{};
+    const auto status = connection_->transactions->Commit(&context, req, &res);
     CheckStatus(status);
   }
 

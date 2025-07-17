@@ -13,6 +13,8 @@ public:
 
   Transaction(const Transaction&) = delete;
 
+  virtual std::string GetId() const = 0;
+
   virtual void Commit() = 0;
 
   virtual void Rollback() = 0;

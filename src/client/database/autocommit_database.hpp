@@ -1,3 +1,5 @@
+#pragma once
+
 #include "database.hpp"
 
 #include <functional>
