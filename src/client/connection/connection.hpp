@@ -11,7 +11,6 @@ struct Connection {
   std::shared_ptr<grpc::Channel> channel;
   std::unique_ptr<structuredb::v1::Tables::Stub> tables;
   std::unique_ptr<structuredb::v1::Transactions::Stub> transactions;
-  grpc::ClientContext context{};
 
   explicit Connection(
     std::shared_ptr<grpc::Channel> channel,

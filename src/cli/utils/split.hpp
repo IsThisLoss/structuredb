@@ -1,10 +1,10 @@
 #pragma once
 
 #include <vector>
-#include <string_view>
+#include <string>
 
 namespace structuredb::cli {
 
-std::vector<std::string_view> Split(const std::string_view& str, const char delimiter);
+std::vector<std::string> Split(const std::string& str, const char delimiter);
 
 }

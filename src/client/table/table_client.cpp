@@ -21,7 +21,8 @@ public:
     req.set_value(value);
 
     v1::UpsertTableResponse res{};
-    const auto status = connection_->tables->Upsert(&connection_->context, req, &res);
+    grpc::ClientContext context{};
+    const auto status = connection_->tables->Upsert(&context, req, &res);
     CheckStatus(status);
   }
 
@@ -34,7 +35,8 @@ public:
     req.set_key(key);
 
     v1::LookupTableResponse res{};
-    const auto status = connection_->tables->Lookup(&connection_->context, req, &res);
+    grpc::ClientContext context{};
+    const auto status = connection_->tables->Lookup(&context, req, &res);
     CheckStatus(status);
 
     if (res.has_value()) {
@@ -57,7 +59,8 @@ public:
     }
 
     v1::ScanTableResponse res{};
-    const auto status = connection_->tables->Scan(&connection_->context, req, &res);
+    grpc::ClientContext context{};
+    const auto status = connection_->tables->Scan(&context, req, &res);
     CheckStatus(status);
 
     std::vector<Record> records;
@@ -80,7 +83,8 @@ public:
     req.set_key(key);
 
     v1::DeleteTableResponse res{};
-    const auto status = connection_->tables->Delete(&connection_->context, req, &res);
+    grpc::ClientContext context{};
+    const auto status = connection_->tables->Delete(&context, req, &res);
     CheckStatus(status);
   }
 
