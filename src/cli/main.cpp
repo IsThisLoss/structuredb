@@ -1,52 +1,73 @@
-#include <iostream>
-#include <memory>
 #include <string>
-
-#include <client.hpp>
 
 #include <absl/flags/flag.h>
 #include <absl/flags/parse.h>
 
+#include <linenoise/linenoise.h>
+
+#include <client.hpp>
+
+#include <completion/completion.hpp>
+#include <execute/executor.hpp>
+
 
 ABSL_FLAG(std::string, target, "localhost:50051", "Server address");
-ABSL_FLAG(std::optional<std::string>, tx, std::nullopt, "Transaction number");
 
+const std::unique_ptr<structuredb::cli::Completion> completion_manager = std::make_unique<structuredb::cli::Completion>();
+
+
+void completion(const char* buf, linenoiseCompletions* lc) {
+  std::string input(buf);
+  const auto completions = completion_manager->FindCompletion(input);
+  for (const auto& completion : completions) {
+    linenoiseAddCompletion(lc, completion.c_str());
+  }
+}
+
+char* hints(const char* buf, int* color, int* bold) {
+  std::string input(buf);
+  auto& hint = completion_manager->GetHint(input);
+  if (hint.empty()) {
+    return nullptr;
+  }
+  return hint.data();
+}
 
 int main(int argc, char** argv) {
   const auto args = absl::ParseCommandLine(argc, argv);
-  if (args.size() <= 1) {
-    std::cerr << "Wrong usage\n";
-    return 1;
-  }
 
   const auto target_str = absl::GetFlag(FLAGS_target);
-  const auto tx = absl::GetFlag(FLAGS_tx);
-  auto client = structuredb::client::Connect(target_str);
+  auto executor = structuredb::cli::Executor{structuredb::client::Connect(target_str)};
 
-  const auto cmd = std::string(args[1]);
-  if (cmd == "UPSERT" && args.size() == 5) {
-    client->Table(args[2])->Upsert(args[3], args[4]);
-    return 0;
-  }
+  (*completion_manager)
+    .Add("CREATE TABLE", " <table_name>")
+    .Add("UPSERT", " <table_name> <key> <value>")
+    .Add("LOOKUP", " <table_name> <key>")
+    .Add("DELETE", " <table_name> <key>")
+    .Add("BEGIN")
+    .Add("COMMIT")
+    .Add("ROLLBACK");
 
-  if (cmd == "LOOKUP" && args.size() == 4) {
-    std::cout << client->Table(args[2])->Lookup(args[3]).value_or("<null>") << std::endl;
-  }
-  if (cmd == "DELETE" && args.size() == 4) {
-    client->Table(args[2])->Delete(args[3]);
-    return 0;
-  }
+  linenoiseSetCompletionCallback(completion);
+  linenoiseSetHintsCallback(hints);
 
-  if (cmd == "CREATE" && args.size() == 3) {
-    client->CreateTable(args[2]);
-    return 0;
-  }
+  while (true) {
+    const char* raw_input = linenoise("structuredb> ");
+    if (!raw_input) {
+      // EOF or error
+      break;
+    }
+    std::string line(raw_input);
+    linenoiseFree((void*)raw_input);
+    if (line.empty()) {
+      continue;
+    }
 
-  if (cmd == "DROP" && args.size() == 3) {
-    client->DropTable(args[2]);
-    return 0;
-  }
+    executor.Execute(line);
 
-  std::cerr << "Wrong usage\n";
-  return 1;
+    if (line == "exit" || line == "quit") {
+      break;
+    }
+  }
+  return 0;
 }

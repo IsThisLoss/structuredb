@@ -11,8 +11,12 @@ enable_testing()
 find_package(Protobuf)
 find_package(gRPC)
 
+add_subdirectory(third_party)
+
 add_subdirectory(proto)
+
 add_subdirectory(src/server)
 add_subdirectory(src/client)
 add_subdirectory(src/cli)
+
 add_subdirectory(tests/server)

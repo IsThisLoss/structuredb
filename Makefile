@@ -1,3 +1,5 @@
+.PHONY: all clean install-deps cmake build run run-cli tests
+
 clean:
 	rm -rf build CMakeUserPresets.json
 
