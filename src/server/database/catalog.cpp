@@ -2,11 +2,15 @@
 
 #include <spdlog/spdlog.h>
 
+#include <table/transform_iterator.hpp>
+
 #include <utils/uuid.hpp>
 
 #include "exceptions.hpp"
 
 namespace structuredb::server::database {
+
+namespace {
 
 const static std::string kSysTransactions = "sys_transactions";
 const static std::string kSysTables = "sys_tables";
@@ -32,6 +36,8 @@ Catalog::TableInfo ParseRecord(const std::string& data) {
   ptr += sizeof(int64_t);
   result.id.assign(ptr, data.size() - sizeof(int64_t));
   return result;
+}
+
 }
 
 Catalog::Catalog(
@@ -96,7 +102,16 @@ Awaitable<std::optional<Catalog::TableInfo>> Catalog::GetTableInfo(const std::st
 }
 
 Awaitable<table::Iterator::Ptr> Catalog::Scan(const std::optional<std::string>& lower_bound, const std::optional<std::string>& upper_bound) {
-  co_return co_await sys_tables_->Scan(lower_bound, upper_bound);
+  auto iter = co_await sys_tables_->Scan(lower_bound, upper_bound);
+  co_return MakeTransformIterator(
+      std::move(iter),
+      [](const table::Row& row) -> table::Row {
+        return table::Row{
+          .key = row.key,
+          .value = ParseRecord(row.value).id,
+        };
+      }
+  );
 }
 
 }

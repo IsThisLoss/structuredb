@@ -2,6 +2,7 @@
 
 #include "manager.hpp"
 
+#include <utils/printer.hpp>
 #include <utils/split.hpp>
 
 namespace structuredb::cli {
@@ -15,22 +16,22 @@ client::database::Database::Ptr GetDatabase(Context& context) {
   return context.db;
 }
 
-class CreateTableComman : public Command {
+class CreateTableCommand : public Command {
 public:
-  constexpr static const char* kName = "CREATE TABLE";
-  constexpr static const char* kHints = " <table_name>";
+  constexpr static const char* kName = "CREATE";
+  constexpr static const char* kHints = " TABLE <table_name>";
 
   static Command::Ptr TryParse(const std::vector<std::string>& tokens) {
-    if (!tokens.empty() && tokens[0] == "CREATE" && tokens[1] == "TABLE") {
+    if (tokens.size() >= 2 && tokens[0] == "CREATE" && tokens[1] == "TABLE") {
       if (tokens.size() != 3) {
         throw std::runtime_error("CREATE TABLE command requires exactly one table name.");
       }
-      return std::make_unique<CreateTableComman>(tokens[2]);
+      return std::make_unique<CreateTableCommand>(tokens[2]);
     }
     return nullptr;
   }
 
-  explicit CreateTableComman(std::string table_name)
+  explicit CreateTableCommand(std::string table_name)
       : table_name_{std::move(table_name)} {}
 
   void Execute(Context& context) const override {
@@ -44,8 +45,8 @@ private:
 
 class DropTableCommand : public Command {
 public:
-  constexpr static const char* kName = "DROP TABLE";
-  constexpr static const char* kHints = " <table_name>";
+  constexpr static const char* kName = "DROP";
+  constexpr static const char* kHints = " TABLE <table_name>";
 
   static Command::Ptr TryParse(const std::vector<std::string>& tokens) {
     if (!tokens.empty() && tokens[0] == "DROP" && tokens[1] == "TABLE") {
@@ -171,10 +172,9 @@ public:
     const auto db = GetDatabase(context);
     const auto table = db->Table(table_name_);
     const auto value = table->Lookup(key_);
+    Printer printer("Lookup " + table_name_);
     if (value.has_value()) {
-      std::cout << value.value() << std::endl;
-    } else {
-      std::cerr << "Key "<< key_ << " was not found." << std::endl;
+      printer.PrintRow(key_, value.value());
     }
   }
 private:
@@ -211,17 +211,61 @@ private:
   std::string key_;
 };
 
+class ScanCommand : public Command {
+public:
+  constexpr static const char* kName = "SCAN";
+  constexpr static const char* kHints = " <table_name> [<lower_bound> <upper_bound>]";
+
+  static Command::Ptr TryParse(const std::vector<std::string>& tokens) {
+    if (!tokens.empty() && tokens[0] == "SCAN") {
+      if (tokens.size() == 2) {
+        return std::make_unique<ScanCommand>(tokens[1], std::nullopt, std::nullopt);
+      }
+      if (tokens.size() == 3) {
+        return std::make_unique<ScanCommand>(tokens[1], tokens[2], std::nullopt);
+      }
+      if (tokens.size() == 4) {
+        return std::make_unique<ScanCommand>(tokens[1], tokens[2], tokens[3]);
+      }
+      throw std::runtime_error("SCAN command requires one or two optional arguments: <table_name> [<lower_bound> <upper_bound>]");
+    }
+    return nullptr;
+  }
+
+  explicit ScanCommand(std::string table_name, std::optional<std::string> lower_bound, std::optional<std::string> upper_bound)
+      : table_name_{std::move(table_name)}
+      , lower_bound_{std::move(lower_bound)}
+      , upper_bound_{std::move(upper_bound)}
+  {}
+
+  void Execute(Context& context) const override {
+    const auto db = GetDatabase(context);
+    const auto table = db->Table(table_name_);
+    const auto rows = table->Scan(lower_bound_, upper_bound_);
+    Printer printer("Scan " + table_name_);
+    for (const auto& [key, value] : rows) {
+      printer.PrintRow(key, value);
+    }
+  }
+
+private:
+  std::string table_name_;
+  std::optional<std::string> lower_bound_;
+  std::optional<std::string> upper_bound_;
+};
+
 } // namespace
 
 void RegisterCommands(CommandManager& manager) {
   manager
-    .Add(CreateTableComman::kName, CreateTableComman::TryParse, CreateTableComman::kHints)
+    .Add(CreateTableCommand::kName, CreateTableCommand::TryParse, CreateTableCommand::kHints)
     .Add(DropTableCommand::kName, DropTableCommand::TryParse, DropTableCommand::kHints)
     .Add(BeginCommand::kName, BeginCommand::TryParse, BeginCommand::kHints)
     .Add(CommitCommand::kName, CommitCommand::TryParse, CommitCommand::kHints)
     .Add(UpsertCommand::kName, UpsertCommand::TryParse, UpsertCommand::kHints)
     .Add(LookupCommand::kName, LookupCommand::TryParse, LookupCommand::kHints)
-    .Add(DeleteCommand::kName, DeleteCommand::TryParse, DeleteCommand::kHints);
+    .Add(DeleteCommand::kName, DeleteCommand::TryParse, DeleteCommand::kHints)
+    .Add(ScanCommand::kName, ScanCommand::TryParse, ScanCommand::kHints);
 }
 
 }

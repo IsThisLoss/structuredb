@@ -45,7 +45,7 @@ public:
     return std::nullopt;
   }
 
-  std::vector<Record> Scan(const std::optional<std::string>& lower_bound, std::optional<std::string>& upper_bound) const override {
+  std::vector<Record> Scan(const std::optional<std::string>& lower_bound, const std::optional<std::string>& upper_bound) const override {
     v1::ScanTableRequest req{};
     req.set_table(table_name_);
     if (tx_.has_value()) {

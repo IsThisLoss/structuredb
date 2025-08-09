@@ -33,7 +33,7 @@ public:
   //
   // if one of params was not provided, returns open range
   // for example, Scan(std::nullopt, std::nullopt) returns the whole table
-  virtual std::vector<Record> Scan(const std::optional<std::string>& lower_bound, std::optional<std::string>& upper_bound) const = 0;
+  virtual std::vector<Record> Scan(const std::optional<std::string>& lower_bound, const std::optional<std::string>& upper_bound) const = 0;
 
   virtual void Delete(const std::string& key) const = 0;
 
