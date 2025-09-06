@@ -1,6 +1,6 @@
 #pragma once
 
-#include <sdb/buffer_reader.hpp>
+#include <vector>
 
 #include <lsm/types.hpp>
 
@@ -8,13 +8,13 @@ namespace structuredb::server::lsm::disk {
 
 class Page {
 public:
-  static Awaitable<Page> Load(sdb::BufferReader& reader);
+  static Page Load(std::vector<char>&& buffer);
 
   /// @brief searches key in the page
   int64_t Find(const std::string& key) const;
 
   /// @brief returns record by position
-  Record At(int64_t pos);
+  Record At(int64_t pos) const;
 
   /// @returns minimum key in the page
   const std::string& MinKey() const;

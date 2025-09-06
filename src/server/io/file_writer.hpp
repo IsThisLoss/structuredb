@@ -18,6 +18,10 @@ public:
       BlockingExecutor& blocking_executor
   );
 
+  FileWriter(const FileWriter&) = delete;
+
+  FileWriter(FileWriter&&) noexcept;
+
   Awaitable<void> Open(std::string path, bool append = false);
 
   Awaitable<size_t> Write(const char* buffer, size_t size);

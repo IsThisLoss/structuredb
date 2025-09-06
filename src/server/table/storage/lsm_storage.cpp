@@ -97,7 +97,7 @@ void LsmStorage::StartLogInto(wal::Writer::Ptr wal_writer) {
 
 Awaitable<void> LsmStorage::RecoverFromLog(const lsm::Sequence seq_no, const std::string& key, const std::string& value) {
   const bool is_restored = co_await lsm_.Put(seq_no, key, value);
-  SPDLOG_DEBUG("Recover record: seq_no = {}, key = {}, value = {}, status", seq_no, key, value, is_restored ? "APPLIED" : "SKIPPED");
+  SPDLOG_DEBUG("Recover record: seq_no = {}, key = {}, value = {}, status = {}", seq_no, key, value, is_restored ? "APPLIED" : "SKIPPED");
 }
 
 Awaitable<void> LsmStorage::Upsert(const Row& row) {

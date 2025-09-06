@@ -1,5 +1,8 @@
 #pragma once
 
+#include <sdb/reader.hpp>
+#include <sdb/writer.hpp>
+
 #include <string>
 
 namespace structuredb::server::lsm {
@@ -16,11 +19,17 @@ struct Record {
   bool operator<(const Record& rhs) const;
 };
 
+void Write(sdb::Writer& writer, const Record& record);
+
+void Read(sdb::Reader& reader, Record& record);
+
 struct ScanRange {
   std::optional<std::string> lower_bound{std::nullopt};
   std::optional<std::string> upper_bound{std::nullopt};
   
   static ScanRange FullScan();
 };
+
+
 
 }

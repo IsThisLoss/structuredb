@@ -1,7 +1,8 @@
 #pragma once
 
-#include <lsm/types.hpp>
-#include <sdb/writer.hpp>
+#include <vector>
+
+#include <lsm/disk/page_header.hpp>
 
 #include <utils/crc.hpp>
 
@@ -9,30 +10,23 @@ namespace structuredb::server::lsm::disk {
 
 class PageBuilder {
 public:
-  explicit PageBuilder(const int64_t max_bytes_size);
+  explicit PageBuilder(int64_t page_size);
+
+  bool IsEnoughSpace(size_t record_size) const;
+
+  void AddRecord(const std::vector<char>& raw);
+
+  std::vector<char> Extract() &&;
 
   void Clear();
 
-  bool IsEnoughPlace(const Record& record) const;
-
-  void Add(const Record& record);
-
-  bool IsEmpty() const;
-
-  Awaitable<void> Flush(io::FileWriter& writer);
+  bool Empty() const;
 private:
-  const int64_t max_bytes_size_;
+  int64_t page_size_;
+  std::vector<char> current_page_;
+  PageHeader header_;
 
-  int64_t current_size_;
-  utils::Crc crc_;
-
-  /// @property keys places inside the page
-  std::vector<std::string> keys_;
-
-  std::vector<Sequence> seq_nos_;
-
-  /// @property values places inside the page
-  std::vector<std::string> values_;
+  void FlushHeader();
 };
 
 }

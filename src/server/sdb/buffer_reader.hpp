@@ -1,16 +1,21 @@
 #pragma once
 
-#include <io/file_reader.hpp>
+#include "reader.hpp"
+
+#include <vector>
 
 namespace structuredb::server::sdb {
 
-class BufferReader {
+/// @brief implementation of Reader that reads from a buffer
+class BufferReader : public Reader {
 public:
   explicit BufferReader(std::vector<char> data);
 
-  Awaitable<std::string> ReadString();
+  std::string ReadString() override;
 
-  Awaitable<int64_t> ReadInt();
+  int64_t ReadInt() override;
+
+  bool HasMore() const;
 private:
   std::vector<char> data_;
   const char* buf_;

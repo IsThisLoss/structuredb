@@ -2,6 +2,7 @@
 
 #include "event.hpp"
 
+#include <io/types.hpp>
 #include <lsm/types.hpp>
 
 namespace structuredb::server::wal {
@@ -9,17 +10,17 @@ namespace structuredb::server::wal {
 class LsmStorageUpsertEvent : public Event {
 public:
   explicit LsmStorageUpsertEvent(
-      const std::string& storage_id,
-      const lsm::Sequence seq_no,
-      const std::string& key,
-      const std::string& value
+      std::string storage_id,
+      lsm::Sequence seq_no,
+      std::string key,
+      std::string value
   );
 
-  static Awaitable<Event::Ptr> Parse(sdb::Reader& reader);
+  static Event::Ptr Parse(sdb::Reader& reader);
 
   EventType GetType() const override;
 
-  Awaitable<void> Flush(sdb::Writer& writer) override;
+  void Flush(sdb::Writer& writer) override;
 
   Awaitable<void> Apply(database::Database&) override;
 private:

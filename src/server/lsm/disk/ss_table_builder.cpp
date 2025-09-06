@@ -1,5 +1,7 @@
 #include "ss_table_builder.hpp"
 
+#include <sdb/buffer_writer.hpp>
+
 namespace structuredb::server::lsm::disk {
 
 Awaitable<SSTableBuilder> SSTableBuilder::Create(io::FileWriter::Ptr file_writer, const int64_t page_size) {
@@ -13,9 +15,9 @@ SSTableBuilder::SSTableBuilder(io::FileWriter::Ptr file_writer, const int64_t pa
     .page_size = page_size,
     .page_count = 0,
     .max_seq_no = 0,
-  }
-  , file_writer_{std::move(file_writer)}
-  , page_builder_{page_size}
+  },
+  page_builder_{page_size},
+  file_writer_{std::move(file_writer)}
 {
 }
 
@@ -28,16 +30,18 @@ Awaitable<void> SSTableBuilder::Init() {
 Awaitable<void> SSTableBuilder::Add(const Record& record) {
   assert(is_initialized_);
 
-  if (!page_builder_.IsEnoughPlace(record)) {
+  sdb::BufferWriter writer;
+  Write(writer, record);
+  const auto raw = std::move(writer).Extract();
+  if (!page_builder_.IsEnoughSpace(raw.size())) {
     co_await FlushPage();
   }
-
-  page_builder_.Add(record);
+  page_builder_.AddRecord(raw);
   header_.max_seq_no = std::max(header_.max_seq_no, record.seq_no);
 }
 
 Awaitable<void> SSTableBuilder::Finish() && {
-  if (!page_builder_.IsEmpty()) {
+  if (!page_builder_.Empty()) {
     co_await FlushPage();
   }
 
@@ -46,16 +50,20 @@ Awaitable<void> SSTableBuilder::Finish() && {
 }
 
 Awaitable<void> SSTableBuilder::FlushHeader() {
-  sdb::BufferWriter buffer_writer_{SSTableHeader::EstimateSize(header_)};
-  co_await SSTableHeader::Flush(buffer_writer_, header_);
-  const auto raw = std::move(buffer_writer_).Extract();
+  sdb::BufferWriter writer;
+  Write(writer, header_);
+  const auto raw = std::move(writer).Extract();
   co_await file_writer_->Write(raw.data(), raw.size());
 }
 
 Awaitable<void> SSTableBuilder::FlushPage() {
-    co_await page_builder_.Flush(*file_writer_);
-    page_builder_.Clear();
-    header_.page_count++;
+  assert(!page_builder_.Empty());
+
+  auto raw = std::move(page_builder_).Extract();
+  co_await file_writer_->Write(raw.data(), raw.size());
+
+  page_builder_.Clear();
+  header_.page_count++;
 }
 
 }

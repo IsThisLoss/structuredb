@@ -1,7 +1,7 @@
 #pragma once
 
-#include <sdb/buffer_reader.hpp>
-#include <sdb/buffer_writer.hpp>
+#include <sdb/reader.hpp>
+#include <sdb/writer.hpp>
 
 namespace structuredb::server::lsm::disk {
  
@@ -15,11 +15,11 @@ struct PageHeader {
   /// @property checksum of page content
   int64_t checksum;
 
-  static Awaitable<PageHeader> Load(sdb::BufferReader& reader);
-
-  static Awaitable<void> Flush(sdb::BufferWriter& writer, const PageHeader& header);
-
-  static int64_t EstimateSize(const PageHeader& header);
+  static int64_t SdbSize();
 };
+
+void Write(sdb::Writer& writer, const PageHeader& header);
+
+void Read(sdb::Reader& reader, PageHeader& header);
 
 }

@@ -1,16 +1,12 @@
 #pragma once
 
-#include <string>
-
 #include <boost/crc.hpp>
 
 namespace structuredb::server::utils {
 
 class Crc {
 public:
-  void Update(const std::string& str);
-
-  void Update(const int64_t value);
+  void Update(const void* data, size_t size);
 
   void Clear();
 

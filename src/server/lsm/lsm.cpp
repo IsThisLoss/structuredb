@@ -114,6 +114,7 @@ Awaitable<void> Lsm::Compact(CompactionStrategy::Ptr strategy) {
   // This bock is important because
   // file_writer closes file in destructor
   {
+    SPDLOG_INFO("SSTableBuilder started");
     auto file_writer = co_await io_manager_.CreateFileWriter(file_path);
     auto builder = co_await disk::SSTableBuilder::Create(file_writer, kPageSize);
     co_await strategy->CompactRecords(merge_iterator, builder);

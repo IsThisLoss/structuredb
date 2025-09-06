@@ -15,6 +15,12 @@ FileWriter::FileWriter(
   , blocking_executor_{blocking_executor}
 {}
 
+FileWriter::FileWriter(FileWriter&& rhs) noexcept
+  : stream_(std::move(rhs.stream_))
+  , blocking_executor_(rhs.blocking_executor_)
+{
+}
+
 Awaitable<void> FileWriter::Open(std::string path, bool append) {
   int fd = co_await blocking_executor_.Execute([&] () -> int {
     int flags = O_WRONLY | O_CREAT;

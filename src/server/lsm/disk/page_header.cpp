@@ -2,20 +2,18 @@
 
 namespace structuredb::server::lsm::disk {
 
-Awaitable<PageHeader> PageHeader::Load(sdb::BufferReader& reader) {
-  PageHeader result{};
-  result.count = co_await reader.ReadInt();
-  result.checksum = co_await reader.ReadInt();
-  co_return result;
+int64_t PageHeader::SdbSize() {
+  return sizeof(int64_t) + sizeof(int64_t);
 }
 
-Awaitable<void> PageHeader::Flush(sdb::BufferWriter& writer, const PageHeader& header) {
-  co_await writer.WriteInt(header.count);
-  co_await writer.WriteInt(header.checksum);
+void Write(sdb::Writer& writer, const PageHeader& header) {
+  writer.WriteInt(header.count);
+  writer.WriteInt(header.checksum);
 }
 
-int64_t PageHeader::EstimateSize(const PageHeader& header) {
-  return sdb::BufferWriter::EstimateSize(header.count) + sdb::BufferWriter::EstimateSize(header.checksum);
+void Read(sdb::Reader& reader, PageHeader& header) {
+  header.count = reader.ReadInt();
+  header.checksum = reader.ReadInt();
 }
 
 }

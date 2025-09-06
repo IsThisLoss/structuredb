@@ -1,7 +1,7 @@
 #pragma once
 
-#include <sdb/buffer_reader.hpp>
-#include <sdb/buffer_writer.hpp>
+#include <sdb/reader.hpp>
+#include <sdb/writer.hpp>
 
 #include <lsm/types.hpp>
 
@@ -15,11 +15,11 @@ struct SSTableHeader {
   int64_t page_count{0};
   Sequence max_seq_no{0};
 
-  static Awaitable<SSTableHeader> Load(sdb::BufferReader& reader);
-
-  static Awaitable<void> Flush(sdb::BufferWriter& writer, const SSTableHeader& header);
-
-  static int64_t EstimateSize(const SSTableHeader& header);
+  static int64_t SdbSize();
 };
+
+void Write(sdb::Writer& writer, const SSTableHeader& header);
+
+void Read(sdb::Reader& reader, SSTableHeader& header);
 
 }

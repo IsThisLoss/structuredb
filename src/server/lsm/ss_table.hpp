@@ -53,7 +53,7 @@ private:
   std::unordered_map<size_t, disk::Page> page_cache_;
 
   /// @brief returns page by its number
-  Awaitable<disk::Page> GetPage(int64_t page_num);
+  Awaitable<const disk::Page*> GetPage(int64_t page_num);
 
   /// @brief returns number of the first page that contains @p key
   Awaitable<int64_t> LowerBound(const std::string& key);

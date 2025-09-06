@@ -1,23 +1,19 @@
 #pragma once
 
-#include <io/file_reader.hpp>
+#include <string>
 
 namespace structuredb::server::sdb {
 
-/// @brief helper class to read from .sdb files
+/// @brief interface of sdb data format reader
 class Reader {
 public:
-  explicit Reader(io::FileReader::Ptr file_reader);
-
-  Awaitable<void> Seek(size_t pos);
-
   /// @brief reads string from reader provided in constructor
-  Awaitable<std::string> ReadString();
+  virtual std::string ReadString() = 0;
 
   /// @brief reads int from reader provided in constructor
-  Awaitable<int64_t> ReadInt();
-private:
-  io::FileReader::Ptr file_reader_;
+  virtual int64_t ReadInt() = 0;
+
+  virtual ~Reader() = default;
 };
 
 }

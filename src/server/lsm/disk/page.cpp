@@ -1,42 +1,44 @@
 #include "page.hpp"
 
 #include <spdlog/spdlog.h>
-
-#include "page_header.hpp"
-#include <lsm/exceptions.hpp>
-
-#include <utils/crc.hpp>
-
 #include <boost/algorithm/string/join.hpp>
+
+#include <lsm/disk/page_checksum.hpp>
+#include <lsm/disk/page_header.hpp>
+#include <lsm/exceptions.hpp>
+#include <sdb/buffer_reader.hpp>
+#include <utils/crc.hpp>
 
 namespace structuredb::server::lsm::disk {
 
-Awaitable<Page> Page::Load(sdb::BufferReader& reader) {
+Page Page::Load(std::vector<char>&& buffer) {
+  const auto checksum = GetPageChecksum(buffer);
+
+  sdb::BufferReader reader{std::move(buffer)};
+
   Page result{};
-  const auto header = co_await PageHeader::Load(reader);
-  utils::Crc crc{};
+  PageHeader header{};
+  Read(reader, header);
 
-  SPDLOG_INFO("Load page: count = {}", header.count);
-
-  result.keys_.reserve(header.count);
-  result.seq_nos_.reserve(header.count);
-  result.values_.reserve(header.count);
-  for (int i = 0; i < header.count; i++) {
-    result.keys_.push_back(co_await reader.ReadString());
-    crc.Update(result.keys_.back());
-    result.seq_nos_.push_back(co_await reader.ReadInt());
-    crc.Update(result.seq_nos_.back());
-    result.values_.push_back(co_await reader.ReadString());
-    crc.Update(result.values_.back());
-  }
-  const auto checksum = static_cast<int64_t>(crc.Result());
   if (checksum != header.checksum) {
     auto msg = fmt::format("Failed to load page, checksums do not match {} != {}", checksum, header.checksum);
     throw CurraptedSSTable{std::move(msg)};
   }
-  SPDLOG_DEBUG("Checksum match {}", checksum);
+  SPDLOG_INFO("Load page: count = {}, checksum = {}", header.count, header.checksum);
+
+  result.keys_.reserve(header.count);
+  result.seq_nos_.reserve(header.count);
+  result.values_.reserve(header.count);
+
+  lsm::Record record{};
+  for (int i = 0; i < header.count; i++) {
+    Read(reader, record);
+    result.keys_.push_back(record.key);
+    result.seq_nos_.push_back(record.seq_no);
+    result.values_.push_back(record.value);
+  }
   SPDLOG_DEBUG("Loaded page keys: {}", boost::algorithm::join(result.keys_, ", "));
-  co_return result;
+  return result;
 }
 
 int64_t Page::Find(const std::string& key) const {
@@ -46,7 +48,7 @@ int64_t Page::Find(const std::string& key) const {
   return offset;
 }
 
-Record Page::At(int64_t pos) {
+Record Page::At(int64_t pos) const {
   return Record{
     .key = keys_[pos],
     .seq_no = seq_nos_[pos],

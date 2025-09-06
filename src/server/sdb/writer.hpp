@@ -1,32 +1,19 @@
 #pragma once
 
-#include <io/file_writer.hpp>
+#include <string>
 
 namespace structuredb::server::sdb {
 
-/// @brief helper class to write into .sdb files
+/// @brief interface of sdb data format writer
 class Writer {
 public:
-  explicit Writer(io::FileWriter::Ptr file_writer);
+  /// @brief writes string
+  virtual void WriteString(const std::string& value) = 0;
 
-  Awaitable<void> Rewind();
+  /// @brief writes int64_t
+  virtual void WriteInt(int64_t value) = 0;
 
-  Awaitable<void> FSync();
-
-  /// @brief reads string from reader provided in constructor
-  Awaitable<void> WriteString(const std::string& value);
-
-  /// @brief reads int from reader provided in constructor
-  Awaitable<void> WriteInt(int64_t value);
-
-  /// @brief returns size of value after serialization
-  static int64_t EstimateSize(int64_t value);
-
-  /// @brief returns size of value after serialization
-  static int64_t EstimateSize(const std::string& value);
-private:
-  io::FileWriter::Ptr file_writer_;
+  virtual ~Writer() = default;
 };
 
 }
-

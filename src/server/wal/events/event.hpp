@@ -1,5 +1,6 @@
 #pragma once
 
+#include <io/types.hpp>
 #include <sdb/writer.hpp>
 #include <sdb/reader.hpp>
 
@@ -20,7 +21,7 @@ public:
 
   virtual EventType GetType() const = 0;
 
-  virtual Awaitable<void> Flush(sdb::Writer& writer) = 0;
+  virtual void Flush(sdb::Writer& writer) = 0;
 
   virtual Awaitable<void> Apply(database::Database&) = 0;
 

@@ -65,11 +65,10 @@ Awaitable<void> Database::Init() {
 
   // recovery
   const auto wal_path = context_.base_dir + "/wal.sdb";
-  const auto control_path = context_.base_dir + "/control.sdb";
-  co_await wal::Recover(context_.io_manager, wal_path, control_path, *this);
+  co_await wal::Recover(context_.io_manager, wal_path, *this);
 
   // start wal
-  context_.wal_writer = co_await wal::Open(context_.io_manager, wal_path, control_path);
+  context_.wal_writer = co_await wal::Open(context_.io_manager, wal_path);
   for (const auto& [name, table] : context_.storages) {
     table->StartLogInto(context_.wal_writer);
     SPDLOG_INFO("Table {} is ready", name);

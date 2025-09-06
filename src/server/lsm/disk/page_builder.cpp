@@ -1,68 +1,62 @@
 #include "page_builder.hpp"
 
+#include <lsm/disk/page_checksum.hpp>
+#include <sdb/buffer_writer.hpp>
+
 #include <spdlog/spdlog.h>
-
-#include <boost/crc.hpp>
-
-#include "page_header.hpp"
 
 namespace structuredb::server::lsm::disk {
 
-PageBuilder::PageBuilder(const int64_t max_bytes_size)
-  : max_bytes_size_{max_bytes_size}
-  , current_size_{0}
+PageBuilder::PageBuilder(int64_t page_size)
+  : page_size_{page_size},
+    header_{
+      .count = 0,
+      .checksum = 0,
+    }
 {
   Clear();
 }
 
-void PageBuilder::Clear() {
-  current_size_ = PageHeader::EstimateSize(PageHeader{});
-  keys_.clear();
-  seq_nos_.clear();
-  values_.clear();
-  crc_.Clear();
+bool PageBuilder::IsEnoughSpace(size_t record_size) const {
+  return current_page_.size() + record_size <= static_cast<size_t>(page_size_);
 }
 
-bool PageBuilder::IsEnoughPlace(const Record& record) const {
-  const int64_t next_record_size = sdb::Writer::EstimateSize(record.key) + sdb::Writer::EstimateSize(record.seq_no) + sdb::Writer::EstimateSize(record.value);
-  return current_size_ + next_record_size < max_bytes_size_;
+void PageBuilder::AddRecord(const std::vector<char>& raw) {
+  current_page_.insert(current_page_.end(), raw.begin(), raw.end());
+  header_.count += 1;
 }
 
-void PageBuilder::Add(const Record& record) {
-  const int64_t next_record_size = sdb::Writer::EstimateSize(record.key) + sdb::Writer::EstimateSize(record.seq_no) + sdb::Writer::EstimateSize(record.value);
-
-  keys_.push_back(record.key);
-  crc_.Update(record.key);
-
-  seq_nos_.push_back(record.seq_no);
-  crc_.Update(record.seq_no);
-
-  values_.push_back(record.value);
-  crc_.Update(record.value);
-
-  current_size_ += next_record_size;
-}
-
-bool PageBuilder::IsEmpty() const {
-  return keys_.empty();
-}
-
-Awaitable<void> PageBuilder::Flush(io::FileWriter& writer) {
-  PageHeader header{
-    .count = static_cast<int64_t>(keys_.size()),
-    .checksum = static_cast<int64_t>(crc_.Result()),
-  };
-  SPDLOG_INFO("Flush page builder: count = {}, size = {}/{}, checksum = {}", header.count, current_size_, max_bytes_size_, header.checksum);
-  sdb::BufferWriter buffer_writer{max_bytes_size_};
-  co_await PageHeader::Flush(buffer_writer, header);
-  for (size_t i = 0; i < header.count; i++) {
-    co_await buffer_writer.WriteString(keys_[i]);
-    co_await buffer_writer.WriteInt(seq_nos_[i]);
-    co_await buffer_writer.WriteString(values_[i]);
+std::vector<char> PageBuilder::Extract() && {
+  if (current_page_.size() < static_cast<size_t>(page_size_)) {
+    current_page_.resize(page_size_, 0);
   }
 
-  auto raw = std::move(buffer_writer).Extract();
-  co_await writer.Write(raw.data(), raw.size());
+  header_.checksum = GetPageChecksum(current_page_);
+
+  FlushHeader();
+  auto result = std::move(current_page_);
+  current_page_.clear();
+  return result;
+}
+
+void PageBuilder::Clear() {
+  current_page_.clear();
+  current_page_.reserve(page_size_);
+  header_.count = 0;
+  header_.checksum = 0;
+  // reserve space for header
+  current_page_.resize(PageHeader::SdbSize(), 0);
+}
+
+bool PageBuilder::Empty() const {
+  return header_.count == 0;
+}
+
+void PageBuilder::FlushHeader() {
+  sdb::BufferWriter writer;
+  Write(writer, header_);
+  const auto raw = std::move(writer).Extract();
+  std::copy(raw.begin(), raw.end(), current_page_.begin());
 }
 
 }

@@ -1,28 +1,22 @@
 #pragma once
 
-#include <sys/types.h>
-#include <io/manager.hpp>
+#include "writer.hpp"
+
+#include <vector>
 
 namespace structuredb::server::sdb {
 
-class BufferWriter {
+/// @brief implementation of Writer that writes to a buffer
+class BufferWriter : public Writer {
 public:
-  explicit BufferWriter(int64_t size);
+  void WriteString(const std::string& value) override;
 
-  Awaitable<void> WriteString(const std::string& value);
-
-  Awaitable<void> WriteInt(int64_t value);
-
-  /// @brief returns size of value after serialization
-  static int64_t EstimateSize(int64_t value);
-
-  /// @brief returns size of value after serialization
-  static int64_t EstimateSize(const std::string& value);
+  void WriteInt(int64_t value) override;
 
   std::vector<char> Extract() &&;
+
 private:
   std::vector<char> data_;
-  char* buf_;
 };
 
 }

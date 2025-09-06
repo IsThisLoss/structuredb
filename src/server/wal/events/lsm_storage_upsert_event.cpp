@@ -7,33 +7,33 @@
 namespace structuredb::server::wal {
 
 LsmStorageUpsertEvent::LsmStorageUpsertEvent(
-      const std::string& storage_id,
-      const lsm::Sequence seq_no,
-      const std::string& key,
-      const std::string& value
+      std::string storage_id,
+      lsm::Sequence seq_no,
+      std::string key,
+      std::string value
 )
-  : storage_id_{storage_id}, seq_no_{seq_no}, key_{key}, value_{value}
+  : storage_id_{std::move(storage_id)}, seq_no_{seq_no}, key_{std::move(key)}, value_{std::move(value)}
 {}
 
-Awaitable<Event::Ptr> LsmStorageUpsertEvent::Parse(sdb::Reader& reader) {
+Event::Ptr LsmStorageUpsertEvent::Parse(sdb::Reader& reader) {
   auto result = std::make_unique<LsmStorageUpsertEvent>(
-    co_await reader.ReadString(),
-    co_await reader.ReadInt(),
-    co_await reader.ReadString(),
-    co_await reader.ReadString()
+    reader.ReadString(),
+    reader.ReadInt(),
+    reader.ReadString(),
+    reader.ReadString()
   );
-  co_return result;
+  return result;
 }
 
 EventType LsmStorageUpsertEvent::GetType() const {
   return EventType::kLsmStorageUpsert;
 }
 
-Awaitable<void> LsmStorageUpsertEvent::Flush(sdb::Writer& writer) {
-  co_await writer.WriteString(storage_id_);
-  co_await writer.WriteInt(seq_no_);
-  co_await writer.WriteString(key_);
-  co_await writer.WriteString(value_);
+void LsmStorageUpsertEvent::Flush(sdb::Writer& writer) {
+  writer.WriteString(storage_id_);
+  writer.WriteInt(seq_no_);
+  writer.WriteString(key_);
+  writer.WriteString(value_);
 }
 
 Awaitable<void> LsmStorageUpsertEvent::Apply(database::Database& db) {
