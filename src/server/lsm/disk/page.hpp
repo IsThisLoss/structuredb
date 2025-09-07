@@ -8,7 +8,9 @@ namespace structuredb::server::lsm::disk {
 
 class Page {
 public:
-  static Page Load(std::vector<char>&& buffer);
+  using Ptr = std::shared_ptr<Page>;
+
+  static Page::Ptr Load(std::vector<char>&& buffer);
 
   /// @brief searches key in the page
   int64_t Find(const std::string& key) const;

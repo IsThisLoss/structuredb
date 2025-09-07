@@ -1,7 +1,5 @@
 #include "buffer_reader.hpp"
 
-#include <spdlog/spdlog.h>
-
 namespace structuredb::server::sdb {
 
 BufferReader::BufferReader(std::vector<char> data)
@@ -9,19 +7,28 @@ BufferReader::BufferReader(std::vector<char> data)
   , buf_{data_.data()}
 {}
 
+void BufferReader::Read(char* buffer, size_t size) {
+  ::memcpy(buffer, buf_, size);
+  buf_ += size;
+}
+
 std::string BufferReader::ReadString() {
   const int64_t size = ReadInt();
   std::string result;
   result.resize(size);
-  ::memcpy(result.data(), buf_, size);
-  buf_ += size;
+  Read(result.data(), size);
   return result;
 }
 
 int64_t BufferReader::ReadInt() {
   int64_t value{0};
-  value = *reinterpret_cast<const int64_t*>(buf_);
-  buf_ += sizeof(int64_t);
+  Read(reinterpret_cast<char*>(&value), sizeof(int64_t));
+  return value;
+}
+
+bool BufferReader::ReadBool() {
+  bool value = false;
+  Read(reinterpret_cast<char*>(&value), sizeof(bool));
   return value;
 }
 

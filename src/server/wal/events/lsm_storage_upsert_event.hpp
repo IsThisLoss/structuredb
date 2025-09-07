@@ -23,6 +23,8 @@ public:
   void Flush(sdb::Writer& writer) override;
 
   Awaitable<void> Apply(database::Database&) override;
+
+  Awaitable<bool> IsPersistent(database::Database&) override;
 private:
   const std::string storage_id_;
   const lsm::Sequence seq_no_;

@@ -11,12 +11,12 @@
 
 namespace structuredb::server::lsm::disk {
 
-Page Page::Load(std::vector<char>&& buffer) {
+Page::Ptr Page::Load(std::vector<char>&& buffer) {
   const auto checksum = GetPageChecksum(buffer);
 
   sdb::BufferReader reader{std::move(buffer)};
 
-  Page result{};
+  auto result = std::make_shared<Page>();
   PageHeader header{};
   Read(reader, header);
 
@@ -26,18 +26,17 @@ Page Page::Load(std::vector<char>&& buffer) {
   }
   SPDLOG_INFO("Load page: count = {}, checksum = {}", header.count, header.checksum);
 
-  result.keys_.reserve(header.count);
-  result.seq_nos_.reserve(header.count);
-  result.values_.reserve(header.count);
+  result->keys_.reserve(header.count);
+  result->seq_nos_.reserve(header.count);
+  result->values_.reserve(header.count);
 
   lsm::Record record{};
   for (int i = 0; i < header.count; i++) {
     Read(reader, record);
-    result.keys_.push_back(record.key);
-    result.seq_nos_.push_back(record.seq_no);
-    result.values_.push_back(record.value);
+    result->keys_.push_back(record.key);
+    result->seq_nos_.push_back(record.seq_no);
+    result->values_.push_back(record.value);
   }
-  SPDLOG_DEBUG("Loaded page keys: {}", boost::algorithm::join(result.keys_, ", "));
   return result;
 }
 

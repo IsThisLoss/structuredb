@@ -31,6 +31,8 @@ public:
   /// otherwise returns false
   Awaitable<bool> Put(const Sequence seq_no, const std::string& key, const std::string& value);
 
+  Sequence GetMaxPersistentSeqNo() const;
+
   /// @brief retrives lates value by key
   Awaitable<std::optional<std::string>> Get(const std::string& key);
 
@@ -56,6 +58,7 @@ private:
   std::deque<MemTable> ro_mem_tables_{};
   std::vector<SSTable> ss_tables_{};
 
+  Sequence max_persistent_seq_no_{0};
   Sequence next_seq_no_{0};
 
   Awaitable<void> DoPut(const Sequence seq_no, const std::string& key, const std::string& value);

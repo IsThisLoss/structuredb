@@ -25,6 +25,8 @@ public:
 
   Awaitable<void> RecoverFromLog(const lsm::Sequence seq_no, const std::string& key, const std::string& value) override;
 
+  Awaitable<bool> IsPersistent(const lsm::Sequence seq_no) override;
+
   Awaitable<void> Upsert(const Row& row) override;
 
   Awaitable<Iterator::Ptr> Scan(const std::string& key) override;

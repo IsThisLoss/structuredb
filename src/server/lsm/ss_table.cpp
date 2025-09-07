@@ -58,19 +58,19 @@ Sequence SSTable::GetMaxSeqNo() const {
   return header_.max_seq_no;
 }
 
-Awaitable<const disk::Page*> SSTable::GetPage(int64_t page_num) {
+Awaitable<disk::Page::Ptr> SSTable::GetPage(int64_t page_num) {
   assert(page_num < header_.page_count);
   co_await file_reader_->Seek(header_size_ + page_num * header_.page_size);
 
   const auto* cached = utils::FindOrNullptr(page_cache_, page_num);
   if (cached) {
-    co_return cached;
+    co_return *cached;
   }
 
   std::vector<char> buffer(header_.page_size);
   co_await file_reader_->Read(buffer.data(), buffer.size());
   page_cache_[page_num] = disk::Page::Load(std::move(buffer));
-  co_return &page_cache_[page_num];
+  co_return page_cache_[page_num];
 }
 
 const std::string& SSTable::GetFilePath() const {

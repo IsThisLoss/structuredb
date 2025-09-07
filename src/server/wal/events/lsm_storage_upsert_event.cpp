@@ -46,4 +46,14 @@ Awaitable<void> LsmStorageUpsertEvent::Apply(database::Database& db) {
   co_await table->RecoverFromLog(seq_no_, key_, value_);
 }
 
+Awaitable<bool> LsmStorageUpsertEvent::IsPersistent(database::Database& db) {
+  auto table = db.GetStorageForRecover(storage_id_);
+  if (!table) {
+    SPDLOG_ERROR("Got nullptr after GetTable during checking persistence");
+    co_return false;
+  }
+  const bool is_persistent = co_await table->IsPersistent(seq_no_);
+  co_return is_persistent;
+}
+
 }

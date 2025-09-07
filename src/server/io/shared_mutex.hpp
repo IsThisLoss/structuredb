@@ -28,7 +28,6 @@ private:
   int state_{0}; // -1 locked exclusive otherwise the number of shared locks
   std::deque<std::function<void()>> waiters_;
 
-
   Awaitable<void> TryLock(std::function<bool()> predicate);
 
   Awaitable<void> NotifyWaiters();

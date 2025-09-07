@@ -38,6 +38,26 @@ Compaction ParseCompaction(const YAML::Node& node) {
   return result;
 }
 
+WalClean ParseWalClean(const YAML::Node& node) {
+  WalClean result{};
+
+  if (node["interval"]) {
+    result.interval = std::chrono::milliseconds{node["interval"].as<int>()};
+  }
+
+  return result;
+}
+
+Wal ParseWal(const YAML::Node& node) {
+  Wal result{};
+
+  if (node["clean"]) {
+    result.clean = ParseWalClean(node["clean"]);
+  }
+
+  return result;
+}
+
 }
 
 Config Parse(const std::string& cfg_path) {
@@ -59,6 +79,9 @@ Config Parse(const std::string& cfg_path) {
 
   if (yaml["compaction"]) {
     result.compaction = ParseCompaction(yaml["compaction"]);
+  }
+  if (yaml["wal"]) {
+    result.wal = ParseWal(yaml["wal"]);
   }
 
   return result;

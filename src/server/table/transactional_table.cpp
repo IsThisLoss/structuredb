@@ -2,6 +2,9 @@
 
 #include <spdlog/spdlog.h>
 
+#include <sdb/buffer_reader.hpp>
+#include <sdb/buffer_writer.hpp>
+
 #include <table/storage/compaction_strategy.hpp>
 
 namespace structuredb::server::table {
@@ -14,22 +17,29 @@ struct TransactionalValue {
   std::string value{};
 };
 
+void Read(sdb::Reader& reader, TransactionalValue& value) {
+  reader.Read(reinterpret_cast<char*>(&value.tx.data), value.tx.size());
+  value.is_deleted = reader.ReadBool();
+  value.value = reader.ReadString();
+}
+
+void Write(sdb::Writer& writer, const TransactionalValue& value) {
+  writer.Write(reinterpret_cast<const char*>(&value.tx.data), value.tx.size());
+  writer.WriteBool(value.is_deleted);
+  writer.WriteString(value.value);
+}
+
 std::string ToString(const TransactionalValue& value) {
-  std::string result;
-  result.append(reinterpret_cast<const char*>(&value.tx.data), value.tx.size());
-  result.append(reinterpret_cast<const char*>(&value.is_deleted), sizeof(bool));
-  result.append(value.value);
-  return result;
+  sdb::BufferWriter writer{};
+  Write(writer, value);
+  auto data = std::move(writer).Extract();
+  return std::string{data.data(), data.size()};
 }
 
 TransactionalValue ParseTransactionalValue(const std::string& data) {
   TransactionalValue result{};
-  const char* ptr = data.data();
-  ::memcpy(&result.tx.data, ptr, result.tx.size());
-  ptr += result.tx.size();
-  result.is_deleted = *reinterpret_cast<const bool*>(ptr);
-  ptr += sizeof(bool);
-  result.value.assign(ptr, data.size() - result.tx.size() - 1);
+  sdb::BufferReader reader{std::vector<char>(data.begin(), data.end())};
+  Read(reader, result);
   return result;
 }
 

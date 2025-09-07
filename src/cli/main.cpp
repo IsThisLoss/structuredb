@@ -24,6 +24,7 @@ constexpr static const char* kTxPrompt = "structuredb (tx)> ";
 const structuredb::cli::CommandManager::Ptr command_manager = std::make_unique<structuredb::cli::CommandManager>();
 
 ABSL_FLAG(std::string, target, "localhost:50051", "Server address");
+ABSL_FLAG(std::optional<std::string>, c, std::nullopt, "Command to execute without entering REPL");
 
 void completion(const char* buf, linenoiseCompletions* lc) {
   std::string input(buf);
@@ -70,6 +71,19 @@ int main(int argc, char** argv) {
   };
 
   RegisterCommands(*command_manager);
+
+  if (const auto cmd = absl::GetFlag(FLAGS_c); cmd.has_value()) {
+    try {
+      const auto command = command_manager->ParseCommand(cmd.value());
+      structuredb::cli::MeasureTime([&]() {
+          command->Execute(context);
+      });
+    } catch (const std::exception& e) {
+      std::cerr << "Error: " << e.what() << std::endl;
+      return 1;
+    }
+    return 0;
+  }
 
   const auto history_file = GetHistoryFilePath();
 

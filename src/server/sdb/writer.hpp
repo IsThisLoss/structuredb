@@ -7,11 +7,17 @@ namespace structuredb::server::sdb {
 /// @brief interface of sdb data format writer
 class Writer {
 public:
+  /// @brief writes raw bytes
+  virtual void Write(const char* buffer, size_t size) = 0;
+
   /// @brief writes string
   virtual void WriteString(const std::string& value) = 0;
 
   /// @brief writes int64_t
   virtual void WriteInt(int64_t value) = 0;
+
+  /// @brief writes bool
+  virtual void WriteBool(bool value) = 0;
 
   virtual ~Writer() = default;
 };

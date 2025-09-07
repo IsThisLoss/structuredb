@@ -50,10 +50,10 @@ private:
   disk::Page page_{};
 
   /// TODO use lru cache
-  std::unordered_map<size_t, disk::Page> page_cache_;
+  std::unordered_map<size_t, disk::Page::Ptr> page_cache_;
 
   /// @brief returns page by its number
-  Awaitable<const disk::Page*> GetPage(int64_t page_num);
+  Awaitable<disk::Page::Ptr> GetPage(int64_t page_num);
 
   /// @brief returns number of the first page that contains @p key
   Awaitable<int64_t> LowerBound(const std::string& key);

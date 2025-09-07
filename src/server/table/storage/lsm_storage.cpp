@@ -108,6 +108,10 @@ Awaitable<void> LsmStorage::Upsert(const Row& row) {
   }
 }
 
+Awaitable<bool> LsmStorage::IsPersistent(const lsm::Sequence seq_no) {
+  co_return seq_no <= lsm_.GetMaxPersistentSeqNo();
+}
+
 Awaitable<Iterator::Ptr> LsmStorage::Scan(const std::string& key) {
   SPDLOG_DEBUG("Scan storage {} for key {}", id_, key);
   auto result = co_await lsm_.Scan(key);

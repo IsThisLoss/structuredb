@@ -14,6 +14,14 @@ struct Logger {
   std::optional<std::string> file{std::nullopt};
 };
 
+struct WalClean {
+  std::chrono::milliseconds interval{std::chrono::minutes(1)};
+};
+
+struct Wal {
+  WalClean clean{};
+};
+
 struct Compaction {
   std::chrono::milliseconds interval{std::chrono::minutes(1)};
 };
@@ -23,6 +31,7 @@ struct Config {
   std::string root{"/tmp/structuredb"};
   Logger logger{};
   Compaction compaction{};
+  Wal wal{};
 };
 
 Config Parse(const std::string& cfg_path);

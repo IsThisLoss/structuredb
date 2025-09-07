@@ -14,12 +14,12 @@ namespace {
 
 const static std::string kSysTransactions = "sys_transactions";
 const static std::string kSysTables = "sys_tables";
+const static std::string kWal = "wal";
 
 const static std::unordered_set<std::string> kInternalTables{
   kSysTransactions,
   kSysTables,
-  "wal.sdb",
-  "control.sdb",
+  kWal,
 };
 
 std::string ToString(const Catalog::TableInfo& info) {

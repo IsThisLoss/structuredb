@@ -28,6 +28,8 @@ public:
   /// TODO: change interface to hide seq_no
   virtual Awaitable<void> RecoverFromLog(const lsm::Sequence seq_no, const std::string& key, const std::string& value) = 0;
 
+  virtual Awaitable<bool> IsPersistent(const lsm::Sequence seq_no) = 0;
+
   /// @brief inserts or updates value by key
   virtual Awaitable<void> Upsert(const Row& row) = 0;
 

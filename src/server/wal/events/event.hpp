@@ -25,6 +25,8 @@ public:
 
   virtual Awaitable<void> Apply(database::Database&) = 0;
 
+  virtual Awaitable<bool> IsPersistent(database::Database&) = 0;
+
   virtual ~Event() = default;
 };
 

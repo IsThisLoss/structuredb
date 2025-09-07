@@ -10,6 +10,19 @@
 
 namespace structuredb::server::lsm {
 
+namespace {
+
+int64_t GetSSTableNo(const std::string& file_path) {
+  auto pos = file_path.find_last_of('/');
+  try {
+    return std::stoll(file_path.substr(pos + 1));
+  } catch (const std::exception& ex) {
+    return -1;
+  }
+}
+
+}
+
 Lsm::Lsm(io::Manager& io_manager, std::string base_dir)
   : io_manager_{io_manager}
   , base_dir_{std::move(base_dir)}
@@ -23,10 +36,10 @@ Awaitable<void> Lsm::Init() {
   for (const auto& name : names) {
     auto file_reader = co_await io_manager_.CreateFileReader(base_dir_ + "/" + name);
     auto ss_table = co_await SSTable::Create(std::move(file_reader));
-    max_persistent_seq_no = std::max(max_persistent_seq_no, ss_table.GetMaxSeqNo());
+    max_persistent_seq_no_ = std::max(max_persistent_seq_no_, ss_table.GetMaxSeqNo());
     ss_tables_.push_back(std::move(ss_table));
   }
-  next_seq_no_ = max_persistent_seq_no + 1;
+  next_seq_no_ = max_persistent_seq_no_ + 1;
   SPDLOG_INFO("LSM ready, ss tables = {}, next_seq_no = {}", ss_tables_.size(), next_seq_no_);
 }
 
@@ -46,6 +59,10 @@ Awaitable<bool> Lsm::Put(const Sequence seq_no, const std::string& key, const st
   co_return true;
 }
 
+Sequence Lsm::GetMaxPersistentSeqNo() const {
+  return max_persistent_seq_no_;
+}
+
 Awaitable<void> Lsm::DoPut(const Sequence seq_no, const std::string& key, const std::string& value) {
   co_await shared_mutex_.LockExclusive();
 
@@ -61,6 +78,7 @@ Awaitable<void> Lsm::DoPut(const Sequence seq_no, const std::string& key, const 
     SPDLOG_INFO("Ro Mem tables reached max size, flush it");
     const auto file_path = std::format("{}/{:04d}.sst.sdb", base_dir_, ss_tables_.size());
     auto ss_table = co_await ro_mem_tables_.front().Flush(io_manager_, file_path);
+    max_persistent_seq_no_ = std::max(max_persistent_seq_no_, ss_table.GetMaxSeqNo());
     ss_tables_.push_back(std::move(ss_table));
     ro_mem_tables_.erase(ro_mem_tables_.begin());
   }
@@ -84,7 +102,6 @@ Awaitable<std::optional<std::string>> Lsm::Get(const std::string& key) {
 }
 
 Awaitable<Iterator::Ptr> Lsm::Scan(const std::string& key) {
-  SPDLOG_INFO("LSM scan: {} {} {}", mem_table_.Size(), ro_mem_tables_.size(), ss_tables_.size());
   auto iterator = co_await LsmKeyIterator::Create(*this, key);
   co_return std::make_shared<LsmKeyIterator>(std::move(iterator));
 }
@@ -109,7 +126,12 @@ Awaitable<void> Lsm::Compact(CompactionStrategy::Ptr strategy) {
   }
   auto merge_iterator = std::make_shared<MergeIterator>(co_await MergeIterator::Create(std::move(iterators)));
 
-  const auto file_path = std::format("{}/{:04d}.sst.sdb", base_dir_, ss_tables_.size());
+  int64_t new_sst_no = 0;
+  if (!ss_tables_.empty()) {
+    new_sst_no = GetSSTableNo(ss_tables_.back().GetFilePath()) + 1;
+  }
+
+  const auto file_path = std::format("{}/{:04d}.sst.sdb", base_dir_, new_sst_no);
 
   // This bock is important because
   // file_writer closes file in destructor

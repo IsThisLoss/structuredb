@@ -20,6 +20,7 @@
 #include <database/database.hpp>
 #include <database/jobs/compaction.hpp>
 #include <database/jobs/job_launcher.hpp>
+#include <database/jobs/wal_cleaner.hpp>
 #include <io/manager.hpp>
 
 ABSL_FLAG(std::string, config, "./config.yaml", "Path to config");
@@ -98,6 +99,7 @@ int main(int argc, char** argv) {
     // background jobs
     structuredb::server::database::JobLauncher job_launcher{io_manager};
     job_launcher.Launch(std::make_shared<structuredb::server::database::Compaction>(database, config.compaction.interval));
+    job_launcher.Launch(std::make_shared<structuredb::server::database::WalCleaner>(io_manager, database, config.root + "/wal", config.wal.clean.interval));
 
     // server
     const auto server = builder.BuildAndStart();
