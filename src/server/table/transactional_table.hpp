@@ -12,7 +12,11 @@ class TransactionalTable : public Table {
 public:
   using Ptr = std::shared_ptr<TransactionalTable>;
 
-  explicit TransactionalTable(storage::Storage::Ptr table_storage, transaction::Storage::Ptr tx_storage, transaction::TransactionId tx);
+  explicit TransactionalTable(
+      storage::Storage::Ptr table_storage,
+      transaction::Storage::Ptr tx_storage,
+      transaction::TransactionId tx
+  );
 
   Awaitable<void> Upsert(
       const std::string& key,

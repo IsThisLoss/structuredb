@@ -1,6 +1,8 @@
 #pragma once
 
-#include "types.hpp"
+#include <transaction/lock_manager.hpp>
+#include <transaction/types.hpp>
+
 #include <table/table.hpp>
 
 namespace structuredb::server::transaction {
@@ -10,7 +12,7 @@ class Storage {
 public:
   using Ptr = std::shared_ptr<Storage>;
 
-  explicit Storage(table::Table::Ptr tx_table);
+  explicit Storage(table::Table::Ptr tx_table, transaction::LockManager::Ptr lock_manager);
 
   /// @brief starts transaction
   Awaitable<TransactionId> Begin();
@@ -31,6 +33,7 @@ public:
   Awaitable<std::optional<std::string>> GetStatus(const TransactionId& tx);
 private:
   table::Table::Ptr tx_table_;
+  transaction::LockManager::Ptr lock_manager_;
 };
 
 }

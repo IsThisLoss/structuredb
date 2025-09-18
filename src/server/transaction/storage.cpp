@@ -12,8 +12,9 @@ const std::string kRollbacked = "rollbacked";
 
 }
 
-Storage::Storage(table::Table::Ptr tx_table)
-  : tx_table_{std::move(tx_table)}
+Storage::Storage(table::Table::Ptr tx_table, transaction::LockManager::Ptr lock_manager)
+  : tx_table_{std::move(tx_table)},
+  lock_manager_{std::move(lock_manager)}
 {}
 
 Awaitable<TransactionId> Storage::Begin() {
