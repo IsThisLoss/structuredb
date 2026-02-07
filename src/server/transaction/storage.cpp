@@ -18,7 +18,7 @@ const std::string kRollbacked = "rollbacked";
 }
 
 Awaitable<TransactionId> Storage::Begin() {
-  const auto tx = last_tx_id_++;
+  const auto tx = next_tx_id_++;
   tx_status_[tx] = kStarted;
   co_return tx;
 }
@@ -58,6 +58,7 @@ void Storage::StartLogInto(wal::Writer::Ptr wal_writer) {
 
 Awaitable<void> Storage::RecoverFromLog(const TransactionId last_committed_tx_id) {
   tx_status_[last_committed_tx_id] = kCommited;
+  next_tx_id_ = std::max(next_tx_id_, last_committed_tx_id + 1);
   co_return;
 }
 

@@ -36,7 +36,8 @@ public:
   /// @brief recovers transaction status from wal
   Awaitable<void> RecoverFromLog(const TransactionId last_committed_tx_id);
 private:
-  TransactionId last_tx_id_{0};
+  constexpr static const TransactionId kInitialTxId = 10; 
+  TransactionId next_tx_id_{kInitialTxId};
   std::unordered_map<TransactionId, std::string> tx_status_;
   wal::Writer::Ptr wal_writer_;
 };

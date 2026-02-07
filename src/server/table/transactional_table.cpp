@@ -14,18 +14,21 @@ namespace {
 struct TransactionalValue {
   transaction::TransactionId tx{};
   bool is_deleted{};
+  bool is_frozen{};
   std::string value{};
 };
 
 void Read(sdb::Reader& reader, TransactionalValue& value) {
   reader.Read(reinterpret_cast<char*>(&value.tx), sizeof(value.tx));
   value.is_deleted = reader.ReadBool();
+  value.is_frozen = reader.ReadBool();
   value.value = reader.ReadString();
 }
 
 void Write(sdb::Writer& writer, const TransactionalValue& value) {
   writer.Write(reinterpret_cast<const char*>(&value.tx), sizeof(value.tx));
   writer.WriteBool(value.is_deleted);
+  writer.WriteBool(value.is_frozen);
   writer.WriteString(value.value);
 }
 
@@ -54,7 +57,7 @@ public:
     std::optional<std::string> last_status;
     while (input->HasMore()) {
       auto row = co_await input->Next();
-      const auto value = ParseTransactionalValue(row.value);
+      auto value = ParseTransactionalValue(row.value);
       if (value.is_deleted) {
         continue;
       }
@@ -64,7 +67,12 @@ public:
         continue;
       }
 
-      if (!last_added.has_value() || last_added.value().key != row.key || status != last_status) {
+      if (status == "commited" && !value.is_frozen) {
+        value.is_frozen = true;
+        row.value = ToString(value);
+      }
+
+      if (!last_added.has_value() || last_added.value().key != row.key) {
         co_await output->Write(row);
         last_added = std::move(row);
         last_status = std::move(status);
@@ -105,11 +113,14 @@ Awaitable<void> TransactionalTable::Upsert(
       const std::string& key,
       const std::string& value
 ) {
-  const auto transactional_value = ToString(TransactionalValue{
+  auto transactional_value = ToString(TransactionalValue{
     .tx = tx_,
     .value = value,
   });
-  co_await table_storage_->Upsert(Row{key, transactional_value});
+  co_await table_storage_->Upsert(Row{
+    .key = key,
+    .value = std::move(transactional_value),
+  });
 }
 
 Awaitable<std::optional<std::string>> TransactionalTable::Lookup(const std::string& key) {
@@ -121,7 +132,7 @@ Awaitable<std::optional<std::string>> TransactionalTable::Lookup(const std::stri
     const auto record = co_await iterator->Next();
     auto candidate = ParseTransactionalValue(record.value);
     SPDLOG_DEBUG("Lookup candidate: tx = {}, value = {}", transaction::ToString(candidate.tx), candidate.value);
-    if (candidate.tx == tx_ || co_await tx_storage_->IsCommited(candidate.tx)) {
+    if (candidate.is_frozen || candidate.tx == tx_ || co_await tx_storage_->IsCommited(candidate.tx)) {
       SPDLOG_DEBUG("Lookup candidate: tx = {}, value = {} will be returned", transaction::ToString(candidate.tx), candidate.value);
       if (candidate.is_deleted) {
         co_return std::nullopt;
@@ -140,11 +151,14 @@ Awaitable<bool> TransactionalTable::Delete(const std::string& key) {
   if (!value.has_value()) {
     co_return false;
   }
-  const auto transactional_value = ToString(TransactionalValue{
+  auto transactional_value = ToString(TransactionalValue{
     .tx = tx_,
     .is_deleted = true,
   });
-  co_await table_storage_->Upsert(Row{key, transactional_value});
+  co_await table_storage_->Upsert(Row{
+    .key = key,
+    .value = std::move(transactional_value),
+  });
   co_return true;
 }
 
