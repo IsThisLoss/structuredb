@@ -1,3 +1,5 @@
+#pragma once
+
 #include <gtest/gtest.h>
 
 #include <filesystem>
@@ -6,8 +8,8 @@
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/use_future.hpp>
-
-#include <database/sync/database.hpp>
+  
+#include <database/database.hpp>
 
 namespace structuredb::tests {
 
@@ -21,12 +23,9 @@ protected:
     assert(std::filesystem::create_directory(tmp_dir_));
 
     io_manager_ = std::make_unique<server::io::Manager>(io_context_);
-    db_ = std::make_unique<server::database::sync::Database>(
+    db_ = std::make_unique<server::database::Database>(
         *io_manager_,
-        server::database::Database{
-          *io_manager_,
-          tmp_dir_,
-        }
+        tmp_dir_
     );
 
     asio_thread_ = std::thread([this]() {
@@ -40,7 +39,7 @@ protected:
         SPDLOG_INFO("Exit asio thread");
     });
 
-    db_->Init();
+    io_manager_->RunSync(db_->Init());
   }
 
   void TearDown() override {
@@ -52,9 +51,13 @@ protected:
     std::filesystem::remove_all(tmp_dir_);
   }
 
-  server::database::sync::Database& GetDatabase() {
+  server::database::Database& GetDatabase() {
     assert(db_ != nullptr);
     return *db_;
+  }
+
+  void DoTest(std::function<structuredb::server::Awaitable<void>()> func) {
+    io_manager_->RunSync(func());
   }
 
 private:
@@ -62,9 +65,17 @@ private:
   std::string tmp_dir_;
 
   std::unique_ptr<server::io::Manager> io_manager_;
-  std::unique_ptr<server::database::sync::Database> db_;
+  std::unique_ptr<server::database::Database> db_;
 
   std::thread asio_thread_;
 };
 
 }
+
+#define DATABASE_TEST(test_name, ...) \
+  TEST_F(DatabaseTest, test_name) { \
+    DoTest([this]() -> structuredb::server::Awaitable<void> { \
+      __VA_ARGS__ \
+      co_return; \
+    }); \
+  }
