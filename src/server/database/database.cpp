@@ -34,11 +34,7 @@ Awaitable<void> Database::Init() {
   {
     const auto path = context_.base_dir + "/" + kSysTransactions;
     co_await context_.io_manager.CreateDirectory(path);
-    auto tx_storage = std::make_shared<table::storage::LsmStorage>(context_.io_manager, path, kSysTransactions);
-    co_await tx_storage->Init();
-    context_.storages.try_emplace(kSysTransactions, tx_storage);
-    auto tx_table = std::make_shared<table::RawTable>(std::move(tx_storage));
-    context_.tx_storage = std::make_shared<transaction::Storage>(std::move(tx_table));
+    context_.tx_storage = std::make_shared<transaction::Storage>();
   }
 
   // 2. sys_tables
@@ -69,6 +65,7 @@ Awaitable<void> Database::Init() {
 
   // start wal
   context_.wal_writer = co_await wal::Writer::Open(context_.io_manager, wal_path);
+  context_.tx_storage->StartLogInto(context_.wal_writer);
   for (const auto& [name, table] : context_.storages) {
     table->StartLogInto(context_.wal_writer);
     SPDLOG_INFO("Table {} is ready", name);
@@ -79,6 +76,10 @@ Awaitable<void> Database::Init() {
 
 table::storage::Storage::Ptr Database::GetStorageForRecover(const table::storage::LsmStorage::Id& storage_id) {
   return context_.storages.at(storage_id);
+}
+
+transaction::Storage::Ptr Database::GetTransactionStorage() {
+  return context_.tx_storage;
 }
 
 Awaitable<Session> Database::StartSession(const std::optional<transaction::TransactionId>& tx) {

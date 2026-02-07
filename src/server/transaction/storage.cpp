@@ -1,4 +1,9 @@
 #include "storage.hpp"
+#include "transaction/types.hpp"
+
+#include <io/types.hpp>
+#include <utils/find.hpp>
+#include <wal/events/tx_storage_commit_event.hpp>
 
 #include <spdlog/spdlog.h>
 
@@ -12,38 +17,48 @@ const std::string kRollbacked = "rollbacked";
 
 }
 
-Storage::Storage(table::Table::Ptr tx_table)
-  : tx_table_{std::move(tx_table)}
-{}
-
 Awaitable<TransactionId> Storage::Begin() {
-  auto tx = transaction::GenerateTransactionId();
-  co_await tx_table_->Upsert(ToBinary(tx), kStarted);
+  const auto tx = last_tx_id_++;
+  tx_status_[tx] = kStarted;
   co_return tx;
 }
 
 Awaitable<void> Storage::Rollback(const TransactionId& tx) {
   SPDLOG_DEBUG("Rollback transaction {}", ToString(tx));
-  co_await tx_table_->Upsert(ToBinary(tx), kRollbacked);
+  tx_status_[tx] = kRollbacked;
+  co_return;
 }
 
 Awaitable<void> Storage::Commit(const TransactionId& tx) {
   SPDLOG_DEBUG("Commit transaction {}", ToString(tx));
-  co_await tx_table_->Upsert(ToBinary(tx), kCommited);
+  tx_status_[tx] = kCommited;
+  if (wal_writer_) {
+    co_await wal_writer_->Write(std::make_unique<wal::TxStorageCommitEvent>(tx));
+  }
 }
 
 Awaitable<bool> Storage::IsCommited(const TransactionId& tx) {
-  const auto tx_value = co_await tx_table_->Lookup(ToBinary(tx));
-  co_return tx_value.has_value() && tx_value.value() == kCommited;
+  const auto* tx_status = utils::FindOrNullptr(tx_status_, tx);
+  co_return tx_status && *tx_status == kCommited;
 }
 
 Awaitable<bool> Storage::IsStarted(const TransactionId& tx) {
-  const auto tx_value = co_await tx_table_->Lookup(ToBinary(tx));
-  co_return tx_value.has_value() && tx_value.value() == kStarted;
+  const auto* tx_status = utils::FindOrNullptr(tx_status_, tx);
+  co_return tx_status && *tx_status == kStarted;
 }
 
 Awaitable<std::optional<std::string>> Storage::GetStatus(const TransactionId& tx) {
-  co_return co_await tx_table_->Lookup(ToBinary(tx));
+  const auto* tx_status = utils::FindOrNullptr(tx_status_, tx);
+  co_return tx_status ? std::optional<std::string>(*tx_status) : std::nullopt;
+}
+
+void Storage::StartLogInto(wal::Writer::Ptr wal_writer) {
+  wal_writer_ = std::move(wal_writer);
+}
+
+Awaitable<void> Storage::RecoverFromLog(const TransactionId last_committed_tx_id) {
+  tx_status_[last_committed_tx_id] = kCommited;
+  co_return;
 }
 
 }

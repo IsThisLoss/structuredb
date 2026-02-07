@@ -18,13 +18,13 @@ struct TransactionalValue {
 };
 
 void Read(sdb::Reader& reader, TransactionalValue& value) {
-  reader.Read(reinterpret_cast<char*>(&value.tx.data), value.tx.size());
+  reader.Read(reinterpret_cast<char*>(&value.tx), sizeof(value.tx));
   value.is_deleted = reader.ReadBool();
   value.value = reader.ReadString();
 }
 
 void Write(sdb::Writer& writer, const TransactionalValue& value) {
-  writer.Write(reinterpret_cast<const char*>(&value.tx.data), value.tx.size());
+  writer.Write(reinterpret_cast<const char*>(&value.tx), sizeof(value.tx));
   writer.WriteBool(value.is_deleted);
   writer.WriteString(value.value);
 }
@@ -54,10 +54,17 @@ public:
     std::optional<std::string> last_status;
     while (input->HasMore()) {
       auto row = co_await input->Next();
-      auto value = ParseTransactionalValue(row.value);
-      auto status = co_await tx_storage_->GetStatus(value.tx);
+      const auto value = ParseTransactionalValue(row.value);
+      if (value.is_deleted) {
+        continue;
+      }
 
-      if (!last_added.has_value() || last_added.value().key != row.key || status == "started") {
+      const auto status = co_await tx_storage_->GetStatus(value.tx);
+      if (status != "commited" && status != "started") {
+        continue;
+      }
+
+      if (!last_added.has_value() || last_added.value().key != row.key || status != last_status) {
         co_await output->Write(row);
         last_added = std::move(row);
         last_status = std::move(status);

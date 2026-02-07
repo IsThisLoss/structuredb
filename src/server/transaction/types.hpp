@@ -6,9 +6,7 @@
 
 namespace structuredb::server::transaction {
 
-using TransactionId = utils::Uuid;
-
-TransactionId GenerateTransactionId();
+using TransactionId = int64_t;
 
 std::string ToBinary(const TransactionId& uuid);
 

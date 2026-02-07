@@ -3,6 +3,7 @@
 #include <spdlog/spdlog.h>
 
 #include "lsm_storage_upsert_event.hpp"
+#include "tx_storage_commit_event.hpp"
 
 namespace structuredb::server::wal {
 
@@ -12,6 +13,7 @@ using Parser = std::function<Event::Ptr(sdb::Reader&)>;
 
 const std::unordered_map<EventType, Parser> kParsers{
   {EventType::kLsmStorageUpsert, LsmStorageUpsertEvent::Parse},
+  {EventType::kTxStorageCommit, TxStorageCommitEvent::Parse},
 };
 
 }
