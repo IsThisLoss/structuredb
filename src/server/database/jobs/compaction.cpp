@@ -1,5 +1,6 @@
 #include "compaction.hpp"
 
+#include <chrono>
 #include <database/database.hpp>
 #include <spdlog/spdlog.h>
 

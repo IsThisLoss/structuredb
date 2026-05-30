@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <spdlog/spdlog.h>
 
 #include <boost/asio/bind_executor.hpp>

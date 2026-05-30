@@ -1,5 +1,6 @@
 #include "lsm.hpp"
 
+#include <cstdint>
 #include <algorithm>
 #include <memory>
 #include <string>

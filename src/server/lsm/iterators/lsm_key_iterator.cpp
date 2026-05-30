@@ -1,3 +1,4 @@
+#include <cstdint>
 #include <string>
 
 #include "lsm_key_iterator.hpp"

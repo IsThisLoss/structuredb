@@ -2,6 +2,7 @@
 
 #include "reader.hpp"
 
+#include <cstdint>
 #include <string>
 #include <vector>
 

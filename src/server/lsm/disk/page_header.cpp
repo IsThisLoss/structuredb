@@ -1,3 +1,5 @@
+#include <cstdint>
+
 #include "page_header.hpp"
 
 namespace structuredb::server::lsm::disk {

@@ -1,5 +1,6 @@
 #include "file_reader.hpp"
 
+#include <cstddef>
 #include <string>
 #include <spdlog/spdlog.h>
 

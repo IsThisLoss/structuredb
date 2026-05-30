@@ -1,5 +1,6 @@
 #include "file_writer.hpp"
 
+#include <cstddef>
 #include <string>
 #include <spdlog/spdlog.h>
 

@@ -2,6 +2,7 @@
 
 #include "page_header.hpp"
 
+#include <cstdint>
 #include <vector>
 #include <utils/crc.hpp>
 

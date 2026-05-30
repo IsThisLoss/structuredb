@@ -1,3 +1,5 @@
+#include <cstdint>
+
 #include "crc.hpp"
 
 namespace structuredb::server::utils {

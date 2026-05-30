@@ -1,5 +1,6 @@
 #include "ss_table.hpp"
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <vector>

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <sys/types.h>
 
 namespace structuredb::server::wal {
