@@ -69,8 +69,8 @@ void Storage::AcquireRowLock(const TransactionId& tx, const std::string& row_key
   // Simple spin-wait loop until lock is available
   // TODO: Use proper async/await mechanism for better performance
   while (true) {
-    auto it = row_locks_.find(row_key);
-    if (it == row_locks_.end() || it->second == 0) {
+    const auto* lock_holder = utils::FindOrNullptr(row_locks_, row_key);
+    if (!lock_holder || *lock_holder == 0) {
       // Lock is free, acquire it
       row_locks_[row_key] = tx;
       tx_locks_[tx].insert(row_key);
@@ -85,21 +85,20 @@ void Storage::AcquireRowLock(const TransactionId& tx, const std::string& row_key
 }
 
 void Storage::ReleaseAllLocks(const TransactionId& tx) {
-  auto it = tx_locks_.find(tx);
-  if (it == tx_locks_.end()) {
+  const auto* locked_rows = utils::FindOrNullptr(tx_locks_, tx);
+  if (!locked_rows) {
     return;
   }
 
-  const auto& locked_rows = it->second;
-  for (const auto& row_key : locked_rows) {
-    auto row_it = row_locks_.find(row_key);
-    if (row_it != row_locks_.end() && row_it->second == tx) {
-      row_it->second = 0;  // Release lock
+  for (const auto& row_key : *locked_rows) {
+    auto* lock_holder = utils::FindOrNullptr(row_locks_, row_key);
+    if (lock_holder && *lock_holder == tx) {
+      *lock_holder = 0;  // Release lock
     }
   }
 
-  tx_locks_.erase(it);
-  SPDLOG_DEBUG("Tx {} released {} locks", ToString(tx), locked_rows.size());
+  tx_locks_.erase(tx);
+  SPDLOG_DEBUG("Tx {} released {} locks", ToString(tx), locked_rows->size());
 }
 
 }
