@@ -1,5 +1,6 @@
 #include "page.hpp"
 
+#include <algorithm>
 #include <iterator>
 #include <cstdint>
 #include <memory>
