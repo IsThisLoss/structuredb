@@ -1,5 +1,6 @@
 #include "merge_iterator.hpp"
 
+#include <cassert>
 #include <vector>
 #include <spdlog/spdlog.h>
 

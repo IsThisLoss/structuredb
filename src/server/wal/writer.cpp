@@ -1,5 +1,6 @@
 #include "writer.hpp"
 
+#include <cassert>
 #include <cstdint>
 #include <memory>
 #include <string>

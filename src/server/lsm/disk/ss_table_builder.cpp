@@ -1,5 +1,6 @@
 #include "ss_table_builder.hpp"
 
+#include <cassert>
 #include <cstdint>
 #include <algorithm>
 #include <sdb/buffer_writer.hpp>

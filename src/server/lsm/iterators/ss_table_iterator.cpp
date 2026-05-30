@@ -1,3 +1,4 @@
+#include <cassert>
 #include <optional>
 
 #include "ss_table_iterator.hpp"

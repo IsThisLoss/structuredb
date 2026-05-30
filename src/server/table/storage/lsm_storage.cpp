@@ -1,5 +1,6 @@
 #include "lsm_storage.hpp"
 
+#include <cassert>
 #include <memory>
 #include <string>
 #include <optional>

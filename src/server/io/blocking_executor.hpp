@@ -1,5 +1,6 @@
 #pragma once
 
+#include <type_traits>
 #include <cstddef>
 #include <spdlog/spdlog.h>
 
