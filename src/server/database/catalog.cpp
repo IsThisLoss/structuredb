@@ -1,5 +1,6 @@
 #include "catalog.hpp"
 
+#include <cstring>
 #include <cstdint>
 #include <string>
 #include <unordered_set>
