@@ -1,5 +1,6 @@
 #include "config.hpp"
 
+#include <stdexcept>
 #include <yaml-cpp/yaml.h>
 
 namespace structuredb::server::cfg {

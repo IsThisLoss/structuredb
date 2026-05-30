@@ -1,5 +1,6 @@
 #include "catalog.hpp"
 
+#include <optional>
 #include <spdlog/spdlog.h>
 
 #include <table/transform_iterator.hpp>

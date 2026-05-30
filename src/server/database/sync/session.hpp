@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <database/session.hpp>
 #include <table/sync/table.hpp>
 

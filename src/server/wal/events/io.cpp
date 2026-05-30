@@ -1,5 +1,6 @@
 #include "io.hpp"
 
+#include <functional>
 #include <spdlog/spdlog.h>
 
 #include "lsm_storage_upsert_event.hpp"

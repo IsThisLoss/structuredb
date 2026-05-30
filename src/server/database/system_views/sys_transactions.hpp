@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <transaction/storage.hpp>
 
 #include "system_view.hpp"

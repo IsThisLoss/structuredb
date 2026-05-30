@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <deque>
 
 #include <io/manager.hpp>

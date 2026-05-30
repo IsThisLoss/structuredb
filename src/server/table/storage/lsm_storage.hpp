@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <io/manager.hpp>
 #include <lsm/lsm.hpp>
 #include <wal/writer.hpp>

@@ -1,3 +1,5 @@
+#include <optional>
+
 #include "sys_tables.hpp"
 
 namespace structuredb::server::database::system_views {

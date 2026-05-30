@@ -1,5 +1,6 @@
 #include "transactional_table.hpp"
 
+#include <optional>
 #include <spdlog/spdlog.h>
 
 #include <sdb/buffer_reader.hpp>

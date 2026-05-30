@@ -1,3 +1,5 @@
+#include <optional>
+
 #include "database.hpp"
 
 namespace structuredb::server::database::sync {

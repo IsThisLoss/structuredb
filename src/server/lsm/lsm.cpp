@@ -1,5 +1,6 @@
 #include "lsm.hpp"
 
+#include <optional>
 #include <spdlog/spdlog.h>
 
 #include "iterators/lsm_range_iterator.hpp"

@@ -1,5 +1,6 @@
 #include "lsm_storage.hpp"
 
+#include <optional>
 #include <spdlog/spdlog.h>
 
 #include <wal/events/lsm_storage_upsert_event.hpp>

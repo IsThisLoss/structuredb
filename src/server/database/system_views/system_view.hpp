@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <table/table.hpp>
 
 namespace structuredb::server::database::system_views {

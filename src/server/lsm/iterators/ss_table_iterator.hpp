@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <lsm/ss_table.hpp>
 
 #include "iterator.hpp"

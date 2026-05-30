@@ -2,6 +2,8 @@
 
 #include "manager.hpp"
 
+#include <optional>
+#include <stdexcept>
 #include <utils/printer.hpp>
 #include <utils/split.hpp>
 

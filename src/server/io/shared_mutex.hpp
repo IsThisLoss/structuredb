@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <boost/asio/io_context.hpp>
 
 #include "types.hpp"

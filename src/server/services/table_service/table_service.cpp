@@ -1,5 +1,6 @@
 #include "table_service.hpp"
 
+#include <optional>
 #include <rpc/utils.hpp>
 
 namespace structuredb::server::services {

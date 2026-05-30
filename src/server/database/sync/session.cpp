@@ -1,3 +1,5 @@
+#include <optional>
+
 #include "session.hpp"
 
 namespace structuredb::server::database::sync {

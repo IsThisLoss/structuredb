@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <database/catalog.hpp>
 
 #include "system_view.hpp"

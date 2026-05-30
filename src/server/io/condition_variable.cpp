@@ -1,5 +1,6 @@
 #include "condition_variable.hpp"
 
+#include <functional>
 #include <boost/asio/steady_timer.hpp>
 #include <boost/asio/use_awaitable.hpp>
 #include <boost/asio/error.hpp>

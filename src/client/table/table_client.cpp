@@ -1,5 +1,6 @@
 #include "table_client.hpp"
 
+#include <optional>
 #include <utils/status_check.hpp>
 
 namespace structuredb::client::table {

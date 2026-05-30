@@ -1,5 +1,7 @@
 #pragma once
 
+#include <optional>
+
 #include "context.hpp"
 #include "session.hpp"
 

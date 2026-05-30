@@ -1,5 +1,7 @@
 #pragma once
 
+#include <optional>
+
 #include "catalog.hpp"
 #include "context.hpp"
 

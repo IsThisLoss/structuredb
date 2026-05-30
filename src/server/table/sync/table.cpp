@@ -1,3 +1,5 @@
+#include <optional>
+
 #include "table.hpp"
 
 namespace structuredb::server::table::sync {

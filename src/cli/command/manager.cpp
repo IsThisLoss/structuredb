@@ -1,5 +1,6 @@
 #include "manager.hpp"
 
+#include <stdexcept>
 #include <utils/split.hpp>
 
 namespace structuredb::cli {
