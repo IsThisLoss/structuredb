@@ -4,6 +4,7 @@
 #include <wal/events/event.hpp>
 #include <wal/events/io.hpp>
 #include <wal/reader.hpp>
+#include <spdlog/spdlog.h>
 
 namespace structuredb::server::wal {
 

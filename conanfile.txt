@@ -3,7 +3,7 @@ boost/1.86.0
 grpc/1.54.3
 gtest/1.15.0
 protobuf/3.21.12
-spdlog/1.15.0
+spdlog/1.14.1
 yaml-cpp/0.8.0
 [tool_requires]
 protobuf/3.21.12

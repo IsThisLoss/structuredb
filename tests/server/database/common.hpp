@@ -8,8 +8,9 @@
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/use_future.hpp>
-  
+
 #include <database/database.hpp>
+#include <spdlog/spdlog.h>
 
 namespace structuredb::tests {
 

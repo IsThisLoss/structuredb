@@ -3,6 +3,7 @@
 
 #include <database/database.hpp>
 #include <gtest/gtest.h>
+#include <fmt/core.h>
 
 
 namespace structuredb::tests {

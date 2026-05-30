@@ -1,6 +1,7 @@
 #include "job_launcher.hpp"
 
 #include <boost/asio/steady_timer.hpp>
+#include <spdlog/spdlog.h>
 
 namespace structuredb::server::database {
 
