@@ -2,6 +2,7 @@
 
 #include <database/database.hpp>
 #include <wal/cleaner.hpp>
+#include <spdlog/spdlog.h>
 
 namespace structuredb::server::database {
 

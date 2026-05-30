@@ -3,6 +3,7 @@
 #include <io/exceptions.hpp>
 #include <wal/segment.hpp>
 #include <wal/wal.hpp>
+#include <spdlog/spdlog.h>
 
 namespace structuredb::server::wal {
 

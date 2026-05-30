@@ -1,6 +1,7 @@
 #include "compaction.hpp"
 
 #include <database/database.hpp>
+#include <spdlog/spdlog.h>
 
 namespace structuredb::server::database {
 

@@ -8,6 +8,8 @@
 
 #include <table/storage/lsm_storage.hpp>
 
+#include <spdlog/spdlog.h>
+
 namespace structuredb::server::database {
 
 namespace {

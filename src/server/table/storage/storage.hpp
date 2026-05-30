@@ -7,6 +7,7 @@
 #include <table/iterator.hpp>
 #include <table/row.hpp>
 #include <wal/writer.hpp>
+#include <transaction/types.hpp>
 
 #include "compaction_strategy.hpp"
 
@@ -31,7 +32,10 @@ public:
   virtual Awaitable<bool> IsPersistent(const lsm::Sequence seq_no) = 0;
 
   /// @brief inserts or updates value by key
-  virtual Awaitable<void> Upsert(const Row& row) = 0;
+  ///
+  /// @param row row to upsert
+  /// @param tx transaction id for lock acquisition
+  virtual Awaitable<void> Upsert(const Row& row, const transaction::TransactionId& tx) = 0;
 
   /// @brief returns iterator over all value versions of @p key
   virtual Awaitable<Iterator::Ptr> Scan(const std::string& key) = 0;

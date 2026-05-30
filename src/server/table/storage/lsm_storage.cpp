@@ -100,7 +100,7 @@ Awaitable<void> LsmStorage::RecoverFromLog(const lsm::Sequence seq_no, const std
   SPDLOG_DEBUG("Recover record: seq_no = {}, key = {}, value = {}, status = {}", seq_no, key, value, is_restored ? "APPLIED" : "SKIPPED");
 }
 
-Awaitable<void> LsmStorage::Upsert(const Row& row) {
+Awaitable<void> LsmStorage::Upsert(const Row& row, const transaction::TransactionId& tx) {
   const auto seq_no = co_await lsm_.Put(row.key, row.value);
 
   if (wal_writer_) {

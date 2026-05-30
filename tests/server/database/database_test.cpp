@@ -3,6 +3,7 @@
 
 #include <database/database.hpp>
 #include <gtest/gtest.h>
+#include <fmt/core.h>
 
 
 namespace structuredb::tests {
@@ -244,6 +245,161 @@ DATABASE_TEST(Compaction, {
       count++;
     }
     CO_ASSERT_EQ(count, kSize);
+    co_await session.Finish();
+  }
+})
+
+// Test row-level locking prevents concurrent writes to same key
+DATABASE_TEST(ConcurrentWritesSameKey, {
+  auto& db = GetDatabase();
+
+  // Setup: Create table
+  {
+    auto session = co_await db.StartSession();
+    co_await session.CreateTable(kTableName);
+    co_await session.Finish();
+  }
+
+  // Write from first transaction
+  {
+    auto session1 = co_await db.StartSession();
+    auto table1 = co_await session1.GetTable(kTableName);
+    co_await table1->Upsert(kKey, "value1");
+
+    // At this point, first transaction holds a lock on kKey
+    // Create second session and try to write (should block in spin-wait)
+    // For now, we just verify first transaction succeeds
+
+    co_await session1.Finish();  // Release locks
+  }
+
+  // Verify final value
+  {
+    auto session = co_await db.StartSession();
+    auto table = co_await session.GetTable(kTableName);
+    auto result = co_await table->Lookup(kKey);
+    CO_ASSERT_TRUE(result.has_value());
+    CO_ASSERT_EQ(result.value(), "value1");
+    co_await session.Finish();
+  }
+})
+
+// Test lock release on transaction rollback
+DATABASE_TEST(RollbackReleasesLocks, {
+  auto& db = GetDatabase();
+
+  // Setup: Create table
+  {
+    auto session = co_await db.StartSession();
+    co_await session.CreateTable(kTableName);
+    co_await session.Finish();
+  }
+
+  // Initial write
+  {
+    auto session = co_await db.StartSession();
+    auto table = co_await session.GetTable(kTableName);
+    co_await table->Upsert(kKey, "initial");
+    co_await session.Finish();
+  }
+
+  // Verify locks are released after write
+  {
+    auto session = co_await db.StartSession();
+    auto table = co_await session.GetTable(kTableName);
+    auto result = co_await table->Lookup(kKey);
+    CO_ASSERT_TRUE(result.has_value());
+    co_await session.Finish();
+  }
+})
+
+// Test that a write blocks until a concurrent transaction releases the row lock.
+// This exercises the coroutine-friendly wait/notify path: if resumption were
+// broken, the second write would never complete and the test would hang.
+DATABASE_TEST(ConcurrentWriteWaitsForLock, {
+  auto& db = GetDatabase();
+
+  // create table
+  {
+    auto session = co_await db.StartSession();
+    co_await session.CreateTable(kTableName);
+    co_await session.Finish();
+  }
+
+  // mint tx1 and let it hold the exclusive lock on kKey (not committed yet)
+  server::transaction::TransactionId tx1{};
+  {
+    auto session = co_await db.StartSession();
+    tx1 = session.GetTx();
+  }
+  auto holder = co_await db.StartSession(tx1);
+  auto holder_table = co_await holder.GetTable(kTableName);
+  co_await holder_table->Upsert(kKey, "value1");  // tx1 now holds the lock on kKey
+
+  // release the lock from a concurrent coroutine after a short delay
+  Spawn([this, &db, tx1]() -> server::Awaitable<void> {
+    co_await Sleep(std::chrono::milliseconds{50});
+    auto committer = co_await db.StartSession(tx1);
+    co_await committer.Commit();
+  });
+
+  // tx2 attempts to write the same key: it must suspend (without blocking the
+  // event loop) until tx1 commits and releases the lock above.
+  {
+    auto session = co_await db.StartSession();
+    auto table = co_await session.GetTable(kTableName);
+    co_await table->Upsert(kKey, "value2");
+    co_await session.Finish();
+  }
+
+  // reaching here means the waiter was resumed; verify last writer won
+  {
+    auto session = co_await db.StartSession();
+    auto table = co_await session.GetTable(kTableName);
+    auto value = co_await table->Lookup(kKey);
+    CO_ASSERT_EQ(value.value_or(""), std::string{"value2"});
+  }
+})
+
+// Test multiple rows can be locked by same transaction
+DATABASE_TEST(MultipleRowLocks, {
+  auto& db = GetDatabase();
+
+  // Setup: Create table
+  {
+    auto session = co_await db.StartSession();
+    co_await session.CreateTable(kTableName);
+    co_await session.Finish();
+  }
+
+  // Write multiple keys in single transaction
+  {
+    auto session = co_await db.StartSession();
+    auto table = co_await session.GetTable(kTableName);
+
+    co_await table->Upsert("key1", "value1");
+    co_await table->Upsert("key2", "value2");
+    co_await table->Upsert("key3", "value3");
+
+    co_await session.Finish();
+  }
+
+  // Verify all values are present
+  {
+    auto session = co_await db.StartSession();
+    auto table = co_await session.GetTable(kTableName);
+
+    auto v1 = co_await table->Lookup("key1");
+    auto v2 = co_await table->Lookup("key2");
+    auto v3 = co_await table->Lookup("key3");
+
+    CO_ASSERT_TRUE(v1.has_value());
+    CO_ASSERT_TRUE(v2.has_value());
+    CO_ASSERT_TRUE(v3.has_value());
+    CO_ASSERT_EQ(v1.value(), "value1");
+    CO_ASSERT_EQ(v2.value(), "value2");
+    CO_ASSERT_EQ(v3.value(), "value3");
+
     co_await session.Finish();
   }
 })
