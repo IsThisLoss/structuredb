@@ -114,7 +114,7 @@ Awaitable<void> TransactionalTable::Upsert(
       const std::string& value
 ) {
   // Acquire row-level exclusive lock
-  tx_storage_->AcquireRowLock(tx_, key);
+  co_await tx_storage_->AcquireRowLock(tx_, key);
 
   auto transactional_value = ToString(TransactionalValue{
     .tx = tx_,
@@ -156,7 +156,7 @@ Awaitable<bool> TransactionalTable::Delete(const std::string& key) {
   }
 
   // Acquire row-level exclusive lock
-  tx_storage_->AcquireRowLock(tx_, key);
+  co_await tx_storage_->AcquireRowLock(tx_, key);
 
   auto transactional_value = ToString(TransactionalValue{
     .tx = tx_,

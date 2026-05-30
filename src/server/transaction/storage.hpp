@@ -4,6 +4,8 @@
 #include "wal/writer.hpp"
 #include <table/table.hpp>
 #include <unordered_set>
+#include <mutex>
+#include <condition_variable>
 
 namespace structuredb::server::transaction {
 
@@ -34,11 +36,12 @@ public:
 
   /// @brief acquire exclusive lock on row for transaction
   ///
-  /// Blocks until lock is acquired (currently synchronous with spin-wait)
+  /// Async lock acquisition - other coroutines can run while waiting
   /// Lock is held until transaction commits or rolls back
-  void AcquireRowLock(const TransactionId& tx, const std::string& row_key);
+  Awaitable<void> AcquireRowLock(const TransactionId& tx, const std::string& row_key);
 
   /// @brief release all locks held by transaction
+  /// @note Must be called from synchronous context (e.g., from Commit/Rollback)
   void ReleaseAllLocks(const TransactionId& tx);
 
   void StartLogInto(wal::Writer::Ptr wal_writer);
@@ -47,13 +50,22 @@ public:
   Awaitable<void> RecoverFromLog(const TransactionId last_committed_tx_id);
 
 private:
+  struct LockState {
+    TransactionId holder{0};  // 0 means unlocked
+    std::vector<TransactionId> waiters;  // Queue of waiting transactions
+  };
+
   constexpr static const TransactionId kInitialTxId = 10;
   TransactionId next_tx_id_{kInitialTxId};
   std::unordered_map<TransactionId, std::string> tx_status_;
   wal::Writer::Ptr wal_writer_;
 
-  // Row locking (row_key -> tx_id holding exclusive lock, 0 if free)
-  std::unordered_map<std::string, TransactionId> row_locks_;
+  // Synchronization for row-level locking
+  mutable std::mutex lock_mu_;
+  std::condition_variable lock_cv_;  // Notifies waiting coroutines
+
+  // Row locking state (row_key -> lock info)
+  std::unordered_map<std::string, LockState> row_locks_;
   // Track which rows each tx has locked (for cleanup on commit/rollback)
   std::unordered_map<TransactionId, std::unordered_set<std::string>> tx_locks_;
 };
