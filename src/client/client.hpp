@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include <database/autocommit_database.hpp>
 
 namespace structuredb::client {

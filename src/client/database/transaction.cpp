@@ -1,5 +1,7 @@
 #include "transaction.hpp"
 
+#include <memory>
+#include <string>
 #include <utils/status_check.hpp>
 
 namespace structuredb::client::database {

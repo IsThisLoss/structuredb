@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include "iterator.hpp"
 
 namespace structuredb::server::lsm {

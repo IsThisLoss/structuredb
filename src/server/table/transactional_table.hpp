@@ -2,6 +2,8 @@
 
 #include "table.hpp"
 
+#include <memory>
+#include <string>
 #include <optional>
 #include <transaction/storage.hpp>
 #include <table/storage/storage.hpp>

@@ -2,6 +2,9 @@
 
 #include "manager.hpp"
 
+#include <memory>
+#include <string>
+#include <vector>
 #include <optional>
 #include <stdexcept>
 #include <utils/printer.hpp>

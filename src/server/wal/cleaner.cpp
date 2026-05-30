@@ -1,5 +1,9 @@
 #include "cleaner.hpp"
 
+#include <memory>
+#include <string>
+#include <unordered_map>
+#include <vector>
 #include <sdb/buffer_reader.hpp>
 #include <wal/events/event.hpp>
 #include <wal/events/io.hpp>

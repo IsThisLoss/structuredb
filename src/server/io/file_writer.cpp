@@ -1,5 +1,6 @@
 #include "file_writer.hpp"
 
+#include <string>
 #include <spdlog/spdlog.h>
 
 #include <boost/asio/use_awaitable.hpp>

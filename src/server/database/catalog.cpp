@@ -1,5 +1,7 @@
 #include "catalog.hpp"
 
+#include <string>
+#include <unordered_set>
 #include <optional>
 #include <spdlog/spdlog.h>
 

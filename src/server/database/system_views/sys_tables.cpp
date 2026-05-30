@@ -1,3 +1,4 @@
+#include <string>
 #include <optional>
 
 #include "sys_tables.hpp"

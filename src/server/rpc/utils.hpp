@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include <optional>
 #include <grpc/status.h>
 #include <grpcpp/impl/status.h>

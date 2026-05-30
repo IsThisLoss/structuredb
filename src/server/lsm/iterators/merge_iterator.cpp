@@ -1,5 +1,6 @@
 #include "merge_iterator.hpp"
 
+#include <vector>
 #include <spdlog/spdlog.h>
 
 namespace structuredb::server::lsm {

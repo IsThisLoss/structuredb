@@ -1,5 +1,8 @@
 #include "page.hpp"
 
+#include <memory>
+#include <string>
+#include <vector>
 #include <spdlog/spdlog.h>
 #include <boost/algorithm/string/join.hpp>
 

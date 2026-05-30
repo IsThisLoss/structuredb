@@ -1,5 +1,6 @@
 #include "config.hpp"
 
+#include <string>
 #include <stdexcept>
 #include <yaml-cpp/yaml.h>
 

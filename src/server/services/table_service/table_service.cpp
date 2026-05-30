@@ -1,5 +1,7 @@
 #include "table_service.hpp"
 
+#include <memory>
+#include <string>
 #include <optional>
 #include <rpc/utils.hpp>
 

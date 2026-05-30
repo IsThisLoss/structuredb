@@ -1,5 +1,8 @@
 #include "manager.hpp"
 
+#include <memory>
+#include <string>
+#include <vector>
 #include <filesystem>
 
 #include <spdlog/spdlog.h>

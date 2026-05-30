@@ -6,6 +6,8 @@
 #include "system_views/sys_tables.hpp"
 #include "system_views/sys_transactions.hpp"
 
+#include <memory>
+#include <string>
 #include <optional>
 #include <table/storage/lsm_storage.hpp>
 

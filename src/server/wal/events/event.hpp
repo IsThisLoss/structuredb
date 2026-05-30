@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <io/types.hpp>
 #include <sdb/writer.hpp>
 #include <sdb/reader.hpp>

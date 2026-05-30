@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include <optional>
 #include <database/catalog.hpp>
 

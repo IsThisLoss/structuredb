@@ -1,5 +1,6 @@
 #include "system_view.hpp"
 
+#include <string>
 #include <optional>
 #include <database/exceptions.hpp>
 

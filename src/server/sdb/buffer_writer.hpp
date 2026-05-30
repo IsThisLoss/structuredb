@@ -2,6 +2,7 @@
 
 #include "writer.hpp"
 
+#include <string>
 #include <vector>
 
 namespace structuredb::server::sdb {

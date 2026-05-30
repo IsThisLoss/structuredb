@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include <optional>
 #include <unordered_set>
 #include <table/transactional_table.hpp>

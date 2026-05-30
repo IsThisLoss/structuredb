@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <lsm/iterators/iterator.hpp>
 #include <lsm/disk/ss_table_builder.hpp>
 

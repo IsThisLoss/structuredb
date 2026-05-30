@@ -1,5 +1,7 @@
 #include "connection.hpp"
 
+#include <memory>
+#include <string>
 #include <grpcpp/grpcpp.h>
 
 namespace structuredb::client::connection {

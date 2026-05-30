@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+#include <string>
 #include <database/jobs/job.hpp>
 
 namespace structuredb::server::database {

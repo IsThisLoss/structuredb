@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include <io/manager.hpp>
 #include <database/database.hpp>
 

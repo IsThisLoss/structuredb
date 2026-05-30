@@ -1,3 +1,6 @@
+#include <string>
+#include <vector>
+
 #include "buffer_writer.hpp"
 
 namespace structuredb::server::sdb {

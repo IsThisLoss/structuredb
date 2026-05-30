@@ -1,3 +1,7 @@
+#include <string>
+#include <string_view>
+#include <vector>
+
 #include "split.hpp"
 
 namespace structuredb::cli {

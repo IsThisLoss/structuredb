@@ -1,5 +1,7 @@
 #include "manager.hpp"
 
+#include <string>
+#include <vector>
 #include <stdexcept>
 #include <utils/split.hpp>
 

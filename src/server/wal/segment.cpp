@@ -1,3 +1,5 @@
+#include <string>
+
 #include "segment.hpp"
 
 namespace structuredb::server::wal {

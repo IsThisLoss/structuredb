@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <io/manager.hpp>
 #include <table/iterator.hpp>
 

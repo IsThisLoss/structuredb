@@ -1,5 +1,8 @@
 #include "transactional_table.hpp"
 
+#include <memory>
+#include <string>
+#include <vector>
 #include <optional>
 #include <spdlog/spdlog.h>
 

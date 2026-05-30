@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <table_service.grpc.pb.h>
 
 #include <io/manager.hpp>

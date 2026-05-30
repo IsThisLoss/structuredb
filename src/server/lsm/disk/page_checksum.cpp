@@ -2,6 +2,7 @@
 
 #include "page_header.hpp"
 
+#include <vector>
 #include <utils/crc.hpp>
 
 namespace structuredb::server::lsm::disk {

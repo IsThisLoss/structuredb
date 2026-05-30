@@ -1,5 +1,8 @@
 #include "ss_table.hpp"
 
+#include <memory>
+#include <string>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 #include <utils/find.hpp>

@@ -1,5 +1,8 @@
 #include "table_client.hpp"
 
+#include <memory>
+#include <string>
+#include <vector>
 #include <optional>
 #include <utils/status_check.hpp>
 

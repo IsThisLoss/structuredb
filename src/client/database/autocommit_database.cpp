@@ -1,5 +1,7 @@
 #include "autocommit_database.hpp"
 
+#include <memory>
+#include <string>
 #include <table_service.pb.h>
 
 #include <utils/status_check.hpp>

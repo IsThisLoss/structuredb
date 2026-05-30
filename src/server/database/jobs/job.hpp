@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <database/context.hpp>
 
 namespace structuredb::server::database {

@@ -1,5 +1,6 @@
 #include "types.hpp"
 
+#include <cstring>
 #include <boost/uuid/random_generator.hpp>
 #include <boost/uuid/string_generator.hpp>
 #include <boost/uuid/uuid_io.hpp>

@@ -1,3 +1,5 @@
+#include <vector>
+
 #include "lsm_range_iterator.hpp"
 
 namespace structuredb::server::lsm {

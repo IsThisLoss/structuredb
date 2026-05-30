@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <table/iterator.hpp>
 
 namespace structuredb::server::table::storage {
