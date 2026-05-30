@@ -3,7 +3,7 @@
 #include "types.hpp"
 #include "wal/writer.hpp"
 #include <table/table.hpp>
-#include <set>
+#include <unordered_set>
 
 namespace structuredb::server::transaction {
 
@@ -55,7 +55,7 @@ private:
   // Row locking (row_key -> tx_id holding exclusive lock, 0 if free)
   std::unordered_map<std::string, TransactionId> row_locks_;
   // Track which rows each tx has locked (for cleanup on commit/rollback)
-  std::unordered_map<TransactionId, std::set<std::string>> tx_locks_;
+  std::unordered_map<TransactionId, std::unordered_set<std::string>> tx_locks_;
 };
 
 }
