@@ -2,11 +2,15 @@
 
 #include <gtest/gtest.h>
 
+#include <chrono>
 #include <filesystem>
+#include <functional>
 #include <memory>
 
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/io_context.hpp>
+#include <boost/asio/steady_timer.hpp>
+#include <boost/asio/use_awaitable.hpp>
 #include <boost/asio/use_future.hpp>
 
 #include <database/database.hpp>
@@ -59,6 +63,17 @@ protected:
 
   void DoTest(std::function<structuredb::server::Awaitable<void>()> func) {
     io_manager_->RunSync(func());
+  }
+
+  /// @brief launches a coroutine concurrently on the same io_context
+  void Spawn(std::function<server::Awaitable<void>()> func) {
+    io_manager_->CoSpawn(std::move(func));
+  }
+
+  /// @brief suspends the current coroutine for the given duration
+  server::Awaitable<void> Sleep(std::chrono::milliseconds duration) {
+    boost::asio::steady_timer timer{io_context_, duration};
+    co_await timer.async_wait(boost::asio::use_awaitable);
   }
 
 private:

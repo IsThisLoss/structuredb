@@ -3,9 +3,8 @@
 #include "types.hpp"
 #include "wal/writer.hpp"
 #include <table/table.hpp>
+#include <io/condition_variable.hpp>
 #include <unordered_set>
-#include <mutex>
-#include <condition_variable>
 
 namespace structuredb::server::transaction {
 
@@ -14,7 +13,7 @@ class Storage {
 public:
   using Ptr = std::shared_ptr<Storage>;
 
-  explicit Storage() = default;
+  explicit Storage(boost::asio::io_context& io_context);
 
   /// @brief starts transaction
   Awaitable<TransactionId> Begin();
@@ -36,12 +35,11 @@ public:
 
   /// @brief acquire exclusive lock on row for transaction
   ///
-  /// Async lock acquisition - other coroutines can run while waiting
-  /// Lock is held until transaction commits or rolls back
+  /// Suspends (without blocking the event loop) until the row is free, then
+  /// marks it as held. The lock is held until the transaction commits or rolls back.
   Awaitable<void> AcquireRowLock(const TransactionId& tx, const std::string& row_key);
 
-  /// @brief release all locks held by transaction
-  /// @note Must be called from synchronous context (e.g., from Commit/Rollback)
+  /// @brief release all locks held by transaction and wake waiting coroutines
   void ReleaseAllLocks(const TransactionId& tx);
 
   void StartLogInto(wal::Writer::Ptr wal_writer);
@@ -50,22 +48,18 @@ public:
   Awaitable<void> RecoverFromLog(const TransactionId last_committed_tx_id);
 
 private:
-  struct LockState {
-    TransactionId holder{0};  // 0 means unlocked
-    std::vector<TransactionId> waiters;  // Queue of waiting transactions
-  };
-
   constexpr static const TransactionId kInitialTxId = 10;
   TransactionId next_tx_id_{kInitialTxId};
   std::unordered_map<TransactionId, std::string> tx_status_;
   wal::Writer::Ptr wal_writer_;
 
-  // Synchronization for row-level locking
-  mutable std::mutex lock_mu_;
-  std::condition_variable lock_cv_;  // Notifies waiting coroutines
+  // Coroutine-friendly notification for row-lock availability.
+  // No std::mutex is needed: the io_context is single-threaded, so coroutines
+  // run cooperatively and the maps below are only touched between co_await points.
+  io::ConditionVariable lock_available_;
 
-  // Row locking state (row_key -> lock info)
-  std::unordered_map<std::string, LockState> row_locks_;
+  // Row locking (row_key -> tx_id holding exclusive lock; absent means free)
+  std::unordered_map<std::string, TransactionId> row_locks_;
   // Track which rows each tx has locked (for cleanup on commit/rollback)
   std::unordered_map<TransactionId, std::unordered_set<std::string>> tx_locks_;
 };

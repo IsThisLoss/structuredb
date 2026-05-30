@@ -313,6 +313,54 @@ DATABASE_TEST(RollbackReleasesLocks, {
   }
 })
 
+// Test that a write blocks until a concurrent transaction releases the row lock.
+// This exercises the coroutine-friendly wait/notify path: if resumption were
+// broken, the second write would never complete and the test would hang.
+DATABASE_TEST(ConcurrentWriteWaitsForLock, {
+  auto& db = GetDatabase();
+
+  // create table
+  {
+    auto session = co_await db.StartSession();
+    co_await session.CreateTable(kTableName);
+    co_await session.Finish();
+  }
+
+  // mint tx1 and let it hold the exclusive lock on kKey (not committed yet)
+  server::transaction::TransactionId tx1{};
+  {
+    auto session = co_await db.StartSession();
+    tx1 = session.GetTx();
+  }
+  auto holder = co_await db.StartSession(tx1);
+  auto holder_table = co_await holder.GetTable(kTableName);
+  co_await holder_table->Upsert(kKey, "value1");  // tx1 now holds the lock on kKey
+
+  // release the lock from a concurrent coroutine after a short delay
+  Spawn([this, &db, tx1]() -> server::Awaitable<void> {
+    co_await Sleep(std::chrono::milliseconds{50});
+    auto committer = co_await db.StartSession(tx1);
+    co_await committer.Commit();
+  });
+
+  // tx2 attempts to write the same key: it must suspend (without blocking the
+  // event loop) until tx1 commits and releases the lock above.
+  {
+    auto session = co_await db.StartSession();
+    auto table = co_await session.GetTable(kTableName);
+    co_await table->Upsert(kKey, "value2");
+    co_await session.Finish();
+  }
+
+  // reaching here means the waiter was resumed; verify last writer won
+  {
+    auto session = co_await db.StartSession();
+    auto table = co_await session.GetTable(kTableName);
+    auto value = co_await table->Lookup(kKey);
+    CO_ASSERT_EQ(value.value_or(""), std::string{"value2"});
+  }
+})
+
 // Test multiple rows can be locked by same transaction
 DATABASE_TEST(MultipleRowLocks, {
   auto& db = GetDatabase();

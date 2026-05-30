@@ -17,6 +17,10 @@ const std::string kRollbacked = "rollbacked";
 
 }
 
+Storage::Storage(boost::asio::io_context& io_context)
+  : lock_available_{io_context}
+{}
+
 Awaitable<TransactionId> Storage::Begin() {
   const auto tx = next_tx_id_++;
   tx_status_[tx] = kStarted;
@@ -26,6 +30,8 @@ Awaitable<TransactionId> Storage::Begin() {
 Awaitable<void> Storage::Rollback(const TransactionId& tx) {
   SPDLOG_DEBUG("Rollback transaction {}", ToString(tx));
   tx_status_[tx] = kRollbacked;
+  // Release all locks held by this transaction
+  ReleaseAllLocks(tx);
   co_return;
 }
 
@@ -65,22 +71,17 @@ Awaitable<void> Storage::RecoverFromLog(const TransactionId last_committed_tx_id
 }
 
 Awaitable<void> Storage::AcquireRowLock(const TransactionId& tx, const std::string& row_key) {
-  std::unique_lock lock(lock_mu_);
-
-  // Wait until lock is available
-  // This is condition variable + predicate check, not busy-wait
-  // Other threads can proceed while we're blocked
-  lock_cv_.wait(lock, [this, &row_key] {
-    const auto* lock_state = utils::FindOrNullptr(row_locks_, row_key);
-    return !lock_state || lock_state->holder == 0;
+  // Suspend until the row is free. The predicate is re-checked each time a
+  // transaction releases its locks. Single-threaded cooperative scheduling
+  // guarantees no other coroutine runs between the predicate succeeding and us
+  // recording the lock below, so the check-then-acquire is effectively atomic.
+  co_await lock_available_.Wait([this, &row_key] {
+    return !row_locks_.contains(row_key);
   });
 
-  // Lock is now free, acquire it
-  auto& lock_state = row_locks_[row_key];
-  lock_state.holder = tx;
+  row_locks_[row_key] = tx;
   tx_locks_[tx].insert(row_key);
   SPDLOG_DEBUG("Tx {} acquired lock on row {}", ToString(tx), row_key);
-  co_return;
 }
 
 void Storage::ReleaseAllLocks(const TransactionId& tx) {
@@ -89,30 +90,18 @@ void Storage::ReleaseAllLocks(const TransactionId& tx) {
     return;
   }
 
-  std::lock_guard lock(lock_mu_);
-  size_t released_count = 0;
-
   for (const auto& row_key : *locked_rows) {
-    auto* lock_state = utils::FindOrNullptr(row_locks_, row_key);
-    if (lock_state && lock_state->holder == tx) {
-      lock_state->holder = 0;  // Release lock
-
-      // Grant lock to next waiter if any
-      if (!lock_state->waiters.empty()) {
-        auto next_tx = lock_state->waiters.front();
-        lock_state->waiters.erase(lock_state->waiters.begin());
-        lock_state->holder = next_tx;
-        SPDLOG_DEBUG("Tx {} acquired lock on row {} (from waiter queue)", ToString(next_tx), row_key);
-      }
-      released_count++;
+    const auto* holder = utils::FindOrNullptr(row_locks_, row_key);
+    if (holder && *holder == tx) {
+      row_locks_.erase(row_key);
     }
   }
 
+  SPDLOG_DEBUG("Tx {} released {} locks", ToString(tx), locked_rows->size());
   tx_locks_.erase(tx);
-  SPDLOG_DEBUG("Tx {} released {} locks", ToString(tx), released_count);
 
-  // Notify all waiting coroutines (they will check condition and retry)
-  lock_cv_.notify_all();
+  // Wake every waiting coroutine so each can re-check whether its row is free.
+  lock_available_.NotifyAll();
 }
 
 }

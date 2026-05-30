@@ -34,7 +34,7 @@ Awaitable<void> Database::Init() {
   {
     const auto path = context_.base_dir + "/" + kSysTransactions;
     co_await context_.io_manager.CreateDirectory(path);
-    context_.tx_storage = std::make_shared<transaction::Storage>();
+    context_.tx_storage = std::make_shared<transaction::Storage>(context_.io_manager.Context());
   }
 
   // 2. sys_tables
