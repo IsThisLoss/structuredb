@@ -113,6 +113,9 @@ Awaitable<void> TransactionalTable::Upsert(
       const std::string& key,
       const std::string& value
 ) {
+  // Acquire row-level exclusive lock
+  tx_storage_->AcquireRowLock(tx_, key);
+
   auto transactional_value = ToString(TransactionalValue{
     .tx = tx_,
     .value = value,
@@ -120,7 +123,7 @@ Awaitable<void> TransactionalTable::Upsert(
   co_await table_storage_->Upsert(Row{
     .key = key,
     .value = std::move(transactional_value),
-  });
+  }, tx_);
 }
 
 Awaitable<std::optional<std::string>> TransactionalTable::Lookup(const std::string& key) {
@@ -151,6 +154,10 @@ Awaitable<bool> TransactionalTable::Delete(const std::string& key) {
   if (!value.has_value()) {
     co_return false;
   }
+
+  // Acquire row-level exclusive lock
+  tx_storage_->AcquireRowLock(tx_, key);
+
   auto transactional_value = ToString(TransactionalValue{
     .tx = tx_,
     .is_deleted = true,
@@ -158,7 +165,7 @@ Awaitable<bool> TransactionalTable::Delete(const std::string& key) {
   co_await table_storage_->Upsert(Row{
     .key = key,
     .value = std::move(transactional_value),
-  });
+  }, tx_);
   co_return true;
 }
 

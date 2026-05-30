@@ -10,7 +10,9 @@ Awaitable<void> RawTable::Upsert(
     const std::string& key,
     const std::string& value
 ) {
-  co_await table_storage_->Upsert(Row{key, value});
+  // Note: RawTable doesn't have transaction context, pass 0 as dummy tx_id
+  // This is used for internal operations (system tables, etc.)
+  co_await table_storage_->Upsert(Row{key, value}, 0);
 }
 
 Awaitable<std::optional<std::string>> RawTable::Lookup(const std::string& key) {
