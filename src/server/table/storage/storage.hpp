@@ -18,13 +18,13 @@ namespace structuredb::server::table::storage {
 /// @brief pluggable storage engine interface
 ///
 /// This is the seam for swapping the physical storage engine behind a table.
-/// Today the only implementation is LsmStorage, but an in-memory engine could
+/// Today the only implementation is LsmEngine, but an in-memory engine could
 /// implement the same interface. The engine deals only with opaque key/value
 /// rows — transaction visibility and MVCC live one layer up, in the table
 /// implementations (see table::TransactionalTable).
-class Storage {
+class StorageEngine {
 public:
-  using Ptr = std::shared_ptr<Storage>;
+  using Ptr = std::shared_ptr<StorageEngine>;
   using Id = std::string;
   
   /// @brief attach storage to @p wal_writer
@@ -62,7 +62,7 @@ public:
   /// @brief runs optimization of storage
   virtual Awaitable<void> Compact(CompactionStrategy::Ptr strategy) = 0;
 
-  virtual ~Storage() = default;
+  virtual ~StorageEngine() = default;
 };
 
 }

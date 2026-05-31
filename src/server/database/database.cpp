@@ -43,7 +43,7 @@ Awaitable<void> Database::Init() {
   {
     const auto path = context_.base_dir + "/" + kSysTables;
     co_await context_.io_manager.CreateDirectory(path);
-    auto sys_storage = std::make_shared<table::storage::LsmStorage>(context_.io_manager, path, kSysTables);
+    auto sys_storage = std::make_shared<table::storage::LsmEngine>(context_.io_manager, path, kSysTables);
     co_await sys_storage->Init();
     context_.storages.try_emplace(kSysTables, std::move(sys_storage));
   }
@@ -56,7 +56,7 @@ Awaitable<void> Database::Init() {
   // 4. init user tables
   for (const auto& name : dir_content) {
     SPDLOG_INFO("Going to init table {}", name);
-    auto storage = std::make_shared<table::storage::LsmStorage>(context_.io_manager, context_.base_dir + "/" + name, name);
+    auto storage = std::make_shared<table::storage::LsmEngine>(context_.io_manager, context_.base_dir + "/" + name, name);
     co_await storage->Init();
     context_.storages.try_emplace(name, std::move(storage));
   }
@@ -76,7 +76,7 @@ Awaitable<void> Database::Init() {
   is_initialized_ = true;
 }
 
-table::storage::Storage::Ptr Database::GetStorageForRecover(const table::storage::LsmStorage::Id& storage_id) {
+table::storage::StorageEngine::Ptr Database::GetStorageForRecover(const table::storage::LsmEngine::Id& storage_id) {
   return context_.storages.at(storage_id);
 }
 

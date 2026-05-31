@@ -12,9 +12,9 @@ namespace structuredb::server::table::storage {
 
 namespace {
 
-class LsmStorageIterator : public Iterator {
+class LsmEngineIterator : public Iterator {
 public:
-  LsmStorageIterator(lsm::Iterator::Ptr iterator)
+  LsmEngineIterator(lsm::Iterator::Ptr iterator)
     : iterator_{std::move(iterator)}
   {
     assert(iterator_);
@@ -45,7 +45,7 @@ private:
 class LsmOutputIterator : public OutputIterator {
 public:
   explicit LsmOutputIterator(
-      std::shared_ptr<LsmStorageIterator> input_iterator,
+      std::shared_ptr<LsmEngineIterator> input_iterator,
       lsm::disk::SSTableBuilder& ss_table_builder
   )
     : input_iterator_{std::move(input_iterator)}
@@ -64,18 +64,18 @@ public:
   }
 
 private:
-  std::shared_ptr<LsmStorageIterator> input_iterator_;
+  std::shared_ptr<LsmEngineIterator> input_iterator_;
   lsm::disk::SSTableBuilder& ss_table_builder_;
 };
 
-class LsmStorageCompactStrategy : public lsm::CompactionStrategy {
+class LsmEngineCompactStrategy : public lsm::CompactionStrategy {
 public:
-  explicit LsmStorageCompactStrategy(table::storage::CompactionStrategy::Ptr strategy)
+  explicit LsmEngineCompactStrategy(table::storage::CompactionStrategy::Ptr strategy)
     : strategy_{std::move(strategy)}
   {}
 
   Awaitable<void> CompactRecords(lsm::Iterator::Ptr records, lsm::disk::SSTableBuilder& ss_table_builder) override {
-    auto input = std::make_shared<LsmStorageIterator>(std::move(records));
+    auto input = std::make_shared<LsmEngineIterator>(std::move(records));
     auto output = std::make_shared<LsmOutputIterator>(input, ss_table_builder);
     co_await strategy_->CompactRows(std::move(input), output);
   }
@@ -86,25 +86,25 @@ private:
 
 }
 
-LsmStorage::LsmStorage(io::Manager& io_manager, std::string base_dir, std::string id)
+LsmEngine::LsmEngine(io::Manager& io_manager, std::string base_dir, std::string id)
   : lsm_{io_manager, std::move(base_dir)}, id_{std::move(id)}
 {}
 
-Awaitable<void> LsmStorage::Init() {
+Awaitable<void> LsmEngine::Init() {
   co_await lsm_.Init();
 }
 
-void LsmStorage::StartLogInto(wal::Writer::Ptr wal_writer) {
+void LsmEngine::StartLogInto(wal::Writer::Ptr wal_writer) {
   wal_writer_ = std::move(wal_writer);
   SPDLOG_INFO("Start wal for table {}", id_);
 }
 
-Awaitable<void> LsmStorage::RecoverFromLog(const lsm::Sequence seq_no, const std::string& key, const std::string& value) {
+Awaitable<void> LsmEngine::RecoverFromLog(const lsm::Sequence seq_no, const std::string& key, const std::string& value) {
   const bool is_restored = co_await lsm_.Put(seq_no, key, value);
   SPDLOG_DEBUG("Recover record: seq_no = {}, key = {}, value = {}, status = {}", seq_no, key, value, is_restored ? "APPLIED" : "SKIPPED");
 }
 
-Awaitable<void> LsmStorage::Upsert(const Row& row) {
+Awaitable<void> LsmEngine::Upsert(const Row& row) {
   const auto seq_no = co_await lsm_.Put(row.key, row.value);
 
   if (wal_writer_) {
@@ -112,30 +112,30 @@ Awaitable<void> LsmStorage::Upsert(const Row& row) {
   }
 }
 
-Awaitable<bool> LsmStorage::IsPersistent(const lsm::Sequence seq_no) {
+Awaitable<bool> LsmEngine::IsPersistent(const lsm::Sequence seq_no) {
   co_return seq_no <= lsm_.GetMaxPersistentSeqNo();
 }
 
-Awaitable<Iterator::Ptr> LsmStorage::Scan(const std::string& key) {
+Awaitable<Iterator::Ptr> LsmEngine::Scan(const std::string& key) {
   SPDLOG_DEBUG("Scan storage {} for key {}", id_, key);
   auto result = co_await lsm_.Scan(key);
-  co_return std::make_shared<LsmStorageIterator>(std::move(result));
+  co_return std::make_shared<LsmEngineIterator>(std::move(result));
 }
 
-Awaitable<Iterator::Ptr> LsmStorage::Scan(const std::optional<std::string>& lower_bound, const std::optional<std::string>& upper_bound) {
+Awaitable<Iterator::Ptr> LsmEngine::Scan(const std::optional<std::string>& lower_bound, const std::optional<std::string>& upper_bound) {
   lsm::ScanRange range{
       .lower_bound = lower_bound,
       .upper_bound = upper_bound,
   };
   auto result = co_await lsm_.Scan(range);
-  co_return std::make_shared<LsmStorageIterator>(std::move(result));
+  co_return std::make_shared<LsmEngineIterator>(std::move(result));
 }
 
-Awaitable<void> LsmStorage::Compact(CompactionStrategy::Ptr strategy) { 
-  co_await lsm_.Compact(std::make_shared<LsmStorageCompactStrategy>(std::move(strategy)));
+Awaitable<void> LsmEngine::Compact(CompactionStrategy::Ptr strategy) { 
+  co_await lsm_.Compact(std::make_shared<LsmEngineCompactStrategy>(std::move(strategy)));
 }
 
-int LsmStorage::CountSSTables() const {
+int LsmEngine::CountSSTables() const {
   return lsm_.CountSSTables();
 }
 

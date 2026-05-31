@@ -110,7 +110,7 @@ private:
 
 }
 
-TransactionalTable::TransactionalTable(storage::Storage::Ptr table_storage, transaction::Storage::Ptr tx_storage, transaction::TransactionId tx)
+TransactionalTable::TransactionalTable(storage::StorageEngine::Ptr table_storage, transaction::Storage::Ptr tx_storage, transaction::TransactionId tx)
   : table_storage_{std::move(table_storage)}, tx_storage_{std::move(tx_storage)}, tx_{std::move(tx)}
 {}
 

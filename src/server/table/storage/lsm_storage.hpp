@@ -14,16 +14,16 @@ namespace structuredb::server::table::storage {
 /// @brief LSM-backed storage engine
 ///
 /// Splits cleanly from lsm::Lsm: Lsm is the bare LSM-tree data structure
-/// (key/value, sequences, sstables), while LsmStorage is the engine that
+/// (key/value, sequences, sstables), while LsmEngine is the engine that
 /// adapts it to the Storage interface and owns durability:
 /// - logging upserts into the wal
 /// - replaying them on recovery
 /// - translating between table::Row and lsm::Record
-class LsmStorage : public Storage {
+class LsmEngine : public StorageEngine {
 public:
-  using Ptr = std::shared_ptr<LsmStorage>;
+  using Ptr = std::shared_ptr<LsmEngine>;
 
-  explicit LsmStorage(io::Manager& io_manager, std::string base_dir, Storage::Id id);
+  explicit LsmEngine(io::Manager& io_manager, std::string base_dir, StorageEngine::Id id);
 
   Awaitable<void> Init();
 

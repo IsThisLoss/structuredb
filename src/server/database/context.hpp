@@ -14,7 +14,7 @@ struct Context {
   io::Manager& io_manager;
   std::string base_dir;
   wal::Writer::Ptr wal_writer;
-  std::unordered_map<std::string, table::storage::Storage::Ptr> storages;
+  std::unordered_map<std::string, table::storage::StorageEngine::Ptr> storages;
   transaction::Storage::Ptr tx_storage;
 };
 
