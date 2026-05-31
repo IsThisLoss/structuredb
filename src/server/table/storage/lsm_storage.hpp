@@ -30,7 +30,7 @@ public:
 
   Awaitable<bool> IsPersistent(const lsm::Sequence seq_no) override;
 
-  Awaitable<void> Upsert(const Row& row, const transaction::TransactionId& tx) override;
+  Awaitable<void> Upsert(const Row& row) override;
 
   Awaitable<Iterator::Ptr> Scan(const std::string& key) override;
 
@@ -43,7 +43,6 @@ private:
   const Id id_;
   lsm::Lsm lsm_;
   wal::Writer::Ptr wal_writer_{nullptr};
-  lsm::Sequence seq_no_{0};
 };
 
 }

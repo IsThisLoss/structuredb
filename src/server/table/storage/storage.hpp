@@ -36,8 +36,11 @@ public:
   /// @brief inserts or updates value by key
   ///
   /// @param row row to upsert
-  /// @param tx transaction id for lock acquisition
-  virtual Awaitable<void> Upsert(const Row& row, const transaction::TransactionId& tx) = 0;
+  ///
+  /// The engine is transaction-agnostic: MVCC visibility and locking are
+  /// handled by the table layer (see TransactionalTable), the row value is
+  /// already an opaque blob by the time it reaches the storage engine.
+  virtual Awaitable<void> Upsert(const Row& row) = 0;
 
   /// @brief returns iterator over all value versions of @p key
   virtual Awaitable<Iterator::Ptr> Scan(const std::string& key) = 0;
