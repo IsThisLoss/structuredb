@@ -5,7 +5,6 @@
 #include <optional>
 #include <spdlog/spdlog.h>
 
-#include <table/raw_table.hpp>
 #include <table/storage/lsm_storage.hpp>
 #include <wal/recovery.hpp>
 
