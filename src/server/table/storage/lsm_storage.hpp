@@ -11,11 +11,14 @@
 
 namespace structuredb::server::table::storage {
 
-/// @brief table storage over LSM tree
+/// @brief LSM-backed storage engine
 ///
-/// This wrapper of Lsm adds two important features
-/// - logging into the wal
-/// - ability to recover from wal
+/// Splits cleanly from lsm::Lsm: Lsm is the bare LSM-tree data structure
+/// (key/value, sequences, sstables), while LsmStorage is the engine that
+/// adapts it to the Storage interface and owns durability:
+/// - logging upserts into the wal
+/// - replaying them on recovery
+/// - translating between table::Row and lsm::Record
 class LsmStorage : public Storage {
 public:
   using Ptr = std::shared_ptr<LsmStorage>;

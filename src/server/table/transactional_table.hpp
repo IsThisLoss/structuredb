@@ -10,7 +10,8 @@
 
 namespace structuredb::server::table {
 
-/// @brief implements table interface with MVCC transaction model and LsmStorage as undelying storage
+/// @brief Table implementation that layers the MVCC transaction model on top
+/// of any storage engine (table::storage::Storage)
 class TransactionalTable : public Table {
 public:
   using Ptr = std::shared_ptr<TransactionalTable>;
