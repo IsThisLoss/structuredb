@@ -69,15 +69,17 @@ Awaitable<void> Database::Init() {
   context_.wal_writer = co_await wal::Writer::Open(context_.io_manager, wal_path);
   context_.tx_storage->StartLogInto(context_.wal_writer);
   for (const auto& [name, table] : context_.storages) {
-    table->StartLogInto(context_.wal_writer);
+    if (auto durable = std::dynamic_pointer_cast<table::storage::DurableStorage>(table)) {
+      durable->StartLogInto(context_.wal_writer);
+    }
     SPDLOG_INFO("Table {} is ready", name);
   }
 
   is_initialized_ = true;
 }
 
-table::storage::StorageEngine::Ptr Database::GetStorageForRecover(const table::storage::LsmEngine::Id& storage_id) {
-  return context_.storages.at(storage_id);
+table::storage::DurableStorage::Ptr Database::GetStorageForRecover(const table::storage::StorageEngine::Id& storage_id) {
+  return std::dynamic_pointer_cast<table::storage::DurableStorage>(context_.storages.at(storage_id));
 }
 
 transaction::Storage::Ptr Database::GetTransactionStorage() {

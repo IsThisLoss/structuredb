@@ -5,11 +5,8 @@
 #include <memory>
 
 #include <io/manager.hpp>
-#include <lsm/lsm.hpp>
 #include <table/iterator.hpp>
 #include <table/row.hpp>
-#include <wal/writer.hpp>
-#include <transaction/types.hpp>
 
 #include "compaction_strategy.hpp"
 
@@ -26,16 +23,6 @@ class StorageEngine {
 public:
   using Ptr = std::shared_ptr<StorageEngine>;
   using Id = std::string;
-  
-  /// @brief attach storage to @p wal_writer
-  virtual void StartLogInto(wal::Writer::Ptr wal_writer) = 0;
-
-  /// @brief restore logged values from wal
-  ///
-  /// TODO: change interface to hide seq_no
-  virtual Awaitable<void> RecoverFromLog(const lsm::Sequence seq_no, const std::string& key, const std::string& value) = 0;
-
-  virtual Awaitable<bool> IsPersistent(const lsm::Sequence seq_no) = 0;
 
   /// @brief inserts or updates value by key
   ///

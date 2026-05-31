@@ -14,7 +14,7 @@ public:
 
  void Init();
 
- table::storage::StorageEngine::Ptr GetStorageForRecover(const table::storage::StorageEngine::Id& storage_id);
+ table::storage::DurableStorage::Ptr GetStorageForRecover(const table::storage::StorageEngine::Id& storage_id);
 
  sync::Session StartSession(const std::optional<transaction::TransactionId>& tx = std::nullopt);
 

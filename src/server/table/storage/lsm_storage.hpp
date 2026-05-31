@@ -8,6 +8,7 @@
 #include <wal/writer.hpp>
 
 #include "storage.hpp"
+#include "durable_storage.hpp"
 
 namespace structuredb::server::table::storage {
 
@@ -19,7 +20,7 @@ namespace structuredb::server::table::storage {
 /// - logging upserts into the wal
 /// - replaying them on recovery
 /// - translating between table::Row and lsm::Record
-class LsmEngine : public StorageEngine {
+class LsmEngine : public StorageEngine, public DurableStorage {
 public:
   using Ptr = std::shared_ptr<LsmEngine>;
 
