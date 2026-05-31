@@ -125,7 +125,11 @@ Awaitable<int> Session::CountSSTables(const std::string& name) {
     co_return 0;
   }
   auto storage = context_.storages.at(storage_id.value());
-  co_return storage->CountSSTables();
+  // CountSSTables is an LSM-specific statistic; other engines report 0
+  if (auto lsm = std::dynamic_pointer_cast<table::storage::LsmStorage>(storage)) {
+    co_return lsm->CountSSTables();
+  }
+  co_return 0;
 }
 
 }

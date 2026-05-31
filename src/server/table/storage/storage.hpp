@@ -59,8 +59,6 @@ public:
   virtual Awaitable<void> Compact(CompactionStrategy::Ptr strategy) = 0;
 
   virtual ~Storage() = default;
-
-  virtual int CountSSTables() const { return 0; }
 };
 
 }

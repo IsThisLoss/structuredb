@@ -38,7 +38,9 @@ public:
 
   Awaitable<void> Compact(CompactionStrategy::Ptr strategy) override;
 
-  int CountSSTables() const override;
+  /// @brief number of on-disk SSTables — LSM-specific statistic, not part of
+  /// the engine interface; callers must downcast to query it
+  int CountSSTables() const;
 private:
   const Id id_;
   lsm::Lsm lsm_;
