@@ -1,5 +1,10 @@
 #include "catalog.hpp"
 
+#include <cstring>
+#include <cstdint>
+#include <string>
+#include <unordered_set>
+#include <optional>
 #include <spdlog/spdlog.h>
 
 #include <table/transform_iterator.hpp>

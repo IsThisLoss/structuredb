@@ -1,5 +1,6 @@
 #pragma once
 
+#include <set>
 #include <lsm/mem_table.hpp>
 
 #include "iterator.hpp"

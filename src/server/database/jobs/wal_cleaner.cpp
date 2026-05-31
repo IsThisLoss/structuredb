@@ -1,5 +1,7 @@
 #include "wal_cleaner.hpp"
 
+#include <chrono>
+#include <string>
 #include <database/database.hpp>
 #include <wal/cleaner.hpp>
 #include <spdlog/spdlog.h>

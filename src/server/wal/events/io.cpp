@@ -1,5 +1,8 @@
 #include "io.hpp"
 
+#include <cstdint>
+#include <unordered_map>
+#include <functional>
 #include <spdlog/spdlog.h>
 
 #include "lsm_storage_upsert_event.hpp"

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+#include <unordered_map>
 #include <string>
 
 #include <io/file_reader.hpp>

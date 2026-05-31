@@ -1,5 +1,6 @@
 #include "shared_mutex.hpp"
 
+#include <functional>
 #include <boost/asio/steady_timer.hpp>
 #include <boost/asio/executor.hpp>
 #include <boost/asio/use_awaitable.hpp>

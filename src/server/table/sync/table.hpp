@@ -1,5 +1,8 @@
 #pragma once
 
+#include <memory>
+#include <string>
+#include <optional>
 #include <io/manager.hpp>
 #include <table/table.hpp>
 

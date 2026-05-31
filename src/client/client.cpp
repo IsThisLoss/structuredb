@@ -1,5 +1,6 @@
 #include "client.hpp"
 
+#include <string>
 #include <connection/connection.hpp>
 
 namespace structuredb::client {

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <sdb/reader.hpp>
 #include <sdb/writer.hpp>
 

@@ -1,3 +1,6 @@
+#include <string>
+#include <vector>
+
 #include "trie.hpp"
 
 namespace structuredb::cli {

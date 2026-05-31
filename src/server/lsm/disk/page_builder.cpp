@@ -1,5 +1,8 @@
 #include "page_builder.hpp"
 
+#include <cstdint>
+#include <algorithm>
+#include <vector>
 #include <lsm/disk/page_checksum.hpp>
 #include <sdb/buffer_writer.hpp>
 

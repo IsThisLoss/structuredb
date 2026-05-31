@@ -1,5 +1,8 @@
 #pragma once
 
+#include <memory>
+#include <string>
+#include <optional>
 #include <io/manager.hpp>
 #include <lsm/lsm.hpp>
 #include <wal/writer.hpp>

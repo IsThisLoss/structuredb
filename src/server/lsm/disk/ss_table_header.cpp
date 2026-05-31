@@ -1,3 +1,5 @@
+#include <cstdint>
+
 #include "ss_table_header.hpp"
 
 namespace structuredb::server::lsm::disk {

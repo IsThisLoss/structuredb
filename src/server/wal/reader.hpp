@@ -1,5 +1,8 @@
 #pragma once
 
+#include <cstdint>
+#include <string>
+#include <vector>
 #include <memory>
 
 #include <io/manager.hpp>

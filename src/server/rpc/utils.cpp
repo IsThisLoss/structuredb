@@ -1,3 +1,5 @@
+#include <string>
+
 #include "utils.hpp"
 
 namespace structuredb::server::rpc {

@@ -1,5 +1,8 @@
 #include "mem_table.hpp"
 
+#include <cstdint>
+#include <memory>
+#include <string>
 #include <spdlog/spdlog.h>
 
 #include <utils/find.hpp>

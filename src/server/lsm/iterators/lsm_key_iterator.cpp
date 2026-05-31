@@ -1,3 +1,7 @@
+#include <cassert>
+#include <cstdint>
+#include <string>
+
 #include "lsm_key_iterator.hpp"
 
 namespace structuredb::server::lsm {

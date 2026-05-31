@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+#include <string>
 #include <lsm/lsm.hpp>
 
 namespace structuredb::server::lsm {

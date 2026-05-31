@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+#include <string>
 #include <database/database.hpp>
 #include <connection/connection.hpp>
 

@@ -1,5 +1,8 @@
 #include "database.hpp"
 
+#include <memory>
+#include <string>
+#include <optional>
 #include <spdlog/spdlog.h>
 
 #include <table/raw_table.hpp>

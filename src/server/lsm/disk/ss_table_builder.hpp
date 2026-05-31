@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <io/file_writer.hpp>
 
 #include "ss_table_header.hpp"

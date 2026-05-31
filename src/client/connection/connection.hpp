@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+#include <string>
 #include <table_service.grpc.pb.h>
 #include <transaction_service.grpc.pb.h>
 

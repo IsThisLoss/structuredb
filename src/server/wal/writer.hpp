@@ -1,5 +1,8 @@
 #pragma once
 
+#include <cstdint>
+#include <memory>
+#include <string>
 #include <io/manager.hpp>
 
 #include "events/event.hpp"

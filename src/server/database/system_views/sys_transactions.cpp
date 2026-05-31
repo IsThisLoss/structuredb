@@ -1,3 +1,6 @@
+#include <string>
+#include <optional>
+
 #include "sys_transactions.hpp"
 
 namespace structuredb::server::database::system_views {

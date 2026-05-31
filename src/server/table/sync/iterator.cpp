@@ -1,3 +1,5 @@
+#include <cassert>
+
 #include "iterator.hpp"
 
 namespace structuredb::server::table::sync {

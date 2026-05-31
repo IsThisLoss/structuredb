@@ -1,5 +1,10 @@
 #include "transactional_table.hpp"
 
+#include <cstddef>
+#include <memory>
+#include <string>
+#include <vector>
+#include <optional>
 #include <spdlog/spdlog.h>
 
 #include <sdb/buffer_reader.hpp>

@@ -1,5 +1,7 @@
 #include "uuid.hpp"
 
+#include <cstring>
+#include <string>
 #include <boost/uuid/random_generator.hpp>
 #include <boost/uuid/string_generator.hpp>
 #include <boost/uuid/uuid_io.hpp>

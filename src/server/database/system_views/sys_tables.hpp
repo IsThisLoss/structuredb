@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+#include <optional>
 #include <database/catalog.hpp>
 
 #include "system_view.hpp"

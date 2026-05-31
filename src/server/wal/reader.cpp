@@ -1,5 +1,9 @@
 #include "reader.hpp"
 
+#include <algorithm>
+#include <cstdint>
+#include <string>
+#include <vector>
 #include <io/exceptions.hpp>
 #include <wal/segment.hpp>
 #include <wal/wal.hpp>

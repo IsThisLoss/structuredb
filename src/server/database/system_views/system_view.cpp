@@ -1,5 +1,7 @@
 #include "system_view.hpp"
 
+#include <string>
+#include <optional>
 #include <database/exceptions.hpp>
 
 namespace structuredb::server::database::system_views {

@@ -1,3 +1,7 @@
+#include <string>
+#include <optional>
+#include <stdexcept>
+
 #include "raw_table.hpp"
 
 namespace structuredb::server::table {

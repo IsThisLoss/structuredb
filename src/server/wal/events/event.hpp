@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+#include <memory>
 #include <io/types.hpp>
 #include <sdb/writer.hpp>
 #include <sdb/reader.hpp>

@@ -1,5 +1,6 @@
 #include "transaction_service.hpp"
 
+#include <memory>
 #include <rpc/utils.hpp>
 
 namespace structuredb::server::services {

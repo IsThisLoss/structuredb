@@ -1,3 +1,8 @@
+#include <cstring>
+#include <cstdint>
+#include <string>
+#include <vector>
+
 #include "buffer_reader.hpp"
 
 namespace structuredb::server::sdb {

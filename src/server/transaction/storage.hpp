@@ -2,6 +2,10 @@
 
 #include "types.hpp"
 #include "wal/writer.hpp"
+#include <memory>
+#include <string>
+#include <unordered_map>
+#include <optional>
 #include <table/table.hpp>
 #include <io/condition_variable.hpp>
 #include <unordered_set>

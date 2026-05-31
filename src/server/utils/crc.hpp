@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <boost/crc.hpp>
 
 namespace structuredb::server::utils {

@@ -1,5 +1,9 @@
 #pragma once
 
+#include <memory>
+#include <string>
+#include <vector>
+#include <functional>
 #include <execute/context.hpp>
 
 namespace structuredb::cli {

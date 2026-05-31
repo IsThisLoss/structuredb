@@ -2,6 +2,7 @@
 
 #include "database.hpp"
 
+#include <memory>
 #include <functional>
 
 #include <grpcpp/channel.h>

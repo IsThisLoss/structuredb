@@ -1,5 +1,8 @@
 #include "recovery.hpp"
 
+#include <memory>
+#include <string>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 #include <io/exceptions.hpp>

@@ -1,5 +1,10 @@
 #include "writer.hpp"
 
+#include <cassert>
+#include <cstdint>
+#include <memory>
+#include <string>
+#include <vector>
 #include <algorithm>
 
 #include <spdlog/spdlog.h>

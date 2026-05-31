@@ -1,0 +1,74 @@
+name: Tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Cancel in-progress runs for the same ref to save CI minutes.
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build & Test (Debug)
+    runs-on: ubuntu-latest
+
+    env:
+      BUILD_TYPE: Debug
+
+    steps:
+      # Fetch submodules over HTTPS instead of the SSH URL declared in
+      # .gitmodules, since CI has no SSH key for github.com.
+      - name: Rewrite submodule SSH URLs to HTTPS
+        run: git config --global url."https://github.com/".insteadOf "git@github.com:"
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install build toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential g++-13 ninja-build pkg-config
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install CMake (>= 3.30) and Conan
+        run: pip install "cmake>=3.30" "conan>=2.9"
+
+      - name: Detect Conan profile
+        env:
+          CC: gcc-13
+          CXX: g++-13
+        run: conan profile detect --force
+
+      - name: Cache Conan packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.conan2
+          key: conan-${{ runner.os }}-${{ hashFiles('conanfile.txt') }}
+          restore-keys: |
+            conan-${{ runner.os }}-
+
+      - name: Install dependencies
+        env:
+          CC: gcc-13
+          CXX: g++-13
+        run: conan install . --build=missing --settings=build_type=${{ env.BUILD_TYPE }}
+
+      - name: Configure
+        run: cmake --preset conan-debug
+
+      - name: Build
+        run: cmake --build --preset conan-debug
+
+      - name: Run tests
+        working-directory: build/${{ env.BUILD_TYPE }}
+        run: ctest --output-on-failure

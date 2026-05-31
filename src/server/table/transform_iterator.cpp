@@ -1,3 +1,5 @@
+#include <memory>
+
 #include "transform_iterator.hpp"
 
 namespace structuredb::server::table {

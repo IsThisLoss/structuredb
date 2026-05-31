@@ -1,6 +1,10 @@
 #include "storage.hpp"
 #include "transaction/types.hpp"
 
+#include <algorithm>
+#include <memory>
+#include <string>
+#include <optional>
 #include <io/types.hpp>
 #include <utils/find.hpp>
 #include <wal/events/tx_storage_commit_event.hpp>

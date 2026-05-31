@@ -1,3 +1,5 @@
+#include <memory>
+
 #include "tx_storage_commit_event.hpp"
 
 #include "database/database.hpp"

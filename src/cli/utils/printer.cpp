@@ -1,5 +1,7 @@
 #include "printer.hpp"
 
+#include <cstddef>
+#include <string>
 #include <iostream>
 
 namespace structuredb::cli {

@@ -1,3 +1,8 @@
+#include <cassert>
+#include <memory>
+#include <string>
+#include <optional>
+
 #include "session.hpp"
 
 namespace structuredb::server::database::sync {

@@ -1,3 +1,5 @@
+#include <iterator>
+
 #include "mem_table_iterator.hpp"
 
 namespace structuredb::server::lsm {

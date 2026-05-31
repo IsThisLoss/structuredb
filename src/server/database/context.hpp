@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+#include <unordered_map>
 #include <io/manager.hpp>
 #include <table/storage/storage.hpp>
 #include <transaction/storage.hpp>

@@ -2,6 +2,7 @@
 
 #include "event.hpp"
 
+#include <string>
 #include <io/types.hpp>
 #include <lsm/types.hpp>
 

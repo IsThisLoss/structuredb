@@ -1,3 +1,5 @@
+#include <stdexcept>
+
 #include "status_check.hpp"
 
 namespace structuredb::client {

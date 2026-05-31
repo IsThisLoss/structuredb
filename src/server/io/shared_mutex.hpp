@@ -1,5 +1,7 @@
 #pragma once
 
+#include <deque>
+#include <functional>
 #include <boost/asio/io_context.hpp>
 
 #include "types.hpp"

@@ -1,5 +1,11 @@
 #include "lsm.hpp"
 
+#include <cstdint>
+#include <algorithm>
+#include <memory>
+#include <string>
+#include <vector>
+#include <optional>
 #include <spdlog/spdlog.h>
 
 #include "iterators/lsm_range_iterator.hpp"

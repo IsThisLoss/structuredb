@@ -1,3 +1,5 @@
+#include <cstddef>
+
 #include "blocking_executor.hpp"
 
 namespace structuredb::server::io {
