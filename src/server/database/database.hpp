@@ -3,6 +3,7 @@
 #include <string>
 #include <optional>
 
+#include <lsm/options.hpp>
 #include <table/storage/durable_storage.hpp>
 
 #include "context.hpp"
@@ -13,7 +14,7 @@ namespace structuredb::server::database {
 /// @brief main database class
 class Database {
 public:
- explicit Database(io::Manager& io_manager, std::string base_dir);
+ explicit Database(io::Manager& io_manager, std::string base_dir, lsm::Options lsm_options = {});
 
  Awaitable<void> Init();
 
@@ -21,6 +22,11 @@ public:
  table::storage::DurableStorage::Ptr GetStorageForRecover(const table::storage::StorageEngine::Id& storage_id);
 
  transaction::Storage::Ptr GetTransactionStorage();
+
+ /// @brief persists in-memory data of every table to disk
+ ///
+ /// driven by a background job; keeps the flush off the write path
+ Awaitable<void> Flush();
 
   /// @brief starts session
   ///

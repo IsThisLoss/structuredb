@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <cstdint>
 #include <string>
 #include <set>
 
@@ -25,7 +26,7 @@ public:
   /// @brief creates SSTable based on current MemTable
   ///
   /// (Persists MemTable data on disk)
-  Awaitable<SSTable> Flush(io::Manager& io_manager, const std::string& file_path) const;
+  Awaitable<SSTable> Flush(io::Manager& io_manager, const std::string& file_path, int64_t page_size) const;
 
   /// @returns iterator to scan given @p range
   Iterator::Ptr Scan(const ScanRange& range) const;

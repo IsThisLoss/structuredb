@@ -57,8 +57,6 @@ public:
 private:
   io::Manager& io_manager_;
   database::Database& database_;
-  std::mutex mu_;
-
 };
 
 std::unique_ptr<grpc::Service> MakeService(

@@ -21,6 +21,7 @@ message LookupTableRequest {
 
 message LookupTableResponse {
   optional string value = 1;
+  string tx = 2;
 }
 
 message CreateTableRequest {

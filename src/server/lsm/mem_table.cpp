@@ -21,16 +21,14 @@ size_t MemTable::Size() const {
 
 }
 
-Awaitable<SSTable> MemTable::Flush(io::Manager& io_manager, const std::string& file_path) const {
-  constexpr static const int64_t kPageSize = 512;
-
+Awaitable<SSTable> MemTable::Flush(io::Manager& io_manager, const std::string& file_path, int64_t page_size) const {
   SPDLOG_INFO("MemTable flush started");
 
   // This bock is important because
   // file_writer closes file in destructor
   {
     auto file_writer = co_await io_manager.CreateFileWriter(file_path);
-    auto builder = co_await disk::SSTableBuilder::Create(file_writer, kPageSize);
+    auto builder = co_await disk::SSTableBuilder::Create(file_writer, page_size);
     for (const auto& record : impl_) {
       co_await builder.Add(record);
     }

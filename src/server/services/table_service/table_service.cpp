@@ -22,8 +22,6 @@ grpc::ServerUnaryReactor* TableServiceImpl::Upsert(
   auto* reactor = context->DefaultReactor();
 
   io_manager_.CoSpawn([this, request, response, reactor]() -> Awaitable<void> {
-      std::unique_lock lock{mu_};
-
       try {
         const auto tx = rpc::ParseTx(request);
         auto session = co_await database_.StartSession(tx);
@@ -56,8 +54,6 @@ grpc::ServerUnaryReactor* TableServiceImpl::Lookup(
   auto* reactor = context->DefaultReactor();
 
   io_manager_.CoSpawn([this, reactor, request, response]() -> Awaitable<void> {
-      std::unique_lock lock{mu_};
-
       try {
         const auto tx = rpc::ParseTx(request);
         auto session = co_await database_.StartSession(tx);
@@ -75,6 +71,7 @@ grpc::ServerUnaryReactor* TableServiceImpl::Lookup(
         }
 
         auto result_tx = co_await session.Finish();
+        response->set_tx(transaction::ToString(result_tx));
         reactor->Finish(grpc::Status::OK);
       } catch (const std::exception& e) {
         reactor->Finish(rpc::MakeInternalError(e.what()));
@@ -92,8 +89,6 @@ grpc::ServerUnaryReactor* TableServiceImpl::Delete(
   auto* reactor = context->DefaultReactor();
 
   io_manager_.CoSpawn([this, request, response, reactor]() -> Awaitable<void> {
-      std::unique_lock lock{mu_};
-
       try {
         const auto tx = rpc::ParseTx(request);
         auto session = co_await database_.StartSession(tx);
@@ -126,8 +121,6 @@ grpc::ServerUnaryReactor* TableServiceImpl::CreateTable(
   auto* reactor = context->DefaultReactor();
 
   io_manager_.CoSpawn([this, request, response, reactor]() -> Awaitable<void> {
-      std::unique_lock lock{mu_};
-
       try {
         const auto tx = rpc::ParseTx(request);
         auto session = co_await database_.StartSession(tx);
@@ -155,8 +148,6 @@ grpc::ServerUnaryReactor* TableServiceImpl::DropTable(
   auto* reactor = context->DefaultReactor();
 
   io_manager_.CoSpawn([this, request, response, reactor]() -> Awaitable<void> {
-      std::unique_lock lock{mu_};
-
       try {
         const auto tx = rpc::ParseTx(request);
         auto session = co_await database_.StartSession(tx);
@@ -184,8 +175,6 @@ grpc::ServerUnaryReactor* TableServiceImpl::Scan(
   auto* reactor = context->DefaultReactor();
 
   io_manager_.CoSpawn([this, request, response, reactor]() -> Awaitable<void> {
-      std::unique_lock lock{mu_};
-
       try {
         const auto tx = rpc::ParseTx(request);
         auto session = co_await database_.StartSession(tx);
@@ -232,8 +221,6 @@ grpc::ServerUnaryReactor* TableServiceImpl::CompactTable(
   auto* reactor = context->DefaultReactor();
 
   io_manager_.CoSpawn([this, request, response, reactor]() -> Awaitable<void> {
-      std::unique_lock lock{mu_};
-
       try {
         const auto tx = rpc::ParseTx(request);
         auto session = co_await database_.StartSession(tx);

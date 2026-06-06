@@ -57,7 +57,7 @@ Awaitable<void> Session::CreateTable(const std::string& name) {
     const auto storage_id = co_await catalog.AddStorage(name);
     const auto path = context_.base_dir + "/" + storage_id;
     co_await context_.io_manager.CreateDirectory(path);
-    auto storage = std::make_shared<table::storage::LsmEngine>(context_.io_manager, path, storage_id);
+    auto storage = std::make_shared<table::storage::LsmEngine>(context_.io_manager, path, storage_id, context_.lsm_options);
     co_await storage->Init();
     storage->StartLogInto(context_.wal_writer);
     context_.storages.try_emplace(storage_id, std::move(storage));

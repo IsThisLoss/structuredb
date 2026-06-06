@@ -49,6 +49,9 @@ public:
   /// @brief runs optimization of storage
   virtual Awaitable<void> Compact(CompactionStrategy::Ptr strategy) = 0;
 
+  /// @brief persists in-memory data to disk (off the write path)
+  virtual Awaitable<void> Flush() { co_return; }
+
   virtual ~StorageEngine() = default;
 };
 

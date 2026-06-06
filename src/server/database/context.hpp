@@ -3,6 +3,7 @@
 #include <string>
 #include <unordered_map>
 #include <io/manager.hpp>
+#include <lsm/options.hpp>
 #include <table/storage/storage.hpp>
 #include <transaction/storage.hpp>
 #include <wal/writer.hpp>
@@ -13,6 +14,7 @@ namespace structuredb::server::database {
 struct Context {
   io::Manager& io_manager;
   std::string base_dir;
+  lsm::Options lsm_options;
   wal::Writer::Ptr wal_writer;
   std::unordered_map<std::string, table::storage::StorageEngine::Ptr> storages;
   transaction::Storage::Ptr tx_storage;

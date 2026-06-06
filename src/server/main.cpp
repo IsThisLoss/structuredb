@@ -22,9 +22,11 @@
 #include <cfg/config.hpp>
 #include <database/database.hpp>
 #include <database/jobs/compaction.hpp>
+#include <database/jobs/flush.hpp>
 #include <database/jobs/job_launcher.hpp>
 #include <database/jobs/wal_cleaner.hpp>
 #include <io/manager.hpp>
+#include <lsm/options.hpp>
 
 ABSL_FLAG(std::string, config, "./config.yaml", "Path to config");
 
@@ -77,7 +79,12 @@ int main(int argc, char** argv) {
     boost::asio::io_context io_context{};
     structuredb::server::io::Manager io_manager{io_context};
 
-    structuredb::server::database::Database database{io_manager, config.root};
+    const structuredb::server::lsm::Options lsm_options{
+      .max_records_in_mem_table = config.lsm.max_records_in_mem_table,
+      .max_ro_mem_tables = config.lsm.max_ro_mem_tables,
+      .page_size = config.lsm.page_size,
+    };
+    structuredb::server::database::Database database{io_manager, config.root, lsm_options};
     auto init_future = boost::asio::co_spawn(io_context, Init(database), boost::asio::use_future);
 
     const auto table_service = structuredb::server::services::MakeService(io_manager, database);
@@ -102,6 +109,7 @@ int main(int argc, char** argv) {
     // background jobs
     structuredb::server::database::JobLauncher job_launcher{io_manager};
     job_launcher.Launch(std::make_shared<structuredb::server::database::Compaction>(database, config.compaction.interval));
+    job_launcher.Launch(std::make_shared<structuredb::server::database::Flush>(database, config.flush.interval));
     job_launcher.Launch(std::make_shared<structuredb::server::database::WalCleaner>(io_manager, database, config.root + "/wal", config.wal.clean.interval));
 
     // server
