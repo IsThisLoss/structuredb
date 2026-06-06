@@ -21,7 +21,7 @@ size_t MemTable::Size() const {
 
 }
 
-Awaitable<SSTable> MemTable::Flush(io::Manager& io_manager, const std::string& file_path, int64_t page_size) const {
+Awaitable<SSTable> MemTable::Flush(io::Manager& io_manager, const std::string& file_path, int64_t page_size, size_t page_cache_capacity) const {
   SPDLOG_INFO("MemTable flush started");
 
   // This bock is important because
@@ -37,7 +37,7 @@ Awaitable<SSTable> MemTable::Flush(io::Manager& io_manager, const std::string& f
   }
 
   auto file_reader = co_await io_manager.CreateFileReader(file_path);
-  auto ss_table = co_await SSTable::Create(std::move(file_reader));
+  auto ss_table = co_await SSTable::Create(std::move(file_reader), page_cache_capacity);
   co_return ss_table;
 }
 

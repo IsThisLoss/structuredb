@@ -85,6 +85,9 @@ Lsm ParseLsm(const YAML::Node& node) {
   if (node["page_size"]) {
     result.page_size = node["page_size"].as<int64_t>();
   }
+  if (node["page_cache_capacity"]) {
+    result.page_cache_capacity = node["page_cache_capacity"].as<size_t>();
+  }
 
   return result;
 }

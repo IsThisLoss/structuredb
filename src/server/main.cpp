@@ -83,6 +83,7 @@ int main(int argc, char** argv) {
       .max_records_in_mem_table = config.lsm.max_records_in_mem_table,
       .max_ro_mem_tables = config.lsm.max_ro_mem_tables,
       .page_size = config.lsm.page_size,
+      .page_cache_capacity = config.lsm.page_cache_capacity,
     };
     structuredb::server::database::Database database{io_manager, config.root, lsm_options};
     auto init_future = boost::asio::co_spawn(io_context, Init(database), boost::asio::use_future);

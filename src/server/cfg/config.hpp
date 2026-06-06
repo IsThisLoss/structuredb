@@ -38,6 +38,7 @@ struct Lsm {
   size_t max_records_in_mem_table{10000};
   size_t max_ro_mem_tables{1};
   int64_t page_size{4096};
+  size_t page_cache_capacity{1024};
 };
 
 struct Config {

@@ -1,10 +1,11 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
-#include <unordered_map>
 #include <string>
 
 #include <io/file_reader.hpp>
+#include <cache/lru_cache.hpp>
 
 #include "disk/page.hpp"
 #include "disk/ss_table_header.hpp"
@@ -19,7 +20,7 @@ namespace structuredb::server::lsm {
 /// Also file is divided on pages
 class SSTable {
 public:
-  static Awaitable<SSTable> Create(io::FileReader::Ptr file_reader);
+  static Awaitable<SSTable> Create(io::FileReader::Ptr file_reader, size_t page_cache_capacity);
 
   /// @returns iterator to scan given @p range
   Awaitable<Iterator::Ptr> Scan(const ScanRange& range);
@@ -31,7 +32,7 @@ public:
 
   const std::string& GetFilePath() const;
 private:
-  explicit SSTable(io::FileReader::Ptr file_reader);
+  explicit SSTable(io::FileReader::Ptr file_reader, size_t page_cache_capacity);
 
   Awaitable<void> Init();
 
@@ -51,8 +52,7 @@ private:
   int64_t header_size_{};
   disk::Page page_{};
 
-  /// TODO use lru cache
-  std::unordered_map<size_t, disk::Page::Ptr> page_cache_;
+  cache::LruCache<size_t, disk::Page::Ptr> page_cache_;
 
   /// @brief returns page by its number
   Awaitable<disk::Page::Ptr> GetPage(int64_t page_num);
