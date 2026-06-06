@@ -14,3 +14,4 @@ lsm:
   max_records_in_mem_table: 10000
   max_ro_mem_tables: 1
   page_size: 4096
+  page_cache_capacity: 1024

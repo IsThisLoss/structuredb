@@ -19,6 +19,12 @@ struct Options {
   /// a single record (key + value + per-record overhead) must fit into one
   /// page, so this also caps the maximum record size
   int64_t page_size{4096};
+
+  /// @brief max pages cached in memory per sstable file
+  ///
+  /// each sstable keeps an LRU cache of decoded pages to avoid re-reading hot
+  /// pages from disk; 0 disables caching
+  size_t page_cache_capacity{1024};
 };
 
 }

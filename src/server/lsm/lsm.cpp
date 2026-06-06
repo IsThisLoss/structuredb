@@ -43,7 +43,7 @@ Awaitable<void> Lsm::Init() {
   std::ranges::sort(names);
   for (const auto& name : names) {
     auto file_reader = co_await io_manager_.CreateFileReader(base_dir_ + "/" + name);
-    auto ss_table = co_await SSTable::Create(std::move(file_reader));
+    auto ss_table = co_await SSTable::Create(std::move(file_reader), options_.page_cache_capacity);
     max_persistent_seq_no_ = std::max(max_persistent_seq_no_, ss_table.GetMaxSeqNo());
     ss_tables_.push_back(std::move(ss_table));
   }
@@ -112,7 +112,7 @@ Awaitable<void> Lsm::Flush() {
     // the slow disk write below can run without holding any lock, keeping the
     // write path (which needs the exclusive lock) unblocked.
     const auto file_path = std::format("{}/{:04d}.sst.sdb", base_dir_, ss_tables_.size());
-    auto ss_table = co_await ro_mem_tables_.front().Flush(io_manager_, file_path, options_.page_size);
+    auto ss_table = co_await ro_mem_tables_.front().Flush(io_manager_, file_path, options_.page_size, options_.page_cache_capacity);
 
     // Publish the new ss table and drop the now-persisted mem table atomically.
     // The mem table stays readable (in ro_mem_tables_) for the whole flush, so
@@ -190,7 +190,7 @@ Awaitable<void> Lsm::Compact(CompactionStrategy::Ptr strategy) {
   }
 
   auto file_reader = co_await io_manager_.CreateFileReader(file_path);
-  auto ss_table = co_await SSTable::Create(std::move(file_reader));
+  auto ss_table = co_await SSTable::Create(std::move(file_reader), options_.page_cache_capacity);
 
   co_await shared_mutex_.LockExclusive();
   ss_tables_.clear();
