@@ -192,7 +192,6 @@ The server exposes three Protocol Buffer services (see `proto/`):
 - **Tables** — `Upsert`, `Lookup`, `Scan`, `Delete`, `CreateTable`, `DropTable`,
   `CompactTable`
 - **Transactions** — `Begin`, `Commit`
-- **Replication** — `GetEvents` (streams WAL events)
 
 ## License
 
