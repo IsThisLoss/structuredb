@@ -110,7 +110,7 @@ private:
 
 }
 
-TransactionalTable::TransactionalTable(storage::Storage::Ptr table_storage, transaction::Storage::Ptr tx_storage, transaction::TransactionId tx)
+TransactionalTable::TransactionalTable(storage::StorageEngine::Ptr table_storage, transaction::Storage::Ptr tx_storage, transaction::TransactionId tx)
   : table_storage_{std::move(table_storage)}, tx_storage_{std::move(tx_storage)}, tx_{std::move(tx)}
 {}
 
@@ -128,7 +128,7 @@ Awaitable<void> TransactionalTable::Upsert(
   co_await table_storage_->Upsert(Row{
     .key = key,
     .value = std::move(transactional_value),
-  }, tx_);
+  });
 }
 
 Awaitable<std::optional<std::string>> TransactionalTable::Lookup(const std::string& key) {
@@ -170,7 +170,7 @@ Awaitable<bool> TransactionalTable::Delete(const std::string& key) {
   co_await table_storage_->Upsert(Row{
     .key = key,
     .value = std::move(transactional_value),
-  }, tx_);
+  });
   co_return true;
 }
 

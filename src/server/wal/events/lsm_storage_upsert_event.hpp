@@ -3,8 +3,8 @@
 #include "event.hpp"
 
 #include <string>
+#include <types.hpp>
 #include <io/types.hpp>
-#include <lsm/types.hpp>
 
 namespace structuredb::server::wal {
 
@@ -12,7 +12,7 @@ class LsmStorageUpsertEvent : public Event {
 public:
   explicit LsmStorageUpsertEvent(
       std::string storage_id,
-      lsm::Sequence seq_no,
+      types::Sequence seq_no,
       std::string key,
       std::string value
   );
@@ -28,7 +28,7 @@ public:
   Awaitable<bool> IsPersistent(database::Database&) override;
 private:
   const std::string storage_id_;
-  const lsm::Sequence seq_no_;
+  const types::Sequence seq_no_;
   const std::string key_;
   const std::string value_;
 };

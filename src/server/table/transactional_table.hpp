@@ -10,12 +10,13 @@
 
 namespace structuredb::server::table {
 
-/// @brief implements table interface with MVCC transaction model and LsmStorage as undelying storage
+/// @brief Table implementation that layers the MVCC transaction model on top
+/// of any storage engine (table::storage::StorageEngine)
 class TransactionalTable : public Table {
 public:
   using Ptr = std::shared_ptr<TransactionalTable>;
 
-  explicit TransactionalTable(storage::Storage::Ptr table_storage, transaction::Storage::Ptr tx_storage, transaction::TransactionId tx);
+  explicit TransactionalTable(storage::StorageEngine::Ptr table_storage, transaction::Storage::Ptr tx_storage, transaction::TransactionId tx);
 
   Awaitable<void> Upsert(
       const std::string& key,
@@ -30,7 +31,7 @@ public:
 
   Awaitable<void> Compact() override;
 private:
-  storage::Storage::Ptr table_storage_;
+  storage::StorageEngine::Ptr table_storage_;
   transaction::Storage::Ptr tx_storage_;
   transaction::TransactionId tx_;
 };

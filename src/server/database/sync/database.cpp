@@ -15,7 +15,7 @@ void Database::Init() {
   io_manager_.RunSync(impl_.Init());
 }
 
-table::storage::Storage::Ptr Database::GetStorageForRecover(const table::storage::Storage::Id& storage_id) {
+table::storage::DurableStorage::Ptr Database::GetStorageForRecover(const table::storage::StorageEngine::Id& storage_id) {
   return impl_.GetStorageForRecover(storage_id);
 }
 

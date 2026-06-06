@@ -3,6 +3,8 @@
 #include <string>
 #include <optional>
 
+#include <table/storage/durable_storage.hpp>
+
 #include "context.hpp"
 #include "session.hpp"
 
@@ -16,7 +18,7 @@ public:
  Awaitable<void> Init();
 
  /// @returns storage by its id for recovery
- table::storage::Storage::Ptr GetStorageForRecover(const table::storage::Storage::Id& storage_id);
+ table::storage::DurableStorage::Ptr GetStorageForRecover(const table::storage::StorageEngine::Id& storage_id);
 
  transaction::Storage::Ptr GetTransactionStorage();
 

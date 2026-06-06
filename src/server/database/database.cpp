@@ -5,7 +5,6 @@
 #include <optional>
 #include <spdlog/spdlog.h>
 
-#include <table/raw_table.hpp>
 #include <table/storage/lsm_storage.hpp>
 #include <wal/recovery.hpp>
 
@@ -44,7 +43,7 @@ Awaitable<void> Database::Init() {
   {
     const auto path = context_.base_dir + "/" + kSysTables;
     co_await context_.io_manager.CreateDirectory(path);
-    auto sys_storage = std::make_shared<table::storage::LsmStorage>(context_.io_manager, path, kSysTables);
+    auto sys_storage = std::make_shared<table::storage::LsmEngine>(context_.io_manager, path, kSysTables);
     co_await sys_storage->Init();
     context_.storages.try_emplace(kSysTables, std::move(sys_storage));
   }
@@ -57,7 +56,7 @@ Awaitable<void> Database::Init() {
   // 4. init user tables
   for (const auto& name : dir_content) {
     SPDLOG_INFO("Going to init table {}", name);
-    auto storage = std::make_shared<table::storage::LsmStorage>(context_.io_manager, context_.base_dir + "/" + name, name);
+    auto storage = std::make_shared<table::storage::LsmEngine>(context_.io_manager, context_.base_dir + "/" + name, name);
     co_await storage->Init();
     context_.storages.try_emplace(name, std::move(storage));
   }
@@ -70,15 +69,17 @@ Awaitable<void> Database::Init() {
   context_.wal_writer = co_await wal::Writer::Open(context_.io_manager, wal_path);
   context_.tx_storage->StartLogInto(context_.wal_writer);
   for (const auto& [name, table] : context_.storages) {
-    table->StartLogInto(context_.wal_writer);
+    if (auto durable = std::dynamic_pointer_cast<table::storage::DurableStorage>(table)) {
+      durable->StartLogInto(context_.wal_writer);
+    }
     SPDLOG_INFO("Table {} is ready", name);
   }
 
   is_initialized_ = true;
 }
 
-table::storage::Storage::Ptr Database::GetStorageForRecover(const table::storage::LsmStorage::Id& storage_id) {
-  return context_.storages.at(storage_id);
+table::storage::DurableStorage::Ptr Database::GetStorageForRecover(const table::storage::StorageEngine::Id& storage_id) {
+  return std::dynamic_pointer_cast<table::storage::DurableStorage>(context_.storages.at(storage_id));
 }
 
 transaction::Storage::Ptr Database::GetTransactionStorage() {

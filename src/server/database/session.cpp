@@ -57,7 +57,7 @@ Awaitable<void> Session::CreateTable(const std::string& name) {
     const auto storage_id = co_await catalog.AddStorage(name);
     const auto path = context_.base_dir + "/" + storage_id;
     co_await context_.io_manager.CreateDirectory(path);
-    auto storage = std::make_shared<table::storage::LsmStorage>(context_.io_manager, path, storage_id);
+    auto storage = std::make_shared<table::storage::LsmEngine>(context_.io_manager, path, storage_id);
     co_await storage->Init();
     storage->StartLogInto(context_.wal_writer);
     context_.storages.try_emplace(storage_id, std::move(storage));
@@ -125,7 +125,11 @@ Awaitable<int> Session::CountSSTables(const std::string& name) {
     co_return 0;
   }
   auto storage = context_.storages.at(storage_id.value());
-  co_return storage->CountSSTables();
+  // CountSSTables is an LSM-specific statistic; other engines report 0
+  if (auto lsm = std::dynamic_pointer_cast<table::storage::LsmEngine>(storage)) {
+    co_return lsm->CountSSTables();
+  }
+  co_return 0;
 }
 
 }
