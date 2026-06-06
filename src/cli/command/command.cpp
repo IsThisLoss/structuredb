@@ -123,6 +123,31 @@ public:
   }
 };
 
+class RollbackCommand : public Command {
+public:
+  constexpr static const char* kName = "ROLLBACK";
+  constexpr static const char* kHints = "";
+
+  static Command::Ptr TryParse(const std::vector<std::string>& tokens) {
+    if (!tokens.empty() && tokens[0] == "ROLLBACK") {
+      if (tokens.size() != 1) {
+        throw std::runtime_error("ROLLBACK command does not require any arguments.");
+      }
+      return std::make_unique<RollbackCommand>();
+    }
+    return nullptr;
+  }
+
+  void Execute(Context& context) const override {
+    if (!context.tx) {
+      throw std::runtime_error("No transaction in progress. Use BEGIN first.");
+    }
+    context.tx->Rollback();
+    std::cout << context.tx->GetId() << std::endl;
+    context.tx.reset();
+  }
+};
+
 class UpsertCommand : public Command {
 public:
   constexpr static const char* kName = "UPSERT";
@@ -267,6 +292,7 @@ void RegisterCommands(CommandManager& manager) {
     .Add(DropTableCommand::kName, DropTableCommand::TryParse, DropTableCommand::kHints)
     .Add(BeginCommand::kName, BeginCommand::TryParse, BeginCommand::kHints)
     .Add(CommitCommand::kName, CommitCommand::TryParse, CommitCommand::kHints)
+    .Add(RollbackCommand::kName, RollbackCommand::TryParse, RollbackCommand::kHints)
     .Add(UpsertCommand::kName, UpsertCommand::TryParse, UpsertCommand::kHints)
     .Add(LookupCommand::kName, LookupCommand::TryParse, LookupCommand::kHints)
     .Add(DeleteCommand::kName, DeleteCommand::TryParse, DeleteCommand::kHints)
