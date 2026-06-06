@@ -99,7 +99,7 @@ void LsmEngine::StartLogInto(wal::Writer::Ptr wal_writer) {
   SPDLOG_INFO("Start wal for table {}", id_);
 }
 
-Awaitable<void> LsmEngine::RecoverFromLog(const lsm::Sequence seq_no, const std::string& key, const std::string& value) {
+Awaitable<void> LsmEngine::RecoverFromLog(const types::Sequence seq_no, const std::string& key, const std::string& value) {
   const bool is_restored = co_await lsm_.Put(seq_no, key, value);
   SPDLOG_DEBUG("Recover record: seq_no = {}, key = {}, value = {}, status = {}", seq_no, key, value, is_restored ? "APPLIED" : "SKIPPED");
 }
@@ -112,7 +112,7 @@ Awaitable<void> LsmEngine::Upsert(const Row& row) {
   }
 }
 
-Awaitable<bool> LsmEngine::IsPersistent(const lsm::Sequence seq_no) {
+Awaitable<bool> LsmEngine::IsPersistent(const types::Sequence seq_no) {
   co_return seq_no <= lsm_.GetMaxPersistentSeqNo();
 }
 

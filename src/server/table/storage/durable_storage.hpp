@@ -3,8 +3,8 @@
 #include <memory>
 #include <string>
 
+#include <types.hpp>
 #include <io/manager.hpp>
-#include <lsm/types.hpp>
 #include <wal/writer.hpp>
 
 namespace structuredb::server::table::storage {
@@ -24,10 +24,10 @@ public:
   virtual void StartLogInto(wal::Writer::Ptr wal_writer) = 0;
 
   /// @brief restore a logged value from the wal
-  virtual Awaitable<void> RecoverFromLog(const lsm::Sequence seq_no, const std::string& key, const std::string& value) = 0;
+  virtual Awaitable<void> RecoverFromLog(const types::Sequence seq_no, const std::string& key, const std::string& value) = 0;
 
   /// @brief whether the record at @p seq_no is already persisted on disk
-  virtual Awaitable<bool> IsPersistent(const lsm::Sequence seq_no) = 0;
+  virtual Awaitable<bool> IsPersistent(const types::Sequence seq_no) = 0;
 
   virtual ~DurableStorage() = default;
 };

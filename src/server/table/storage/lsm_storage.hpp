@@ -30,9 +30,9 @@ public:
 
   void StartLogInto(wal::Writer::Ptr wal_writer) override;
 
-  Awaitable<void> RecoverFromLog(const lsm::Sequence seq_no, const std::string& key, const std::string& value) override;
+  Awaitable<void> RecoverFromLog(const types::Sequence seq_no, const std::string& key, const std::string& value) override;
 
-  Awaitable<bool> IsPersistent(const lsm::Sequence seq_no) override;
+  Awaitable<bool> IsPersistent(const types::Sequence seq_no) override;
 
   Awaitable<void> Upsert(const Row& row) override;
 

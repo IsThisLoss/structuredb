@@ -10,7 +10,7 @@ namespace structuredb::server::wal {
 
 LsmStorageUpsertEvent::LsmStorageUpsertEvent(
       std::string storage_id,
-      lsm::Sequence seq_no,
+      types::Sequence seq_no,
       std::string key,
       std::string value
 )

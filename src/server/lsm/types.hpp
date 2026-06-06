@@ -1,8 +1,8 @@
 #pragma once
 
-#include <cstdint>
 #include <limits>
 #include <optional>
+#include <types.hpp>
 #include <sdb/reader.hpp>
 #include <sdb/writer.hpp>
 
@@ -10,7 +10,7 @@
 
 namespace structuredb::server::lsm {
 
-using Sequence = int64_t;
+using types::Sequence;
 
 constexpr const Sequence kMaxSequence = std::numeric_limits<Sequence>::max();
 
