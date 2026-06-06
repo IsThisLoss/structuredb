@@ -86,8 +86,8 @@ private:
 
 }
 
-LsmEngine::LsmEngine(io::Manager& io_manager, std::string base_dir, std::string id)
-  : lsm_{io_manager, std::move(base_dir)}, id_{std::move(id)}
+LsmEngine::LsmEngine(io::Manager& io_manager, std::string base_dir, std::string id, lsm::Options lsm_options)
+  : lsm_{io_manager, std::move(base_dir), lsm_options}, id_{std::move(id)}
 {}
 
 Awaitable<void> LsmEngine::Init() {
@@ -131,8 +131,12 @@ Awaitable<Iterator::Ptr> LsmEngine::Scan(const std::optional<std::string>& lower
   co_return std::make_shared<LsmEngineIterator>(std::move(result));
 }
 
-Awaitable<void> LsmEngine::Compact(CompactionStrategy::Ptr strategy) { 
+Awaitable<void> LsmEngine::Compact(CompactionStrategy::Ptr strategy) {
   co_await lsm_.Compact(std::make_shared<LsmEngineCompactStrategy>(std::move(strategy)));
+}
+
+Awaitable<void> LsmEngine::Flush() {
+  co_await lsm_.Flush();
 }
 
 int LsmEngine::CountSSTables() const {

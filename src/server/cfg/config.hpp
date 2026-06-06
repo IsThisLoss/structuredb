@@ -1,6 +1,8 @@
 #pragma once
 
 #include <chrono>
+#include <cstddef>
+#include <cstdint>
 #include <optional>
 #include <string>
 
@@ -28,12 +30,24 @@ struct Compaction {
   std::chrono::milliseconds interval{std::chrono::minutes(1)};
 };
 
+struct Flush {
+  std::chrono::milliseconds interval{std::chrono::seconds(1)};
+};
+
+struct Lsm {
+  size_t max_records_in_mem_table{10000};
+  size_t max_ro_mem_tables{1};
+  int64_t page_size{4096};
+};
+
 struct Config {
   int port{kDefaultPort};
   std::string root{"/tmp/structuredb"};
   Logger logger{};
   Compaction compaction{};
+  Flush flush{};
   Wal wal{};
+  Lsm lsm{};
 };
 
 Config Parse(const std::string& cfg_path);

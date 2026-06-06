@@ -216,6 +216,11 @@ DATABASE_TEST(Compaction, {
     co_await session.Finish();
   }
 
+  // flushing is done off the write path by a background job, which is not
+  // running in tests - trigger it explicitly so frozen mem tables become
+  // ss tables
+  co_await db.Flush();
+
   {
     auto session = co_await db.StartSession();
     auto table = co_await session.GetTable(kTableName);

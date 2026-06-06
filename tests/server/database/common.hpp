@@ -14,6 +14,7 @@
 #include <boost/asio/use_future.hpp>
 
 #include <database/database.hpp>
+#include <lsm/options.hpp>
 #include <spdlog/spdlog.h>
 
 namespace structuredb::tests {
@@ -28,9 +29,17 @@ protected:
     assert(std::filesystem::create_directory(tmp_dir_));
 
     io_manager_ = std::make_unique<server::io::Manager>(io_context_);
+    // small thresholds so tests deterministically trigger freezes/flushes
+    // without depending on the production defaults
+    const server::lsm::Options lsm_options{
+        .max_records_in_mem_table = 50,
+        .max_ro_mem_tables = 1,
+        .page_size = 512,
+    };
     db_ = std::make_unique<server::database::Database>(
         *io_manager_,
-        tmp_dir_
+        tmp_dir_,
+        lsm_options
     );
 
     asio_thread_ = std::thread([this]() {

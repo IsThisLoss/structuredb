@@ -24,7 +24,7 @@ class LsmEngine : public StorageEngine, public DurableStorage {
 public:
   using Ptr = std::shared_ptr<LsmEngine>;
 
-  explicit LsmEngine(io::Manager& io_manager, std::string base_dir, StorageEngine::Id id);
+  explicit LsmEngine(io::Manager& io_manager, std::string base_dir, StorageEngine::Id id, lsm::Options lsm_options = {});
 
   Awaitable<void> Init();
 
@@ -41,6 +41,8 @@ public:
   Awaitable<Iterator::Ptr> Scan(const std::optional<std::string>& lower_bound, const std::optional<std::string>& upper_bound) override;
 
   Awaitable<void> Compact(CompactionStrategy::Ptr strategy) override;
+
+  Awaitable<void> Flush() override;
 
   /// @brief number of on-disk SSTables — LSM-specific statistic, not part of
   /// the engine interface; callers must downcast to query it

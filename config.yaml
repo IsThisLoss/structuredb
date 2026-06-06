@@ -5,6 +5,12 @@ logger:
   console: true
 compaction:
   interval: 60000
+flush:
+  interval: 1000
 wal:
   clean:
     interval: 60000
+lsm:
+  max_records_in_mem_table: 10000
+  max_ro_mem_tables: 1
+  page_size: 4096

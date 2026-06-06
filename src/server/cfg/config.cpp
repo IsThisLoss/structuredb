@@ -1,6 +1,8 @@
 #include "config.hpp"
 
 #include <chrono>
+#include <cstddef>
+#include <cstdint>
 #include <string>
 #include <stdexcept>
 #include <yaml-cpp/yaml.h>
@@ -41,6 +43,16 @@ Compaction ParseCompaction(const YAML::Node& node) {
   return result;
 }
 
+Flush ParseFlush(const YAML::Node& node) {
+  Flush result{};
+
+  if (node["interval"]) {
+    result.interval = std::chrono::milliseconds{node["interval"].as<int>()};
+  }
+
+  return result;
+}
+
 WalClean ParseWalClean(const YAML::Node& node) {
   WalClean result{};
 
@@ -56,6 +68,22 @@ Wal ParseWal(const YAML::Node& node) {
 
   if (node["clean"]) {
     result.clean = ParseWalClean(node["clean"]);
+  }
+
+  return result;
+}
+
+Lsm ParseLsm(const YAML::Node& node) {
+  Lsm result{};
+
+  if (node["max_records_in_mem_table"]) {
+    result.max_records_in_mem_table = node["max_records_in_mem_table"].as<size_t>();
+  }
+  if (node["max_ro_mem_tables"]) {
+    result.max_ro_mem_tables = node["max_ro_mem_tables"].as<size_t>();
+  }
+  if (node["page_size"]) {
+    result.page_size = node["page_size"].as<int64_t>();
   }
 
   return result;
@@ -83,8 +111,14 @@ Config Parse(const std::string& cfg_path) {
   if (yaml["compaction"]) {
     result.compaction = ParseCompaction(yaml["compaction"]);
   }
+  if (yaml["flush"]) {
+    result.flush = ParseFlush(yaml["flush"]);
+  }
   if (yaml["wal"]) {
     result.wal = ParseWal(yaml["wal"]);
+  }
+  if (yaml["lsm"]) {
+    result.lsm = ParseLsm(yaml["lsm"]);
   }
 
   return result;
