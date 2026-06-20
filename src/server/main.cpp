@@ -15,6 +15,7 @@
 
 #include <services/table_service/table_service.hpp>
 #include <services/transaction_service/transaction_service.hpp>
+#include <services/replication_service/replication_service.hpp>
 
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/use_future.hpp>
@@ -93,6 +94,10 @@ int main(int argc, char** argv) {
 
     const auto transaction_service = structuredb::server::services::MakeTransactionService(io_manager, database);
     builder.RegisterService(transaction_service.get());
+
+    const auto replication_service = structuredb::server::services::MakeReplicationService(
+        io_manager, config.root + "/wal", std::chrono::milliseconds{200});
+    builder.RegisterService(replication_service.get());
 
     std::thread asio_thread([&io_context]() {
         SPDLOG_INFO("Starting asio thread...");
