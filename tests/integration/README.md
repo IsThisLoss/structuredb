@@ -57,29 +57,29 @@ tests/integration/
 
 ```python
 def test_roundtrip(client, unique_table):
-    t = unique_table()
-    client.create_table(t)
-    client.upsert(t, "k", "v")
-    assert client.get(t, "k") == "v"
+    users = unique_table("users")
+    client.create_table(users)
+    client.upsert(users, "alice", "engineer")
+    assert client.get(users, "alice") == "engineer"
 
 
 def test_isolation(server):
     from sdb_testkit import SdbClient
     with SdbClient(server.target) as writer, SdbClient(server.target) as reader:
-        writer.create_table("t")
-        tx = writer.begin()
-        writer.upsert("t", "k", "pending", tx=tx)
-        assert reader.get("t", "k") is None   # not visible before commit
-        writer.commit(tx)
-        assert reader.get("t", "k") == "pending"
+        writer.create_table("accounts")
+        transaction = writer.begin()
+        writer.upsert("accounts", "alice", "100", tx=transaction)
+        assert reader.get("accounts", "alice") is None   # not visible before commit
+        writer.commit(transaction)
+        assert reader.get("accounts", "alice") == "100"
 
 
 @pytest.mark.replication
 def test_replicates(make_cluster):
     cluster = make_cluster(followers=1)
-    cluster.leader_client.create_table("t")
-    cluster.leader_client.upsert("t", "k", "v")
-    cluster.follower_client().wait_for_value("t", "k", "v")  # async; polled
+    cluster.leader_client.create_table("accounts")
+    cluster.leader_client.upsert("accounts", "alice", "100")
+    cluster.follower_client().wait_for_value("accounts", "alice", "100")  # async; polled
 ```
 
 Replication is asynchronous, so reads on a follower are polled via

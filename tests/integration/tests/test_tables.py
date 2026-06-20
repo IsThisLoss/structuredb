@@ -6,71 +6,72 @@ import pytest
 
 
 def test_create_and_roundtrip(client, unique_table):
-    table = unique_table()
-    client.create_table(table)
+    users = unique_table("users")
+    client.create_table(users)
 
-    client.upsert(table, "key1", "value1")
-    assert client.get(table, "key1") == "value1"
+    client.upsert(users, "alice", "engineer")
+    assert client.get(users, "alice") == "engineer"
 
 
 def test_lookup_missing_key_returns_none(client, unique_table):
-    table = unique_table()
-    client.create_table(table)
+    users = unique_table("users")
+    client.create_table(users)
 
-    assert client.get(table, "absent") is None
+    assert client.get(users, "absent") is None
 
 
 def test_upsert_overwrites(client, unique_table):
-    table = unique_table()
-    client.create_table(table)
+    users = unique_table("users")
+    client.create_table(users)
 
-    client.upsert(table, "k", "first")
-    client.upsert(table, "k", "second")
-    assert client.get(table, "k") == "second"
+    client.upsert(users, "alice", "engineer")
+    client.upsert(users, "alice", "manager")
+    assert client.get(users, "alice") == "manager"
 
 
 def test_delete_removes_key(client, unique_table):
-    table = unique_table()
-    client.create_table(table)
+    users = unique_table("users")
+    client.create_table(users)
 
-    client.upsert(table, "k", "v")
-    assert client.get(table, "k") == "v"
+    client.upsert(users, "alice", "engineer")
+    assert client.get(users, "alice") == "engineer"
 
-    client.delete(table, "k")
-    assert client.get(table, "k") is None
+    client.delete(users, "alice")
+    assert client.get(users, "alice") is None
 
 
 def test_scan_returns_sorted_range(client, unique_table):
-    table = unique_table()
-    client.create_table(table)
+    countries = unique_table("countries")
+    client.create_table(countries)
 
-    for key in ["b", "d", "a", "c"]:
-        client.upsert(table, key, key.upper())
-
-    records, _ = client.scan(table)
-    keys = [r.key for r in records]
-    assert keys == sorted(keys), "scan must return keys in sorted order"
-    assert {r.key: r.value for r in records} == {
-        "a": "A",
-        "b": "B",
-        "c": "C",
-        "d": "D",
+    capitals = {
+        "france": "paris",
+        "germany": "berlin",
+        "italy": "rome",
+        "spain": "madrid",
     }
+    for country, capital in capitals.items():
+        client.upsert(countries, country, capital)
+
+    records, _ = client.scan(countries)
+    scanned_keys = [record.key for record in records]
+    assert scanned_keys == sorted(scanned_keys), "scan must return keys in sorted order"
+    assert {record.key: record.value for record in records} == capitals
 
 
 def test_scan_bounds(client, unique_table):
-    table = unique_table()
-    client.create_table(table)
-    for key in ["a", "b", "c", "d", "e"]:
-        client.upsert(table, key, key)
+    letters = unique_table("letters")
+    client.create_table(letters)
+    for letter in ["alpha", "bravo", "charlie", "delta", "echo"]:
+        client.upsert(letters, letter, letter.upper())
 
-    records, _ = client.scan(table, lower_bound="b", upper_bound="d")
-    keys = [r.key for r in records]
+    records, _ = client.scan(letters, lower_bound="bravo", upper_bound="delta")
+    scanned_keys = [record.key for record in records]
     # Lower bound inclusive; assert the window without over-constraining the
     # upper-bound convention (kept robust across inclusive/exclusive impls).
-    assert keys[0] == "b"
-    assert "a" not in keys
-    assert "e" not in keys
+    assert scanned_keys[0] == "bravo"
+    assert "alpha" not in scanned_keys
+    assert "echo" not in scanned_keys
 
 
 @pytest.mark.slow
@@ -78,12 +79,12 @@ def test_data_survives_restart(server, unique_table):
     """Writes are durable across a process restart via WAL recovery."""
     from sdb_testkit import SdbClient
 
-    table = unique_table()
+    accounts = unique_table("accounts")
     with SdbClient(server.target) as client:
-        client.create_table(table)
-        client.upsert(table, "durable", "yes")
+        client.create_table(accounts)
+        client.upsert(accounts, "alice", "100")
 
     server.restart()
 
     with SdbClient(server.target) as client:
-        assert client.get(table, "durable") == "yes"
+        assert client.get(accounts, "alice") == "100"
