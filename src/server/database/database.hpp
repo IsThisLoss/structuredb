@@ -21,6 +21,14 @@ public:
  /// @returns storage by its id for recovery
  table::storage::DurableStorage::Ptr GetStorageForRecover(const table::storage::StorageEngine::Id& storage_id);
 
+ /// @returns storage by its id, materializing it on disk if absent
+ ///
+ /// Behaves like GetStorageForRecover when the storage already exists. For a
+ /// replication follower it lazily creates the LSM engine the first time an
+ /// upsert for a leader-created table arrives, so DDL replicates through the
+ /// regular WAL stream without a separate schema channel.
+ Awaitable<table::storage::DurableStorage::Ptr> EnsureStorageForRecover(const table::storage::StorageEngine::Id& storage_id);
+
  transaction::Storage::Ptr GetTransactionStorage();
 
  /// @brief persists in-memory data of every table to disk
