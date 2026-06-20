@@ -7,6 +7,7 @@
 #include <spdlog/spdlog.h>
 
 #include <table/storage/lsm_storage.hpp>
+#include <utils/find.hpp>
 #include <wal/recovery.hpp>
 
 #include "exceptions.hpp"
@@ -82,6 +83,25 @@ Awaitable<void> Database::Init() {
 
 table::storage::DurableStorage::Ptr Database::GetStorageForRecover(const table::storage::StorageEngine::Id& storage_id) {
   return std::dynamic_pointer_cast<table::storage::DurableStorage>(context_.storages.at(storage_id));
+}
+
+Awaitable<table::storage::DurableStorage::Ptr> Database::EnsureStorageForRecover(
+    const table::storage::StorageEngine::Id& storage_id
+) {
+  if (auto* existing = utils::FindOrNullptr(context_.storages, storage_id)) {
+    co_return std::dynamic_pointer_cast<table::storage::DurableStorage>(*existing);
+  }
+
+  SPDLOG_INFO("Materializing replicated storage {}", storage_id);
+  const auto path = context_.base_dir + "/" + storage_id;
+  co_await context_.io_manager.CreateDirectory(path);
+  auto storage = std::make_shared<table::storage::LsmEngine>(context_.io_manager, path, storage_id, context_.lsm_options);
+  co_await storage->Init();
+  if (context_.wal_writer) {
+    storage->StartLogInto(context_.wal_writer);
+  }
+  const auto [it, _] = context_.storages.try_emplace(storage_id, std::move(storage));
+  co_return std::dynamic_pointer_cast<table::storage::DurableStorage>(it->second);
 }
 
 transaction::Storage::Ptr Database::GetTransactionStorage() {

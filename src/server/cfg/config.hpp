@@ -41,6 +41,19 @@ struct Lsm {
   size_t page_cache_capacity{1024};
 };
 
+enum class ReplicationRole {
+  kLeader,
+  kFollower,
+};
+
+struct Replication {
+  ReplicationRole role{ReplicationRole::kLeader};
+  // address (host:port) of the leader to follow; required when role == kFollower
+  std::string leader_address{};
+  // how often the leader re-scans the WAL for new pages to ship
+  std::chrono::milliseconds poll_interval{std::chrono::milliseconds{200}};
+};
+
 struct Config {
   int port{kDefaultPort};
   std::string root{"/tmp/structuredb"};
@@ -49,6 +62,7 @@ struct Config {
   Flush flush{};
   Wal wal{};
   Lsm lsm{};
+  Replication replication{};
 };
 
 Config Parse(const std::string& cfg_path);

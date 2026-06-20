@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -31,9 +32,17 @@ public:
     }
   }
 
-  Awaitable<void> DeleteObsoleteSegments(io::Manager& io_manager, const std::string& wal_dir_path) {
+  Awaitable<void> DeleteObsoleteSegments(
+      io::Manager& io_manager,
+      const std::string& wal_dir_path,
+      std::optional<int64_t> retain_from_segment
+  ) {
     for (const auto& [segment_no, is_persistent] : segment_persistence_) {
       if (!is_persistent) {
+        continue;
+      }
+      if (retain_from_segment.has_value() && segment_no >= retain_from_segment.value()) {
+        // still needed by a connected replication follower
         continue;
       }
       const auto segment_file_name = std::format("{}/{:04d}.wal.sdb", wal_dir_path, segment_no);
@@ -58,14 +67,19 @@ private:
 
 }
 
-Awaitable<void> Clean(io::Manager& io_manager, const std::string& wal_dir_path, database::Database& db) {
+Awaitable<void> Clean(
+    io::Manager& io_manager,
+    const std::string& wal_dir_path,
+    database::Database& db,
+    std::optional<int64_t> retain_from_segment
+) {
   SPDLOG_INFO("Starting cleaning wal files...");
 
   auto strategy = std::make_shared<CleanerStrategy>(db);
   Reader reader{io_manager, strategy};
   co_await reader.Read(wal_dir_path);
 
-  co_await strategy->DeleteObsoleteSegments(io_manager, wal_dir_path);
+  co_await strategy->DeleteObsoleteSegments(io_manager, wal_dir_path, retain_from_segment);
 
   SPDLOG_INFO("Cleaning wal files done");
 }

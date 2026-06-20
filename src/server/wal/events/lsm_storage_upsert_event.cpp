@@ -40,7 +40,7 @@ void LsmStorageUpsertEvent::Flush(sdb::Writer& writer) {
 
 Awaitable<void> LsmStorageUpsertEvent::Apply(database::Database& db) {
   SPDLOG_DEBUG("Got upsert event for storage = {}, key = {}, value = {}", storage_id_, key_, value_);
-  auto table = db.GetStorageForRecover(storage_id_);
+  auto table = co_await db.EnsureStorageForRecover(storage_id_);
   if (!table) {
     SPDLOG_ERROR("Got nullptr after GetTable during recovery");
     co_return;

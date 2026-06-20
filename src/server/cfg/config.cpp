@@ -92,6 +92,35 @@ Lsm ParseLsm(const YAML::Node& node) {
   return result;
 }
 
+Replication ParseReplication(const YAML::Node& node) {
+  Replication result{};
+
+  if (node["role"]) {
+    const auto role = node["role"].as<std::string>();
+    if (role == "leader") {
+      result.role = ReplicationRole::kLeader;
+    } else if (role == "follower") {
+      result.role = ReplicationRole::kFollower;
+    } else {
+      throw std::runtime_error{"Invalid replication role: " + role};
+    }
+  }
+
+  if (node["leader_address"]) {
+    result.leader_address = node["leader_address"].as<std::string>();
+  }
+
+  if (node["poll_interval"]) {
+    result.poll_interval = std::chrono::milliseconds{node["poll_interval"].as<int>()};
+  }
+
+  if (result.role == ReplicationRole::kFollower && result.leader_address.empty()) {
+    throw std::runtime_error{"replication.leader_address is required when role is follower"};
+  }
+
+  return result;
+}
+
 }
 
 Config Parse(const std::string& cfg_path) {
@@ -122,6 +151,9 @@ Config Parse(const std::string& cfg_path) {
   }
   if (yaml["lsm"]) {
     result.lsm = ParseLsm(yaml["lsm"]);
+  }
+  if (yaml["replication"]) {
+    result.replication = ParseReplication(yaml["replication"]);
   }
 
   return result;

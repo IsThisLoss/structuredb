@@ -20,4 +20,7 @@ std::optional<transaction::TransactionId> ParseTx(const Msg* msg) {
 
 ::grpc::Status MakeInternalError(const std::string& msg);
 
+/// @brief error returned when a mutating RPC hits a read-only replica
+::grpc::Status MakeReadOnlyError();
+
 }

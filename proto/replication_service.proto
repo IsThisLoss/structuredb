@@ -2,22 +2,30 @@ syntax = "proto3";
 
 package structuredb.v1;
 
-message LsmStorageUpsertEvent {
-  string storage_id = 1;
-  int64 seq_no = 2;
-  string key = 3;
-  string value = 4;
-}
-
-message WalEvent {
-  oneof event {
-    LsmStorageUpsertEvent lsm_storage_upsert_event = 1;
-  }
+// Position of a page inside the write-ahead log.
+// With kMaxPagesInSegment == 1 a segment holds a single page,
+// so (segment_no, page_no) uniquely identifies a WAL page.
+message ReplPosition {
+  int64 segment_no = 1;
+  int64 page_no = 2;
 }
 
 message GetEventsRequest {
+  // Resume streaming from this position (inclusive).
+  // A fresh follower passes the zero position to receive everything
+  // still retained in the leader's WAL.
+  ReplPosition from = 1;
+}
+
+// A raw WAL page shipped to a follower.
+// `data` are the exact bytes of the page as stored in the WAL file
+// (sdb-encoded events, possibly zero-padded). The follower appends
+// them to its own WAL and replays them through the recovery path.
+message WalPage {
+  ReplPosition position = 1;
+  bytes data = 2;
 }
 
 service Replication {
-  rpc GetEvents(GetEventsRequest) returns (stream WalEvent) {}
+  rpc GetEvents(GetEventsRequest) returns (stream WalPage) {}
 }

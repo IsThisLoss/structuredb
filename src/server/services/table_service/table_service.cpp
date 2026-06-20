@@ -9,9 +9,11 @@ namespace structuredb::server::services {
 
 TableServiceImpl::TableServiceImpl(
       io::Manager& io_manager,
-      database::Database& db
+      database::Database& db,
+      bool read_only
 ) : io_manager_{io_manager},
-    database_{db}
+    database_{db},
+    read_only_{read_only}
 {
 }
 
@@ -20,6 +22,10 @@ grpc::ServerUnaryReactor* TableServiceImpl::Upsert(
     const ::structuredb::v1::UpsertTableRequest* request,
     ::structuredb::v1::UpsertTableResponse* response) {
   auto* reactor = context->DefaultReactor();
+  if (read_only_) {
+    reactor->Finish(rpc::MakeReadOnlyError());
+    return reactor;
+  }
 
   io_manager_.CoSpawn([this, request, response, reactor]() -> Awaitable<void> {
       try {
@@ -87,6 +93,10 @@ grpc::ServerUnaryReactor* TableServiceImpl::Delete(
     ::structuredb::v1::DeleteTableResponse* response
 ) {
   auto* reactor = context->DefaultReactor();
+  if (read_only_) {
+    reactor->Finish(rpc::MakeReadOnlyError());
+    return reactor;
+  }
 
   io_manager_.CoSpawn([this, request, response, reactor]() -> Awaitable<void> {
       try {
@@ -119,6 +129,10 @@ grpc::ServerUnaryReactor* TableServiceImpl::CreateTable(
     ::structuredb::v1::CreateTableResponse* response
 ) {
   auto* reactor = context->DefaultReactor();
+  if (read_only_) {
+    reactor->Finish(rpc::MakeReadOnlyError());
+    return reactor;
+  }
 
   io_manager_.CoSpawn([this, request, response, reactor]() -> Awaitable<void> {
       try {
@@ -146,6 +160,10 @@ grpc::ServerUnaryReactor* TableServiceImpl::DropTable(
     ::structuredb::v1::DropTableResponse* response
 ) {
   auto* reactor = context->DefaultReactor();
+  if (read_only_) {
+    reactor->Finish(rpc::MakeReadOnlyError());
+    return reactor;
+  }
 
   io_manager_.CoSpawn([this, request, response, reactor]() -> Awaitable<void> {
       try {
@@ -241,9 +259,10 @@ grpc::ServerUnaryReactor* TableServiceImpl::CompactTable(
 
 std::unique_ptr<grpc::Service> MakeService(
   io::Manager& io_manager,
-  database::Database& db
+  database::Database& db,
+  bool read_only
 ) {
-  return std::make_unique<TableServiceImpl>(io_manager, db);
+  return std::make_unique<TableServiceImpl>(io_manager, db, read_only);
 }
 
 }

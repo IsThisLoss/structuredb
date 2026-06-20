@@ -1,0 +1,198 @@
+#include "replication_service.hpp"
+
+#include <chrono>
+#include <memory>
+#include <string>
+#include <vector>
+
+#include <boost/asio/post.hpp>
+#include <boost/asio/steady_timer.hpp>
+#include <boost/asio/use_awaitable.hpp>
+#include <spdlog/spdlog.h>
+
+#include <io/condition_variable.hpp>
+#include <wal/tail.hpp>
+#include <wal/wal.hpp>
+
+namespace structuredb::server::services {
+
+namespace {
+
+/// @brief streams stable WAL pages to a single follower
+///
+/// A long-lived pump coroutine runs on the io_context: it collects stable
+/// pages, writes them one at a time honouring gRPC backpressure, and polls
+/// for new pages when caught up. gRPC delivers OnWriteDone/OnCancel on its
+/// own threads, so those are hopped onto the io_context before touching state.
+///
+/// Lifetime: the reactor is destroyed only in OnDone, which gRPC invokes after
+/// Finish() completes. Finish() is always called by the pump coroutine itself,
+/// so the coroutine never touches the reactor after it may have been deleted.
+class GetEventsReactor final : public grpc::ServerWriteReactor<::structuredb::v1::WalPage> {
+public:
+  GetEventsReactor(
+      io::Manager& io_manager,
+      std::string wal_dir_path,
+      wal::Position from,
+      std::chrono::milliseconds poll_interval,
+      replication::FollowerRegistry::Ptr followers
+  )
+    : io_manager_{io_manager}
+    , wal_dir_path_{std::move(wal_dir_path)}
+    , next_pos_{from}
+    , poll_interval_{poll_interval}
+    , followers_{std::move(followers)}
+    , token_{followers_->Register(from)}
+    , write_done_cv_{io_manager.Context()}
+  {
+    io_manager_.CoSpawn([this]() -> Awaitable<void> { co_await Pump(); });
+  }
+
+  void OnWriteDone(bool ok) override {
+    boost::asio::post(io_manager_.Context(), [this, ok]() {
+      write_ok_ = ok;
+      write_pending_ = false;
+      write_done_cv_.NotifyAll();
+    });
+  }
+
+  void OnCancel() override {
+    boost::asio::post(io_manager_.Context(), [this]() {
+      cancelled_ = true;
+      write_done_cv_.NotifyAll();
+    });
+  }
+
+  void OnDone() override {
+    followers_->Unregister(token_);
+    delete this;
+  }
+
+private:
+  bool IsAlreadySentTail(const wal::WalPageData& page) const {
+    return page.position.segment_no == next_pos_.segment_no
+        && page.position.page_no == next_pos_.page_no
+        && static_cast<int64_t>(page.data.size()) == tail_sent_size_;
+  }
+
+  Awaitable<void> Pump() {
+    while (!cancelled_) {
+      std::vector<wal::WalPageData> pages;
+      try {
+        pages = co_await wal::CollectPagesFrom(io_manager_, wal_dir_path_, next_pos_);
+      } catch (const std::exception& e) {
+        SPDLOG_ERROR("Replication: failed to read WAL: {}", e.what());
+      }
+
+      for (auto& page : pages) {
+        if (cancelled_) {
+          break;
+        }
+
+        const bool completed = static_cast<int64_t>(page.data.size()) == wal::kWalPageSize;
+        if (!completed && IsAlreadySentTail(page)) {
+          // in-progress page unchanged since last poll; nothing new to ship
+          break;
+        }
+
+        msg_.Clear();
+        auto* pos = msg_.mutable_position();
+        pos->set_segment_no(page.position.segment_no);
+        pos->set_page_no(page.position.page_no);
+        msg_.set_data(page.data.data(), page.data.size());
+
+        write_pending_ = true;
+        StartWrite(&msg_);
+        co_await write_done_cv_.Wait([this]() { return !write_pending_ || cancelled_; });
+
+        if (!write_ok_ || cancelled_) {
+          Finish(grpc::Status::OK);
+          co_return;
+        }
+
+        if (completed) {
+          // immutable page: never re-read it again
+          next_pos_ = wal::Position{
+            .segment_no = page.position.segment_no,
+            .page_no = page.position.page_no + 1,
+          };
+          followers_->Update(token_, next_pos_);
+          tail_sent_size_ = -1;
+        } else {
+          // still-growing tail: re-read this same page on the next poll
+          next_pos_ = page.position;
+          tail_sent_size_ = static_cast<int64_t>(page.data.size());
+          break;
+        }
+      }
+
+      if (cancelled_) {
+        break;
+      }
+
+      // caught up: wait before polling the WAL again
+      boost::asio::steady_timer timer{io_manager_.Context(), poll_interval_};
+      try {
+        co_await timer.async_wait(boost::asio::use_awaitable);
+      } catch (const std::exception&) {
+        // ignore (e.g. cancellation): the loop condition re-checks cancelled_
+      }
+    }
+
+    Finish(grpc::Status::OK);
+  }
+
+  io::Manager& io_manager_;
+  const std::string wal_dir_path_;
+  wal::Position next_pos_;
+  const std::chrono::milliseconds poll_interval_;
+  const replication::FollowerRegistry::Ptr followers_;
+  const replication::FollowerRegistry::Token token_;
+
+  // size of the in-progress tail page last shipped at next_pos_, or -1
+  int64_t tail_sent_size_{-1};
+
+  ::structuredb::v1::WalPage msg_{};
+  io::ConditionVariable write_done_cv_;
+  bool write_pending_{false};
+  bool write_ok_{true};
+  bool cancelled_{false};
+};
+
+}
+
+ReplicationServiceImpl::ReplicationServiceImpl(
+    io::Manager& io_manager,
+    std::string wal_dir_path,
+    std::chrono::milliseconds poll_interval,
+    replication::FollowerRegistry::Ptr followers
+)
+  : io_manager_{io_manager}
+  , wal_dir_path_{std::move(wal_dir_path)}
+  , poll_interval_{poll_interval}
+  , followers_{std::move(followers)}
+{}
+
+grpc::ServerWriteReactor<::structuredb::v1::WalPage>* ReplicationServiceImpl::GetEvents(
+    grpc::CallbackServerContext* /*context*/,
+    const ::structuredb::v1::GetEventsRequest* request
+) {
+  const wal::Position from{
+    .segment_no = request->from().segment_no(),
+    .page_no = request->from().page_no(),
+  };
+  SPDLOG_INFO("Replication: follower attached from segment {}, page {}", from.segment_no, from.page_no);
+  return new GetEventsReactor{io_manager_, wal_dir_path_, from, poll_interval_, followers_};
+}
+
+std::unique_ptr<grpc::Service> MakeReplicationService(
+    io::Manager& io_manager,
+    std::string wal_dir_path,
+    std::chrono::milliseconds poll_interval,
+    replication::FollowerRegistry::Ptr followers
+) {
+  return std::make_unique<ReplicationServiceImpl>(
+      io_manager, std::move(wal_dir_path), poll_interval, std::move(followers));
+}
+
+}

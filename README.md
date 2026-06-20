@@ -187,11 +187,20 @@ assertions (see `tests/server/database/`).
 
 ## gRPC API
 
-The server exposes three Protocol Buffer services (see `proto/`):
+The server exposes these Protocol Buffer services (see `proto/`):
 
 - **Tables** — `Upsert`, `Lookup`, `Scan`, `Delete`, `CreateTable`, `DropTable`,
   `CompactTable`
 - **Transactions** — `Begin`, `Commit`
+- **Replication** — `GetEvents` (server-streams WAL pages to followers)
+
+## Replication
+
+StructureDB supports asynchronous leader → follower replication by shipping WAL
+pages: followers are read-only and continuously stream and apply the leader's
+write-ahead log. Configure it via the `replication` section of `config.yaml`.
+See [`docs/replication.md`](docs/replication.md) for setup, bootstrapping and
+promotion.
 
 ## License
 
