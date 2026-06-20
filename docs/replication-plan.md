@@ -164,13 +164,17 @@ replication:
 
 ## 7. Этапы внедрения
 
-1. **MVP single-follower:** `ReplPosition` + `TxStorageCommitEvent` в proto;
-   `ReplicationService` (только catch-up чтением файлов, поллинг новых сегментов);
-   `ReplicationFollower` job; read-only режим; ручной bootstrap копированием `root`;
-   cleaner временно отключён на leader.
-2. **Live-tail + retention:** publisher в `Writer`; учёт min-позиции реплик в `WalCleaner`.
-3. **Snapshot RPC** для автоматического bootstrap нескольких followers.
-4. **Failover** (ручной промоушн follower → leader).
+1. **MVP single-follower** — ✅ сделано: physical WAL-page protocol; leader
+   `ReplicationService` (polling, шлёт и in-progress страницу); `replication::Follower`
+   (зеркалит WAL + apply, resume по позиции); read-only режим; ленивая материализация
+   таблиц (DDL). Проверено end-to-end (leader→follower, live, рестарт-resume).
+2. **Retention** — ✅ сделано: `FollowerRegistry` + удержание сегментов в `WalCleaner`.
+   *Live-tail publisher в `Writer`* — отложено: poll (`poll_interval`, по умолчанию 200мс)
+   уже подхватывает незавершённую страницу, отдельный publisher не нужен для MVP.
+3. **Snapshot bootstrap** — ручная процедура (копирование `root`), см.
+   [`replication.md`](replication.md). Автоматический `Snapshot` RPC — вне scope v1 (§8).
+4. **Failover** — ручной промоушн follower → leader сменой роли в конфиге, см.
+   [`replication.md`](replication.md). Автоматический failover — вне scope v1 (§8).
 
 ## 8. Вне scope v1 (на будущее)
 
