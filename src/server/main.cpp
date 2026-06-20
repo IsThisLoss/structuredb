@@ -95,9 +95,13 @@ int main(int argc, char** argv) {
     const auto transaction_service = structuredb::server::services::MakeTransactionService(io_manager, database);
     builder.RegisterService(transaction_service.get());
 
-    const auto replication_service = structuredb::server::services::MakeReplicationService(
-        io_manager, config.root + "/wal", std::chrono::milliseconds{200});
-    builder.RegisterService(replication_service.get());
+    std::unique_ptr<grpc::Service> replication_service;
+    if (config.replication.role == structuredb::server::cfg::ReplicationRole::kLeader) {
+      replication_service = structuredb::server::services::MakeReplicationService(
+          io_manager, config.root + "/wal", config.replication.poll_interval);
+      builder.RegisterService(replication_service.get());
+      SPDLOG_INFO("Replication: serving as leader");
+    }
 
     std::thread asio_thread([&io_context]() {
         SPDLOG_INFO("Starting asio thread...");

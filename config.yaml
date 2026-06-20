@@ -15,3 +15,10 @@ lsm:
   max_ro_mem_tables: 1
   page_size: 4096
   page_cache_capacity: 1024
+replication:
+  # role: leader | follower
+  role: leader
+  # for followers: address of the leader to stream the WAL from
+  # leader_address: "127.0.0.1:50051"
+  # leader: how often (ms) to re-scan the WAL for new pages to ship
+  poll_interval: 200
