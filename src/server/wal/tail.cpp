@@ -53,7 +53,7 @@ Awaitable<void> ReadSegmentPages(
 
 }
 
-Awaitable<std::vector<WalPageData>> CollectStablePages(
+Awaitable<std::vector<WalPageData>> CollectPagesFrom(
     io::Manager& io_manager,
     const std::string& wal_dir_path,
     Position from
@@ -61,19 +61,14 @@ Awaitable<std::vector<WalPageData>> CollectStablePages(
   std::vector<WalPageData> result;
 
   auto segments = co_await io_manager.ListDirectory(wal_dir_path);
-  if (segments.size() <= 1) {
-    // only the in-progress segment (if any) exists; nothing stable to ship
-    co_return result;
-  }
   std::ranges::sort(segments);
 
-  // skip the last segment: it is the one currently being written
-  for (size_t i = 0; i + 1 < segments.size(); ++i) {
-    const auto segment_no = GetSegmentNoFromName(segments[i]);
+  for (const auto& segment : segments) {
+    const auto segment_no = GetSegmentNoFromName(segment);
     if (segment_no < from.segment_no) {
       continue;
     }
-    const auto segment_path = wal_dir_path + "/" + segments[i];
+    const auto segment_path = wal_dir_path + "/" + segment;
     co_await ReadSegmentPages(io_manager, segment_path, segment_no, from, result);
   }
 

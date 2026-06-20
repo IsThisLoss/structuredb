@@ -12,6 +12,7 @@
 
 #include <io/condition_variable.hpp>
 #include <wal/tail.hpp>
+#include <wal/wal.hpp>
 
 namespace structuredb::server::services {
 
@@ -68,11 +69,17 @@ public:
   }
 
 private:
+  bool IsAlreadySentTail(const wal::WalPageData& page) const {
+    return page.position.segment_no == next_pos_.segment_no
+        && page.position.page_no == next_pos_.page_no
+        && static_cast<int64_t>(page.data.size()) == tail_sent_size_;
+  }
+
   Awaitable<void> Pump() {
     while (!cancelled_) {
       std::vector<wal::WalPageData> pages;
       try {
-        pages = co_await wal::CollectStablePages(io_manager_, wal_dir_path_, next_pos_);
+        pages = co_await wal::CollectPagesFrom(io_manager_, wal_dir_path_, next_pos_);
       } catch (const std::exception& e) {
         SPDLOG_ERROR("Replication: failed to read WAL: {}", e.what());
       }
@@ -81,16 +88,18 @@ private:
         if (cancelled_) {
           break;
         }
+
+        const bool completed = static_cast<int64_t>(page.data.size()) == wal::kWalPageSize;
+        if (!completed && IsAlreadySentTail(page)) {
+          // in-progress page unchanged since last poll; nothing new to ship
+          break;
+        }
+
         msg_.Clear();
         auto* pos = msg_.mutable_position();
         pos->set_segment_no(page.position.segment_no);
         pos->set_page_no(page.position.page_no);
         msg_.set_data(page.data.data(), page.data.size());
-        next_pos_ = wal::Position{
-          .segment_no = page.position.segment_no,
-          .page_no = page.position.page_no + 1,
-        };
-        followers_->Update(token_, next_pos_);
 
         write_pending_ = true;
         StartWrite(&msg_);
@@ -99,6 +108,21 @@ private:
         if (!write_ok_ || cancelled_) {
           Finish(grpc::Status::OK);
           co_return;
+        }
+
+        if (completed) {
+          // immutable page: never re-read it again
+          next_pos_ = wal::Position{
+            .segment_no = page.position.segment_no,
+            .page_no = page.position.page_no + 1,
+          };
+          followers_->Update(token_, next_pos_);
+          tail_sent_size_ = -1;
+        } else {
+          // still-growing tail: re-read this same page on the next poll
+          next_pos_ = page.position;
+          tail_sent_size_ = static_cast<int64_t>(page.data.size());
+          break;
         }
       }
 
@@ -124,6 +148,9 @@ private:
   const std::chrono::milliseconds poll_interval_;
   const replication::FollowerRegistry::Ptr followers_;
   const replication::FollowerRegistry::Token token_;
+
+  // size of the in-progress tail page last shipped at next_pos_, or -1
+  int64_t tail_sent_size_{-1};
 
   ::structuredb::v1::WalPage msg_{};
   io::ConditionVariable write_done_cv_;

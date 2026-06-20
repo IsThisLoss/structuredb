@@ -1,6 +1,5 @@
 #include "follower.hpp"
 
-#include <algorithm>
 #include <chrono>
 #include <cstdint>
 #include <filesystem>
@@ -20,6 +19,7 @@
 #include <wal/events/event.hpp>
 #include <wal/events/io.hpp>
 #include <wal/segment.hpp>
+#include <wal/wal.hpp>
 
 namespace fs = std::filesystem;
 
@@ -31,24 +31,26 @@ constexpr auto kReconnectBackoff = std::chrono::seconds{1};
 
 /// @brief first WAL segment the follower still needs from the leader
 ///
-/// Empty segments (the trailing one the local WAL writer pre-creates) are
-/// ignored, so streaming resumes exactly after the last mirrored page.
+/// Returns the lowest segment number that is missing or not yet complete. A
+/// complete segment is exactly kWalPageSize bytes and immutable; a shorter
+/// (or absent) one may have been received only partially and must be
+/// re-requested so the leader resends its current contents.
 int64_t DetectResumeSegment(const std::string& wal_dir) {
   std::error_code ec;
   if (!fs::exists(wal_dir, ec)) {
     return 0;
   }
-  int64_t next = 0;
-  for (const auto& entry : fs::directory_iterator(wal_dir, ec)) {
-    if (!entry.is_regular_file() || entry.file_size(ec) == 0) {
-      continue;
+  int64_t seg = 0;
+  while (true) {
+    const auto path = std::format("{}/{:04d}.wal.sdb", wal_dir, seg);
+    if (!fs::exists(path, ec)) {
+      return seg;
     }
-    const auto seg = wal::GetSegmentNoFromName(entry.path().filename().string());
-    if (seg >= 0) {
-      next = std::max(next, seg + 1);
+    if (static_cast<int64_t>(fs::file_size(path, ec)) < wal::kWalPageSize) {
+      return seg;
     }
+    ++seg;
   }
-  return next;
 }
 
 void MirrorPage(const std::string& wal_dir, int64_t segment_no, const std::string& data) {

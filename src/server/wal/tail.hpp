@@ -18,13 +18,14 @@ struct WalPageData {
 /// @brief returns true if @p lhs is ordered before @p rhs
 bool operator<(const Position& lhs, const Position& rhs);
 
-/// @brief collects stable WAL pages with position >= @p from
+/// @brief collects WAL pages with position >= @p from in ascending order
 ///
-/// Only completed segments are returned: the highest-numbered segment is
-/// assumed to be the one currently being written and is skipped so that
-/// partially flushed pages are never shipped to followers. Pages are
-/// returned in ascending position order.
-Awaitable<std::vector<WalPageData>> CollectStablePages(
+/// Includes the current, not-yet-completed page of the in-progress segment so
+/// that freshly written records ship without waiting for a segment to fill. A
+/// completed page is exactly kWalPageSize bytes and immutable; a shorter page
+/// is still growing and will be re-read on subsequent calls. Callers rely on
+/// follower-side idempotency to re-apply a growing tail page safely.
+Awaitable<std::vector<WalPageData>> CollectPagesFrom(
     io::Manager& io_manager,
     const std::string& wal_dir_path,
     Position from
