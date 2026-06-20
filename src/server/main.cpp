@@ -17,6 +17,7 @@
 #include <services/transaction_service/transaction_service.hpp>
 #include <services/replication_service/replication_service.hpp>
 #include <replication/follower.hpp>
+#include <replication/follower_registry.hpp>
 
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/use_future.hpp>
@@ -98,10 +99,11 @@ int main(int argc, char** argv) {
     const auto transaction_service = structuredb::server::services::MakeTransactionService(io_manager, database);
     builder.RegisterService(transaction_service.get());
 
+    const auto followers = std::make_shared<structuredb::server::replication::FollowerRegistry>();
     std::unique_ptr<grpc::Service> replication_service;
     if (config.replication.role == structuredb::server::cfg::ReplicationRole::kLeader) {
       replication_service = structuredb::server::services::MakeReplicationService(
-          io_manager, config.root + "/wal", config.replication.poll_interval);
+          io_manager, config.root + "/wal", config.replication.poll_interval, followers);
       builder.RegisterService(replication_service.get());
       SPDLOG_INFO("Replication: serving as leader");
     }
@@ -123,7 +125,7 @@ int main(int argc, char** argv) {
     structuredb::server::database::JobLauncher job_launcher{io_manager};
     job_launcher.Launch(std::make_shared<structuredb::server::database::Compaction>(database, config.compaction.interval));
     job_launcher.Launch(std::make_shared<structuredb::server::database::Flush>(database, config.flush.interval));
-    job_launcher.Launch(std::make_shared<structuredb::server::database::WalCleaner>(io_manager, database, config.root + "/wal", config.wal.clean.interval));
+    job_launcher.Launch(std::make_shared<structuredb::server::database::WalCleaner>(io_manager, database, config.root + "/wal", config.wal.clean.interval, followers));
 
     // follower: stream and apply the leader's WAL on a dedicated thread
     std::unique_ptr<std::thread> follower_thread;

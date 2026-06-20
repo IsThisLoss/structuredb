@@ -33,12 +33,15 @@ public:
       io::Manager& io_manager,
       std::string wal_dir_path,
       wal::Position from,
-      std::chrono::milliseconds poll_interval
+      std::chrono::milliseconds poll_interval,
+      replication::FollowerRegistry::Ptr followers
   )
     : io_manager_{io_manager}
     , wal_dir_path_{std::move(wal_dir_path)}
     , next_pos_{from}
     , poll_interval_{poll_interval}
+    , followers_{std::move(followers)}
+    , token_{followers_->Register(from)}
     , write_done_cv_{io_manager.Context()}
   {
     io_manager_.CoSpawn([this]() -> Awaitable<void> { co_await Pump(); });
@@ -60,6 +63,7 @@ public:
   }
 
   void OnDone() override {
+    followers_->Unregister(token_);
     delete this;
   }
 
@@ -86,6 +90,7 @@ private:
           .segment_no = page.position.segment_no,
           .page_no = page.position.page_no + 1,
         };
+        followers_->Update(token_, next_pos_);
 
         write_pending_ = true;
         StartWrite(&msg_);
@@ -117,6 +122,8 @@ private:
   const std::string wal_dir_path_;
   wal::Position next_pos_;
   const std::chrono::milliseconds poll_interval_;
+  const replication::FollowerRegistry::Ptr followers_;
+  const replication::FollowerRegistry::Token token_;
 
   ::structuredb::v1::WalPage msg_{};
   io::ConditionVariable write_done_cv_;
@@ -130,11 +137,13 @@ private:
 ReplicationServiceImpl::ReplicationServiceImpl(
     io::Manager& io_manager,
     std::string wal_dir_path,
-    std::chrono::milliseconds poll_interval
+    std::chrono::milliseconds poll_interval,
+    replication::FollowerRegistry::Ptr followers
 )
   : io_manager_{io_manager}
   , wal_dir_path_{std::move(wal_dir_path)}
   , poll_interval_{poll_interval}
+  , followers_{std::move(followers)}
 {}
 
 grpc::ServerWriteReactor<::structuredb::v1::WalPage>* ReplicationServiceImpl::GetEvents(
@@ -146,15 +155,17 @@ grpc::ServerWriteReactor<::structuredb::v1::WalPage>* ReplicationServiceImpl::Ge
     .page_no = request->from().page_no(),
   };
   SPDLOG_INFO("Replication: follower attached from segment {}, page {}", from.segment_no, from.page_no);
-  return new GetEventsReactor{io_manager_, wal_dir_path_, from, poll_interval_};
+  return new GetEventsReactor{io_manager_, wal_dir_path_, from, poll_interval_, followers_};
 }
 
 std::unique_ptr<grpc::Service> MakeReplicationService(
     io::Manager& io_manager,
     std::string wal_dir_path,
-    std::chrono::milliseconds poll_interval
+    std::chrono::milliseconds poll_interval,
+    replication::FollowerRegistry::Ptr followers
 ) {
-  return std::make_unique<ReplicationServiceImpl>(io_manager, std::move(wal_dir_path), poll_interval);
+  return std::make_unique<ReplicationServiceImpl>(
+      io_manager, std::move(wal_dir_path), poll_interval, std::move(followers));
 }
 
 }
