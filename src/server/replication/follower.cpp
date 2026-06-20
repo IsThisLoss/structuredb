@@ -2,9 +2,6 @@
 
 #include <chrono>
 #include <cstdint>
-#include <filesystem>
-#include <format>
-#include <fstream>
 #include <string>
 #include <thread>
 #include <vector>
@@ -18,10 +15,7 @@
 #include <sdb/buffer_reader.hpp>
 #include <wal/events/event.hpp>
 #include <wal/events/io.hpp>
-#include <wal/segment.hpp>
-#include <wal/wal.hpp>
-
-namespace fs = std::filesystem;
+#include <wal/tail.hpp>
 
 namespace structuredb::server::replication {
 
@@ -29,37 +23,21 @@ namespace {
 
 constexpr auto kReconnectBackoff = std::chrono::seconds{1};
 
-/// @brief first WAL segment the follower still needs from the leader
+/// @brief mirrors a received page into the local WAL and applies its events
 ///
-/// Returns the lowest segment number that is missing or not yet complete. A
-/// complete segment is exactly kWalPageSize bytes and immutable; a shorter
-/// (or absent) one may have been received only partially and must be
-/// re-requested so the leader resends its current contents.
-int64_t DetectResumeSegment(const std::string& wal_dir) {
-  std::error_code ec;
-  if (!fs::exists(wal_dir, ec)) {
-    return 0;
-  }
-  int64_t seg = 0;
-  while (true) {
-    const auto path = std::format("{}/{:04d}.wal.sdb", wal_dir, seg);
-    if (!fs::exists(path, ec)) {
-      return seg;
-    }
-    if (static_cast<int64_t>(fs::file_size(path, ec)) < wal::kWalPageSize) {
-      return seg;
-    }
-    ++seg;
-  }
-}
+/// Mirroring first keeps the follower's durability identical to a standalone
+/// node: a crash replays the page through normal recovery. All file I/O goes
+/// through the async io::Manager; the (blocking) gRPC stream read stays on the
+/// follower thread and dispatches this coroutine onto the io_context.
+Awaitable<void> ProcessPage(
+    io::Manager& io_manager,
+    database::Database& db,
+    const std::string& wal_dir_path,
+    int64_t segment_no,
+    std::string data
+) {
+  co_await wal::WriteReceivedPage(io_manager, wal_dir_path, segment_no, data);
 
-void MirrorPage(const std::string& wal_dir, int64_t segment_no, const std::string& data) {
-  const auto path = std::format("{}/{:04d}.wal.sdb", wal_dir, segment_no);
-  std::ofstream out{path, std::ios::binary | std::ios::trunc};
-  out.write(data.data(), static_cast<std::streamsize>(data.size()));
-}
-
-Awaitable<void> ApplyPageEvents(database::Database& db, std::string data) {
   sdb::BufferReader reader{std::vector<char>{data.begin(), data.end()}};
   while (reader.HasMore()) {
     wal::Event::Ptr event;
@@ -94,20 +72,21 @@ void Follower::Run() {
 
   while (true) {
     try {
-      const int64_t from_segment = DetectResumeSegment(wal_dir_path_);
+      const int64_t from_segment = io_manager_.RunSync(
+          wal::NextSegmentToFetch(io_manager_, wal_dir_path_));
       SPDLOG_INFO("Replication: requesting WAL from segment {}", from_segment);
 
       grpc::ClientContext context;
       ::structuredb::v1::GetEventsRequest request;
-      request.mutable_from()->set_segment_no(from_segment);
-      request.mutable_from()->set_page_no(0);
+      auto* from = request.mutable_from();
+      from->set_segment_no(from_segment);
+      from->set_page_no(0);
 
       auto reader = stub->GetEvents(&context, request);
       ::structuredb::v1::WalPage page;
       while (reader->Read(&page)) {
         const int64_t segment_no = page.position().segment_no();
-        MirrorPage(wal_dir_path_, segment_no, page.data());
-        io_manager_.RunSync(ApplyPageEvents(db_, page.data()));
+        io_manager_.RunSync(ProcessPage(io_manager_, db_, wal_dir_path_, segment_no, page.data()));
         SPDLOG_DEBUG("Replication: applied WAL segment {}", segment_no);
       }
       const auto status = reader->Finish();

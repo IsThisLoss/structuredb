@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <string>
 #include <vector>
 #include <boost/asio/co_spawn.hpp>
@@ -24,6 +25,9 @@ public:
   Awaitable<void> CreateDirectory(const std::string& path);
 
   Awaitable<std::vector<std::string>> ListDirectory(const std::string& path);
+
+  /// @brief size of @p path in bytes, or -1 if it does not exist
+  Awaitable<int64_t> FileSize(const std::string& path);
 
   Awaitable<void> Remove(const std::string& path);
 

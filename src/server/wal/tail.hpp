@@ -28,7 +28,28 @@ bool operator<(const Position& lhs, const Position& rhs);
 Awaitable<std::vector<WalPageData>> CollectPagesFrom(
     io::Manager& io_manager,
     const std::string& wal_dir_path,
-    Position from
+    const Position from
+);
+
+/// @brief lowest segment number that is missing or not yet complete
+///
+/// A complete segment is exactly kWalPageSize bytes and immutable; a shorter
+/// (or absent) one may have been received only partially. Used by a follower
+/// to decide where to resume streaming after a restart.
+Awaitable<int64_t> NextSegmentToFetch(
+    io::Manager& io_manager,
+    const std::string& wal_dir_path
+);
+
+/// @brief writes a received raw WAL page to its segment file (truncating)
+///
+/// Mirrors a page streamed from the leader into the local WAL so that normal
+/// recovery replays it on restart. Assumes one page per segment.
+Awaitable<void> WriteReceivedPage(
+    io::Manager& io_manager,
+    const std::string& wal_dir_path,
+    int64_t segment_no,
+    const std::string& data
 );
 
 }

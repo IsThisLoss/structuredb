@@ -4,8 +4,6 @@ StructureDB supports **asynchronous, leader → follower** replication by shippi
 WAL pages. A leader accepts writes; followers are read-only and continuously
 stream and apply the leader's write-ahead log.
 
-For the design and rationale see [`replication-plan.md`](replication-plan.md).
-
 ## Configuration
 
 Add a `replication` section to `config.yaml`.

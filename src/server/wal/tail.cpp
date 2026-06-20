@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <format>
 #include <string>
 #include <vector>
 
@@ -73,6 +74,33 @@ Awaitable<std::vector<WalPageData>> CollectPagesFrom(
   }
 
   co_return result;
+}
+
+Awaitable<int64_t> NextSegmentToFetch(
+    io::Manager& io_manager,
+    const std::string& wal_dir_path
+) {
+  int64_t segment_no = 0;
+  while (true) {
+    const auto path = std::format("{}/{:04d}.wal.sdb", wal_dir_path, segment_no);
+    const auto size = co_await io_manager.FileSize(path);
+    if (size < 0 || size < kWalPageSize) {
+      co_return segment_no;
+    }
+    ++segment_no;
+  }
+}
+
+Awaitable<void> WriteReceivedPage(
+    io::Manager& io_manager,
+    const std::string& wal_dir_path,
+    int64_t segment_no,
+    const std::string& data
+) {
+  const auto path = std::format("{}/{:04d}.wal.sdb", wal_dir_path, segment_no);
+  auto writer = co_await io_manager.CreateFileWriter(path, /*append=*/false);
+  co_await writer->Write(data.data(), data.size());
+  co_await writer->FSync();
 }
 
 }

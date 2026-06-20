@@ -200,8 +200,7 @@ StructureDB supports asynchronous leader → follower replication by shipping WA
 pages: followers are read-only and continuously stream and apply the leader's
 write-ahead log. Configure it via the `replication` section of `config.yaml`.
 See [`docs/replication.md`](docs/replication.md) for setup, bootstrapping and
-promotion, and [`docs/replication-plan.md`](docs/replication-plan.md) for the
-design.
+promotion.
 
 ## License
 

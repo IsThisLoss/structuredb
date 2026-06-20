@@ -1,5 +1,6 @@
 #include "manager.hpp"
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <vector>
@@ -61,6 +62,18 @@ Awaitable<void> Manager::Remove(const std::string& path) {
   co_await blocking_executor_.Execute([&]() {
       std::filesystem::remove(path);
   });
+}
+
+Awaitable<int64_t> Manager::FileSize(const std::string& path) {
+  const auto result = co_await blocking_executor_.Execute([&]() -> int64_t {
+      std::error_code ec;
+      const auto size = std::filesystem::file_size(path, ec);
+      if (ec) {
+        return -1;
+      }
+      return static_cast<int64_t>(size);
+  });
+  co_return result;
 }
 
 boost::asio::io_context& Manager::Context() {
