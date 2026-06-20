@@ -58,31 +58,45 @@ Leader не обязан знать о followers заранее — ложитс
 
 ## 4. Протокол (изменения в `proto/replication_service.proto`)
 
-Нужен монотонный курсор для возобновления после реконнекта. Базируемся на
-существующем `wal::Position{segment_no, page_no}`, расширенном смещением внутри страницы.
+**Решение: физический log-shipping (пересылка сырых WAL-страниц), а не логический
+oneof по типам событий.**
+
+Обоснование:
+- WAL уже сериализует события (`FlushEvent`) и десериализует (`ParseEvent`, `Recover`).
+  Пересылая сырые страницы, мы переиспользуем этот код целиком и **не дублируем**
+  каждый тип события в proto и в конвертерах туда-обратно.
+- Поля `Event` приватны и без геттеров — логическая конвертация на leader потребовала бы
+  ломать инкапсуляцию. Сырые байты этого не требуют.
+- Новые типы событий и DDL реплицируются автоматически (DDL = upsert в `sys_tables`).
+- Follower записывает полученные страницы в свой WAL «как есть» → его recovery на рестарте
+  работает тем же кодом, что и обычный recovery.
+
+Курсор для возобновления: `wal::Position{segment_no, page_no}` (при `kMaxPagesInSegment = 1`
+сегмент = одна страница). Гранулярность возобновления — страница; повторная отправка
+страницы при реконнекте безопасна за счёт идемпотентности `Apply` (см. §6).
 
 ```proto
 message ReplPosition {
   int64 segment_no = 1;
   int64 page_no    = 2;
-  int64 offset     = 3;   // смещение внутри страницы
 }
 
 message GetEventsRequest {
   ReplPosition from = 1;   // было пусто; follower возобновляется с этой позиции
 }
 
-message WalEvent {
-  ReplPosition position = 1;   // НОВОЕ: курсор события
-  oneof event {
-    LsmStorageUpsertEvent lsm_storage_upsert_event = 2;
-    TxStorageCommitEvent  tx_storage_commit_event  = 3;   // НОВОЕ: сохранить tx-границы
-  }
+message WalPage {
+  ReplPosition position = 1;   // позиция страницы в WAL
+  bytes        data     = 2;   // сырые байты страницы (sdb-формат, как в WAL-файле)
+}
+
+service Replication {
+  rpc GetEvents(GetEventsRequest) returns (stream WalPage) {}
 }
 ```
 
-Добавление `TxStorageCommitEvent` в `oneof` обязательно: без него теряются
-транзакционные границы. Реплика применяет upsert'ы и commit в том же порядке, что и leader.
+Транзакционные границы сохраняются автоматически: страница содержит события (включая
+`TxStorageCommitEvent`) в том же порядке и тех же байтах, что и в WAL leader'а.
 
 ## 5. Компоненты для реализации
 
