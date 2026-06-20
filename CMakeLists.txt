@@ -21,3 +21,4 @@ add_subdirectory(src/cli)
 add_subdirectory(src/sdb_viewer)
 
 add_subdirectory(tests/server)
+add_subdirectory(tests/integration)

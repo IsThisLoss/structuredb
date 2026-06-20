@@ -1,0 +1,7 @@
+# Python integration-test framework dependencies.
+# Pinned loosely; CMake/run_tests.py installs these into a local venv.
+grpcio>=1.60,<2
+grpcio-tools>=1.60,<2
+protobuf>=4.25
+pytest>=7.4
+PyYAML>=6.0
