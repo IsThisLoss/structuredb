@@ -10,7 +10,7 @@ namespace structuredb::server::services {
 
 class TableServiceImpl : public ::structuredb::v1::Tables::CallbackService {
 public:
-  explicit TableServiceImpl(io::Manager& io_manager, database::Database& db);
+  explicit TableServiceImpl(io::Manager& io_manager, database::Database& db, bool read_only = false);
 
   grpc::ServerUnaryReactor* Upsert(
       grpc::CallbackServerContext* context,
@@ -57,11 +57,13 @@ public:
 private:
   io::Manager& io_manager_;
   database::Database& database_;
+  const bool read_only_;
 };
 
 std::unique_ptr<grpc::Service> MakeService(
   io::Manager& io_manager,
-  database::Database& db
+  database::Database& db,
+  bool read_only = false
 );
 
 }

@@ -90,7 +90,9 @@ int main(int argc, char** argv) {
     structuredb::server::database::Database database{io_manager, config.root, lsm_options};
     auto init_future = boost::asio::co_spawn(io_context, Init(database), boost::asio::use_future);
 
-    const auto table_service = structuredb::server::services::MakeService(io_manager, database);
+    const bool read_only =
+        config.replication.role == structuredb::server::cfg::ReplicationRole::kFollower;
+    const auto table_service = structuredb::server::services::MakeService(io_manager, database, read_only);
     builder.RegisterService(table_service.get());
 
     const auto transaction_service = structuredb::server::services::MakeTransactionService(io_manager, database);
