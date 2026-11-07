@@ -15,7 +15,7 @@
 #include <replication_service.grpc.pb.h>
 
 #include <io/condition_variable.hpp>
-#include <io/delay.hpp>
+#include <io/sleep.hpp>
 #include <sdb/buffer_reader.hpp>
 #include <wal/events/event.hpp>
 #include <wal/events/io.hpp>
@@ -153,7 +153,7 @@ Awaitable<void> Follower::Run() {
     } catch (const std::exception& e) {
       SPDLOG_ERROR("Replication: follower error: {}", e.what());
     }
-    co_await io::Delay(kReconnectBackoff);
+    co_await io::SleepFor(kReconnectBackoff);
   }
 }
 

@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+#include <utility>
 #include <spdlog/spdlog.h>
 
 #include <database/database.hpp>
@@ -18,13 +19,13 @@ LsmStorageUpsertEvent::LsmStorageUpsertEvent(
 {}
 
 Event::Ptr LsmStorageUpsertEvent::Parse(sdb::Reader& reader) {
-  auto result = std::make_unique<LsmStorageUpsertEvent>(
-    reader.ReadString(),
-    reader.ReadInt(),
-    reader.ReadString(),
-    reader.ReadString()
-  );
-  return result;
+  // Reads advance the same cursor; function argument evaluation order is unspecified.
+  auto storage_id = reader.ReadString();
+  const auto seq_no = reader.ReadInt();
+  auto key = reader.ReadString();
+  auto value = reader.ReadString();
+  return std::make_unique<LsmStorageUpsertEvent>(
+      std::move(storage_id), seq_no, std::move(key), std::move(value));
 }
 
 EventType LsmStorageUpsertEvent::GetType() const {
