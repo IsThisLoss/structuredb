@@ -80,3 +80,25 @@ def test_multiple_followers_converge(make_cluster):
         cluster.follower_client(follower_index).wait_for_value(
             "accounts", "alice", "100"
         )
+
+
+def test_follower_reconnects_after_leader_restart(make_cluster):
+    from sdb_testkit import wait_until
+
+    cluster = make_cluster(followers=1)
+    leader = cluster.leader_client
+    follower = cluster.follower_client()
+    leader.create_table("accounts")
+    leader.upsert("accounts", "alice", "100")
+    follower.wait_for_value("accounts", "alice", "100")
+
+    cluster.leader.stop()
+    wait_until(
+        lambda: "Replication: stream ended" in cluster.followers[0].log_tail(),
+        message="follower did not notice leader disconnect",
+    )
+    # This RPC needs the follower's event loop while its retry timer is pending.
+    assert follower.get("accounts", "alice") == "100"
+    cluster.leader.start()
+    leader.upsert("accounts", "alice", "250")
+    follower.wait_for_value("accounts", "alice", "250", timeout=20)

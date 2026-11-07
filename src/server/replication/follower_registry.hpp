@@ -2,7 +2,6 @@
 
 #include <cstdint>
 #include <memory>
-#include <mutex>
 #include <optional>
 #include <unordered_map>
 
@@ -17,6 +16,7 @@ namespace structuredb::server::replication {
 /// has been sent (the pull protocol carries no acknowledgements), so a follower
 /// that disconnects before persisting may have to re-bootstrap from a snapshot
 /// — consistent with the asynchronous replication guarantees.
+/// All operations must run on the single-threaded server io_context.
 class FollowerRegistry {
 public:
   using Ptr = std::shared_ptr<FollowerRegistry>;
@@ -38,7 +38,6 @@ public:
   std::optional<int64_t> MinRetainedSegment() const;
 
 private:
-  mutable std::mutex mutex_;
   Token next_token_{0};
   std::unordered_map<Token, wal::Position> positions_;
 };
