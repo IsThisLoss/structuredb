@@ -23,8 +23,8 @@ public:
       std::string wal_dir_path
   );
 
-  /// @brief blocking reconnect loop; intended to run on a dedicated thread
-  void Run();
+  /// @brief asynchronous stream and reconnect loop on the server io_context
+  Awaitable<void> Run();
 
 private:
   io::Manager& io_manager_;

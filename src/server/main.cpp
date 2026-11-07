@@ -127,13 +127,13 @@ int main(int argc, char** argv) {
     job_launcher.Launch(std::make_shared<structuredb::server::database::Flush>(database, config.flush.interval));
     job_launcher.Launch(std::make_shared<structuredb::server::database::WalCleaner>(io_manager, database, config.root + "/wal", config.wal.clean.interval, followers));
 
-    // follower: stream and apply the leader's WAL on a dedicated thread
-    std::unique_ptr<std::thread> follower_thread;
+    // follower: stream and apply the leader's WAL on the io_context
     if (config.replication.role == structuredb::server::cfg::ReplicationRole::kFollower) {
       auto follower = std::make_shared<structuredb::server::replication::Follower>(
           io_manager, database, config.replication.leader_address, config.root + "/wal");
-      follower_thread = std::make_unique<std::thread>([follower]() { follower->Run(); });
-      follower_thread->detach();
+      io_manager.CoSpawn([follower]() -> structuredb::server::Awaitable<void> {
+        co_await follower->Run();
+      });
       SPDLOG_INFO("Replication: serving as follower of {}", config.replication.leader_address);
     }
 

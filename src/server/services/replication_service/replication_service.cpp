@@ -42,7 +42,6 @@ public:
     , next_pos_{from}
     , poll_interval_{poll_interval}
     , followers_{std::move(followers)}
-    , token_{followers_->Register(from)}
     , write_done_cv_{io_manager.Context()}
   {
     io_manager_.CoSpawn([this]() -> Awaitable<void> { co_await Pump(); });
@@ -64,8 +63,12 @@ public:
   }
 
   void OnDone() override {
-    followers_->Unregister(token_);
-    delete this;
+    // Callbacks post their state changes to the io_context. Delete there too,
+    // after any previously posted callbacks have finished using the reactor.
+    boost::asio::post(io_manager_.Context(), [this]() {
+      followers_->Unregister(token_);
+      delete this;
+    });
   }
 
 private:
@@ -76,6 +79,7 @@ private:
   }
 
   Awaitable<void> Pump() {
+    token_ = followers_->Register(next_pos_);
     while (!cancelled_) {
       std::vector<wal::WalPageData> pages;
       try {
@@ -84,14 +88,23 @@ private:
         SPDLOG_ERROR("Replication: failed to read WAL: {}", e.what());
       }
 
-      for (auto& page : pages) {
+      for (size_t index = 0; index < pages.size(); ++index) {
+        auto& page = pages[index];
+        const bool has_next_segment = index + 1 < pages.size()
+            && pages[index + 1].position.segment_no > page.position.segment_no;
         if (cancelled_) {
           break;
         }
 
         const bool completed = static_cast<int64_t>(page.data.size()) == wal::kWalPageSize;
         if (!completed && IsAlreadySentTail(page)) {
-          // in-progress page unchanged since last poll; nothing new to ship
+          // A later segment means this partial tail can no longer grow.
+          if (has_next_segment) {
+            next_pos_ = pages[index + 1].position;
+            followers_->Update(token_, next_pos_);
+            tail_sent_size_ = -1;
+            continue;
+          }
           break;
         }
 
@@ -119,6 +132,12 @@ private:
           followers_->Update(token_, next_pos_);
           tail_sent_size_ = -1;
         } else {
+          if (has_next_segment) {
+            next_pos_ = pages[index + 1].position;
+            followers_->Update(token_, next_pos_);
+            tail_sent_size_ = -1;
+            continue;
+          }
           // still-growing tail: re-read this same page on the next poll
           next_pos_ = page.position;
           tail_sent_size_ = static_cast<int64_t>(page.data.size());
@@ -147,7 +166,7 @@ private:
   wal::Position next_pos_;
   const std::chrono::milliseconds poll_interval_;
   const replication::FollowerRegistry::Ptr followers_;
-  const replication::FollowerRegistry::Token token_;
+  replication::FollowerRegistry::Token token_{};
 
   // size of the in-progress tail page last shipped at next_pos_, or -1
   int64_t tail_sent_size_{-1};
