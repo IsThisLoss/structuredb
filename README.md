@@ -65,7 +65,7 @@ Source layout:
 | `src/sdb_viewer/` | Tool to inspect persisted `.sdb` files |
 | `proto/` | Protocol Buffer definitions |
 
-A deeper architectural overview lives in [`CLAUDE.md`](CLAUDE.md).
+Contributor guidance lives in [`AGENTS.md`](AGENTS.md).
 
 ## Requirements
 
