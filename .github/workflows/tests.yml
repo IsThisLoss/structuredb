@@ -13,7 +13,7 @@ concurrency:
 jobs:
   build-and-test:
     name: Build & Test (Debug)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     env:
       BUILD_TYPE: Debug
@@ -53,15 +53,19 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.conan2
-          key: conan-${{ runner.os }}-${{ hashFiles('conanfile.txt') }}
-          restore-keys: |
-            conan-${{ runner.os }}-
+          key: conan-linux-gcc13-release-deps-v1-${{ hashFiles('conanfile.txt', '.github/conan-ci.lock') }}
 
       - name: Install dependencies
         env:
           CC: gcc-13
           CXX: g++-13
-        run: conan install . --build=missing --settings=build_type=${{ env.BUILD_TYPE }}
+        # Conan Center provides Release binaries for the locked graph, including
+        # Boost and gRPC. Keep the project itself in Debug for the tests.
+        run: |
+          conan install . --lockfile=.github/conan-ci.lock --build=missing \
+            -s:a compiler.cppstd=gnu17 \
+            -s:h build_type=${{ env.BUILD_TYPE }} \
+            -s:h '*:build_type=Release' -s:h '&:build_type=Debug'
 
       - name: Configure
         run: cmake --preset conan-debug
