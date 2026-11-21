@@ -70,6 +70,10 @@ protected:
     return *db_;
   }
 
+  server::io::Manager& GetIoManager() { return *io_manager_; }
+
+  const std::string& GetTempDir() const { return tmp_dir_; }
+
   void DoTest(std::function<structuredb::server::Awaitable<void>()> func) {
     io_manager_->RunSync(func());
   }
