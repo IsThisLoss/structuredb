@@ -50,22 +50,32 @@ TEST_F(WalCleanerTest, RemovesOnlyFullyPersistedSegmentsAndHonorsRetention) {
     EXPECT_TRUE(persisted);
     EXPECT_FALSE(pending);
 
-    co_await WriteSegment({1, 51});
-    co_await WriteSegment({51, 52});
-    co_await WriteSegment({52, 51});
-    co_await WriteSegment({51});
-    co_await WriteSegment({});
-    EXPECT_EQ(co_await Segments(), (std::vector<std::string>{
+    // Named containers avoid GCC 13's coroutine handling of braced temporary
+    // arguments and keep their lifetime explicit across suspension.
+    const std::vector<int64_t> persisted_events{1, 51};
+    const std::vector<int64_t> mixed_events{51, 52};
+    const std::vector<int64_t> reversed_mixed_events{52, 51};
+    const std::vector<int64_t> retained_events{51};
+    const std::vector<int64_t> empty_events;
+    co_await WriteSegment(persisted_events);
+    co_await WriteSegment(mixed_events);
+    co_await WriteSegment(reversed_mixed_events);
+    co_await WriteSegment(retained_events);
+    co_await WriteSegment(empty_events);
+    auto segments = co_await Segments();
+    EXPECT_EQ(segments, (std::vector<std::string>{
         "0000.wal.sdb", "0001.wal.sdb", "0002.wal.sdb", "0003.wal.sdb", "0004.wal.sdb"}));
 
     co_await server::wal::Clean(GetIoManager(), wal_dir_, db, 3);
-    EXPECT_EQ(co_await Segments(), (std::vector<std::string>{
+    segments = co_await Segments();
+    EXPECT_EQ(segments, (std::vector<std::string>{
         "0001.wal.sdb", "0002.wal.sdb", "0003.wal.sdb", "0004.wal.sdb"}));
 
     // Removing the follower's retention boundary releases segment 3, while
     // both orderings of mixed persistence still prevent deletion.
     co_await server::wal::Clean(GetIoManager(), wal_dir_, db);
-    EXPECT_EQ(co_await Segments(), (std::vector<std::string>{
+    segments = co_await Segments();
+    EXPECT_EQ(segments, (std::vector<std::string>{
         "0001.wal.sdb", "0002.wal.sdb", "0004.wal.sdb"}));
 
     for (int64_t seq = 53; seq <= 102; ++seq) {
@@ -75,7 +85,8 @@ TEST_F(WalCleanerTest, RemovesOnlyFullyPersistedSegmentsAndHonorsRetention) {
     const bool now_persisted = co_await storage->IsPersistent(52);
     EXPECT_TRUE(now_persisted);
     co_await server::wal::Clean(GetIoManager(), wal_dir_, db);
-    EXPECT_EQ(co_await Segments(), (std::vector<std::string>{"0004.wal.sdb"}));
+    segments = co_await Segments();
+    EXPECT_EQ(segments, (std::vector<std::string>{"0004.wal.sdb"}));
   });
 }
 
