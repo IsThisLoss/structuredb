@@ -12,8 +12,10 @@ message ReplPosition {
 
 message GetEventsRequest {
   // Resume streaming from this position (inclusive).
-  // A fresh follower passes the zero position to receive everything
-  // still retained in the leader's WAL.
+  // A fresh follower passes the zero position. If a required segment is
+  // missing before a retained segment, the stream fails with
+  // FAILED_PRECONDITION and "snapshot required" instead of skipping it.
+  // Only nonnegative segment numbers and page_no == 0 are supported.
   ReplPosition from = 1;
 }
 

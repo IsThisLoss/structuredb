@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -15,11 +16,17 @@ struct WalPageData {
   std::vector<char> data{};
 };
 
+class MissingSegment : public std::runtime_error {
+public:
+  using std::runtime_error::runtime_error;
+};
+
 /// @brief returns true if @p lhs is ordered before @p rhs
 bool operator<(const Position& lhs, const Position& rhs);
 
 /// @brief collects WAL pages with position >= @p from in ascending order
 ///
+/// Throws MissingSegment if a later segment exists after a missing segment.
 /// Includes the current, not-yet-completed page of the in-progress segment so
 /// that freshly written records ship without waiting for a segment to fill. A
 /// completed page is exactly kWalPageSize bytes and immutable; a shorter page

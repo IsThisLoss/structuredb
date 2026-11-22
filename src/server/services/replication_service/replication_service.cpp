@@ -80,12 +80,22 @@ private:
 
   Awaitable<void> Pump() {
     token_ = followers_->Register(next_pos_);
+    if (next_pos_.segment_no < 0 || next_pos_.page_no != 0) {
+      Finish(grpc::Status{grpc::StatusCode::INVALID_ARGUMENT, "invalid WAL position"});
+      co_return;
+    }
     while (!cancelled_) {
       std::vector<wal::WalPageData> pages;
       try {
         pages = co_await wal::CollectPagesFrom(io_manager_, wal_dir_path_, next_pos_);
+      } catch (const wal::MissingSegment& e) {
+        SPDLOG_ERROR("Replication: {}", e.what());
+        Finish(grpc::Status{grpc::StatusCode::FAILED_PRECONDITION, e.what()});
+        co_return;
       } catch (const std::exception& e) {
         SPDLOG_ERROR("Replication: failed to read WAL: {}", e.what());
+        Finish(grpc::Status{grpc::StatusCode::INTERNAL, "failed to read WAL"});
+        co_return;
       }
 
       for (size_t index = 0; index < pages.size(); ++index) {
@@ -126,8 +136,8 @@ private:
         if (completed) {
           // immutable page: never re-read it again
           next_pos_ = wal::Position{
-            .segment_no = page.position.segment_no,
-            .page_no = page.position.page_no + 1,
+            .segment_no = page.position.segment_no + 1,
+            .page_no = 0,
           };
           followers_->Update(token_, next_pos_);
           tail_sent_size_ = -1;
