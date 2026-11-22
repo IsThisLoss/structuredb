@@ -32,51 +32,71 @@ A follower:
   `FAILED_PRECONDITION` ("replica is read-only");
 - still serves `Lookup` / `Scan` locally;
 - resumes from the first locally-incomplete WAL segment after a restart, so it
-  catches up on anything written while it was offline.
+  requests that segment again after reconnecting.
 
 DDL replicates over the same stream: a table created on the leader is
 materialized on the follower the first time one of its rows is applied.
 
 ## Guarantees
 
-Replication is **asynchronous**: a write is acknowledged to the client before it
-is shipped. On leader loss the unshipped WAL tail can be lost, and followers are
-eventually consistent. There is no automatic failover or quorum.
+Replication is **asynchronous**: a write can be acknowledged to the client
+before it is shipped. On leader loss the unshipped WAL tail can be lost. There
+is no automatic failover or quorum.
+
+The replication protocol currently has no cluster ID, node ID, history or
+leader epoch, version negotiation, record checksum, or durable follower
+acknowledgement. It does not verify that a follower has joined the intended
+cluster or history, or expose separate received, durable, and applied
+positions. Operators must not assume that reconnecting to another leader is
+safe, or use the stream's sent position as evidence that a follower has
+persisted or applied data. Replication does not currently provide a
+crash-consistent snapshot or a verified promotion procedure.
+
+The wire position is an inclusive `(segment_no, page_no)` pair; only
+nonnegative segment numbers and page zero are supported because the current WAL
+uses one page per segment. A stream sends the raw page bytes, including a
+possibly growing partial tail, and may send the same partial page again.
+These bytes use the existing WAL event encoding, with zero padding when a page
+is filled; there is no independent record framing or integrity check on the
+wire. The follower overwrites and fsyncs each received page before applying its
+events. Reconnect starts at the first local missing or incomplete segment,
+which may replay a partial page. This is not an acknowledged applied-position
+checkpoint, and does not guarantee correct replay under every crash or storage
+failure.
 
 ## WAL retention
 
-The leader retains any persisted WAL segment still needed by a **connected**
-follower (tracked per stream). When no follower is connected, WAL cleaning is
-unconstrained — a follower that has been disconnected long enough for its
-segments to be cleaned must be re-bootstrapped from a snapshot (below).
+The leader's WAL cleaner considers the positions of **connected** followers
+when deciding which persisted segments to retain. Those positions reflect sent
+pages, not follower acknowledgements, and the cleaner's retention decision is
+not synchronized with new streams. When no follower is connected, WAL cleaning
+is unconstrained. A follower that falls behind retention needs a new bootstrap,
+which is not yet supported.
+
+If a requested segment is absent while a later segment is retained, the leader
+terminates the RPC with `FAILED_PRECONDITION` and `snapshot required`; it does
+not stream past the gap. A request with a negative segment or a nonzero page is
+rejected with `INVALID_ARGUMENT`. The current implementation cannot identify a
+missing segment when no later segment remains, or distinguish a request beyond
+the leader's end from a follower waiting for future data. There is no
+automatic snapshot transfer.
 
 ## Bootstrapping a follower
 
-A fresh follower with an empty data directory simply streams from segment 0,
-provided the leader still retains that far back. If the leader has already
-cleaned the early WAL (data compacted into SSTables), seed the follower from a
-copy of the leader's data directory:
-
-1. Stop the follower (if running).
-2. Copy the leader's `root` directory to the follower's `root`
-   (SSTable dirs + `wal/`). Prefer a quiet moment; applies are idempotent, so a
-   slightly inconsistent copy is reconciled by the subsequent WAL stream as long
-   as the copy is newer than the leader's retained WAL floor.
-3. Start the follower. `DetectResumeSegment` picks the first incomplete segment
-   in the copied `wal/` and resumes streaming from there.
+A fresh follower with an empty data directory requests segment 0. This works
+only while the leader retains the required history. There is currently no
+supported snapshot/bootstrap procedure for a follower that has fallen behind
+WAL retention. In particular, copying a live data directory is not a
+consistent snapshot, and copying a directory after WAL cleanup does not supply
+a verified resume position. Stop and investigate a `snapshot required` error;
+do not rely on the follower being complete.
 
 ## Manual promotion (follower → leader)
 
-A follower already holds a complete node state (mirrored WAL + SSTables), so
-promotion is a config change:
-
-1. (Optional) Confirm the follower has caught up.
-2. Stop the follower.
-3. Edit its `config.yaml`: set `replication.role: leader` and drop
-   `leader_address`.
-4. Restart it. Its WAL writer continues numbering after the mirrored segments,
-   and it begins serving writes and the `Replication` stream.
-5. Repoint clients and any remaining followers at the new leader.
+There is no verified promotion or history-fencing protocol. A configuration
+change alone cannot establish that the follower has every acknowledged write
+or prevent another leader from accepting writes. Promotion and repointing
+followers can lose data or join incompatible histories.
 
 ## Quick local two-node demo
 

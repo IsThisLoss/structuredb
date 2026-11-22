@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <format>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <spdlog/spdlog.h>
@@ -61,14 +62,25 @@ Awaitable<std::vector<WalPageData>> CollectPagesFrom(
 ) {
   std::vector<WalPageData> result;
 
-  auto segments = co_await io_manager.ListDirectory(wal_dir_path);
+  auto names = co_await io_manager.ListDirectory(wal_dir_path);
+  std::vector<std::pair<int64_t, std::string>> segments;
+  for (const auto& name : names) {
+    const auto number = GetSegmentNoFromName(name);
+    if (number >= 0) {
+      segments.emplace_back(number, name);
+    }
+  }
   std::ranges::sort(segments);
 
-  for (const auto& segment : segments) {
-    const auto segment_no = GetSegmentNoFromName(segment);
+  int64_t expected_segment = from.segment_no;
+  for (const auto& [segment_no, segment] : segments) {
     if (segment_no < from.segment_no) {
       continue;
     }
+    if (segment_no != expected_segment) {
+      throw MissingSegment{std::format("snapshot required: WAL segment {} is unavailable", expected_segment)};
+    }
+    ++expected_segment;
     const auto segment_path = wal_dir_path + "/" + segment;
     co_await ReadSegmentPages(io_manager, segment_path, segment_no, from, result);
   }
